@@ -25,6 +25,7 @@ model Settings {
   agencyAddress   String   @default("")
   agencyPhone     String   @default("")
   agencyEmail     String   @default("")
+  agencyWebsite   String   @default("")
   logoPath        String?
   stampPath       String?
   defaultCurrency String   @default("JOD")

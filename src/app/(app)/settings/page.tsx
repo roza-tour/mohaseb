@@ -12,6 +12,10 @@ export default async function SettingsPage() {
       <form action={updateSettings} encType="multipart/form-data" className="space-y-6">
         <Card className="p-5 space-y-4">
           <h2 className="font-bold text-slate-800">بيانات الوكالة</h2>
+          <p className="text-xs text-slate-500">
+            تظهر هذه البيانات تلقائياً على كل مستندات PDF الصادرة من النظام: الشعار أعلى الصفحة، والعنوان
+            وأرقام الهواتف والبريد والموقع الإلكتروني في تذييل أنيق أسفل كل صفحة — أدخلها مرة واحدة فقط.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="اسم الوكالة">
               <Input name="agencyName" required defaultValue={settings?.agencyName ?? "وكالة روزا تور السياحية"} />
@@ -24,6 +28,9 @@ export default async function SettingsPage() {
             </Field>
             <Field label="العنوان">
               <Input name="agencyAddress" defaultValue={settings?.agencyAddress ?? ""} />
+            </Field>
+            <Field label="الموقع الإلكتروني">
+              <Input name="agencyWebsite" dir="ltr" placeholder="www.example.com" defaultValue={settings?.agencyWebsite ?? ""} />
             </Field>
             <Field label="العملة الافتراضية">
               <Select name="defaultCurrency" defaultValue={settings?.defaultCurrency ?? "JOD"}>

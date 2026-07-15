@@ -13,6 +13,7 @@ const settingsSchema = z.object({
   agencyAddress: z.string().optional().default(""),
   agencyPhone: z.string().optional().default(""),
   agencyEmail: z.string().optional().default(""),
+  agencyWebsite: z.string().optional().default(""),
   defaultCurrency: z.string().min(1).default("JOD"),
   reminderDaysAhead: z.coerce.number().int().min(0).default(7),
 });
@@ -36,6 +37,7 @@ export async function updateSettings(formData: FormData) {
     agencyAddress: formData.get("agencyAddress"),
     agencyPhone: formData.get("agencyPhone"),
     agencyEmail: formData.get("agencyEmail"),
+    agencyWebsite: formData.get("agencyWebsite"),
     defaultCurrency: formData.get("defaultCurrency"),
     reminderDaysAhead: formData.get("reminderDaysAhead"),
   });

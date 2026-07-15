@@ -1,10 +1,9 @@
 export const runtime = "nodejs";
 
-import fs from "fs";
-import path from "path";
 import { NextResponse } from "next/server";
-import { Document, Page, Text, View, Image, Font, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
+import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 
 // react-pdf/pdfkit doesn't implement the Unicode bidi algorithm, so Arabic-locale
 // digit grouping (toLocaleDateString) can render in a reversed/garbled order.
@@ -16,53 +15,14 @@ function formatDate(date: Date | string) {
   return `${day}/${month}/${d.getFullYear()}`;
 }
 
-Font.register({
-  family: "Tajawal",
-  fonts: [
-    { src: path.join(process.cwd(), "public/fonts/Tajawal-Regular.ttf") },
-    { src: path.join(process.cwd(), "public/fonts/Tajawal-Bold.ttf"), fontWeight: "bold" },
-  ],
-});
+registerArabicFonts();
 
 const styles = StyleSheet.create({
-  page: {
-    fontFamily: "Tajawal",
-    padding: 36,
-    fontSize: 11,
-    color: "#0f172a",
-    direction: "rtl",
-  },
-  headerRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 20,
-    borderBottom: "1px solid #cbd5e1",
-    paddingBottom: 12,
-  },
-  agencyInfo: {
-    textAlign: "right",
-  },
-  agencyName: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 3,
-  },
-  agencyLine: {
-    fontSize: 9,
-    color: "#475569",
-    marginBottom: 2,
-  },
-  logo: {
-    width: 60,
-    height: 60,
-    objectFit: "contain",
-  },
   title: {
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 14,
   },
   detailsBox: {
     border: "1px solid #e2e8f0",
@@ -72,7 +32,7 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: "row-reverse",
     borderBottom: "1px solid #f1f5f9",
-    padding: 8,
+    padding: 7,
   },
   detailLabel: {
     width: 160,
@@ -94,8 +54,8 @@ const styles = StyleSheet.create({
     border: "1px solid #e2e8f0",
     borderRadius: 4,
     padding: 10,
-    minHeight: 60,
-    marginBottom: 24,
+    minHeight: 50,
+    marginBottom: 16,
     textAlign: "right",
   },
   signRow: {
@@ -108,7 +68,7 @@ const styles = StyleSheet.create({
     border: "1px solid #cbd5e1",
     borderRadius: 4,
     padding: 10,
-    minHeight: 110,
+    minHeight: 96,
     alignItems: "center",
   },
   signLabel: {
@@ -122,15 +82,6 @@ const styles = StyleSheet.create({
     objectFit: "contain",
   },
 });
-
-function readFileAsBuffer(publicRelativePath: string): Buffer | null {
-  try {
-    const full = path.join(process.cwd(), "public", publicRelativePath.replace(/^\//, ""));
-    return fs.readFileSync(full);
-  } catch {
-    return null;
-  }
-}
 
 const ASSIGNEE_LABEL: Record<string, string> = {
   GUIDE: "مرشد سياحي",
@@ -150,91 +101,54 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   }
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
-
-  const logoBuffer = settings?.logoPath ? readFileAsBuffer(settings.logoPath) : null;
-  const stampBuffer = settings?.stampPath ? readFileAsBuffer(settings.stampPath) : null;
+  const stampBuffer = loadPublicImage(settings?.stampPath);
 
   const assigneeName = taskOrder.guide?.name ?? taskOrder.driver?.name ?? "—";
   const assigneePhone = taskOrder.guide?.phone ?? taskOrder.driver?.phone ?? "—";
 
+  const rows: [string, string | number][] = [
+    ["رقم الأمر", taskOrder.id],
+    ["التاريخ", formatDate(taskOrder.taskDate)],
+    ["البرنامج السياحي", taskOrder.trip.program.name],
+    ["العميل", taskOrder.trip.customer.name],
+    ["عدد الأشخاص", taskOrder.trip.numPax],
+    ["تاريخ بداية الرحلة", formatDate(taskOrder.trip.startDate)],
+    ["تاريخ نهاية الرحلة", formatDate(taskOrder.trip.endDate)],
+    ["المكلَّف بالمهمة", assigneeName],
+    ["الصفة", ASSIGNEE_LABEL[taskOrder.assigneeType] ?? taskOrder.assigneeType],
+    ["رقم هاتف المكلَّف", assigneePhone],
+  ];
+
   const doc = (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <View style={styles.agencyInfo}>
-            <Text style={styles.agencyName}>{settings?.agencyName ?? "وكالة روزا تور السياحية"}</Text>
-            {settings?.agencyAddress ? <Text style={styles.agencyLine}>{settings.agencyAddress}</Text> : null}
-            {settings?.agencyPhone ? (
-              <View style={{ flexDirection: "row-reverse" }}>
-                <Text style={styles.agencyLine}>هاتف: </Text>
-                <Text style={styles.agencyLine}>{settings.agencyPhone}</Text>
-              </View>
-            ) : null}
-            {settings?.agencyEmail ? <Text style={styles.agencyLine}>{settings.agencyEmail}</Text> : null}
-          </View>
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img */}
-          {logoBuffer ? <Image src={logoBuffer} style={styles.logo} /> : null}
-        </View>
-
+      <LetterheadPage settings={settings}>
         <Text style={styles.title}>أمر تكليف بمهمة</Text>
 
         <View style={styles.detailsBox}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>رقم الأمر</Text>
-            <Text style={styles.detailValue}>{taskOrder.id}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>التاريخ</Text>
-            <Text style={styles.detailValue}>{formatDate(taskOrder.taskDate)}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>البرنامج السياحي</Text>
-            <Text style={styles.detailValue}>{taskOrder.trip.program.name}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>العميل</Text>
-            <Text style={styles.detailValue}>{taskOrder.trip.customer.name}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>عدد الأشخاص</Text>
-            <Text style={styles.detailValue}>{taskOrder.trip.numPax}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>تاريخ بداية الرحلة</Text>
-            <Text style={styles.detailValue}>{formatDate(taskOrder.trip.startDate)}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>تاريخ نهاية الرحلة</Text>
-            <Text style={styles.detailValue}>{formatDate(taskOrder.trip.endDate)}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>المكلَّف بالمهمة</Text>
-            <Text style={styles.detailValue}>{assigneeName}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>الصفة</Text>
-            <Text style={styles.detailValue}>{ASSIGNEE_LABEL[taskOrder.assigneeType] ?? taskOrder.assigneeType}</Text>
-          </View>
-          <View style={[styles.detailRow, { borderBottom: "none" }]}>
-            <Text style={styles.detailLabel}>رقم هاتف المكلَّف</Text>
-            <Text style={styles.detailValue}>{assigneePhone}</Text>
-          </View>
+          {rows.map(([label, value], i) => (
+            <View key={label} style={[styles.detailRow, ...(i === rows.length - 1 ? [{ borderBottom: "none" }] : [])]}>
+              <Text style={styles.detailLabel}>{label}</Text>
+              <Text style={styles.detailValue}>{value}</Text>
+            </View>
+          ))}
         </View>
 
         <Text style={styles.sectionTitle}>تفاصيل المهمة</Text>
         <Text style={styles.detailsTextBox}>{taskOrder.details || "لا توجد تفاصيل إضافية"}</Text>
 
-        <View style={styles.signRow}>
+        <View style={styles.signRow} wrap={false}>
           <View style={styles.signBox}>
             <Text style={styles.signLabel}>توقيع المكلَّف بالمهمة</Text>
           </View>
           <View style={styles.signBox}>
             <Text style={styles.signLabel}>ختم الوكالة</Text>
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img */}
-            {stampBuffer ? <Image src={stampBuffer} style={styles.stampImage} /> : null}
+            {stampBuffer ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
+              <Image src={stampBuffer} style={styles.stampImage} />
+            ) : null}
           </View>
         </View>
-      </Page>
+      </LetterheadPage>
     </Document>
   );
 
