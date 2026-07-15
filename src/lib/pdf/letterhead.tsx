@@ -7,7 +7,7 @@ import path from "path";
 import { Page, Text, View, Image, Font, StyleSheet } from "@react-pdf/renderer";
 import type { Settings } from "@prisma/client";
 
-const NAVY = "#1f3864";
+const DEFAULT_COLOR = "#1f3864";
 
 let fontsRegistered = false;
 
@@ -64,13 +64,11 @@ const styles = StyleSheet.create({
   agencyName: {
     fontSize: 24,
     fontWeight: "bold",
-    color: NAVY,
     letterSpacing: 1,
   },
   agencyTagline: {
     fontSize: 14,
     fontWeight: "bold",
-    color: NAVY,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -86,7 +84,6 @@ const styles = StyleSheet.create({
   },
   footerBar: {
     height: 5,
-    backgroundColor: NAVY,
     marginBottom: 7,
   },
   footerCols: {
@@ -133,6 +130,7 @@ function FooterLineLTR({ label, value }: { label: string; value: string }) {
 }
 
 function Footer({ settings }: { settings: Settings | null }) {
+  const color = settings?.letterheadColor || DEFAULT_COLOR;
   const address = settings?.agencyAddress || "";
   const phone = settings?.agencyPhone || "";
   const email = settings?.agencyEmail || "";
@@ -140,7 +138,7 @@ function Footer({ settings }: { settings: Settings | null }) {
 
   return (
     <View style={styles.footer} fixed>
-      <View style={styles.footerBar} />
+      <View style={[styles.footerBar, { backgroundColor: color }]} />
       <View style={styles.footerCols}>
         <View style={styles.footerColRight}>
           {address ? <FooterLineRTL label="Adresse" value={address} /> : null}
@@ -163,6 +161,7 @@ export function LetterheadPage({
   children: React.ReactNode;
 }) {
   const logoBuffer = loadPublicImage(settings?.logoPath);
+  const color = settings?.letterheadColor || DEFAULT_COLOR;
 
   return (
     <Page size="A4" style={styles.page}>
@@ -174,9 +173,9 @@ export function LetterheadPage({
           ) : null}
         </View>
         <View style={styles.nameBox}>
-          <Text style={styles.agencyName}>{settings?.agencyName ?? "ROZATOUR"}</Text>
+          <Text style={[styles.agencyName, { color }]}>{settings?.agencyName ?? "ROZATOUR"}</Text>
           {settings?.agencyTagline ? (
-            <Text style={styles.agencyTagline}>{settings.agencyTagline}</Text>
+            <Text style={[styles.agencyTagline, { color }]}>{settings.agencyTagline}</Text>
           ) : null}
         </View>
         <View style={styles.headerSpacer} />

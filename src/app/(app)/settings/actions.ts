@@ -15,6 +15,7 @@ const settingsSchema = z.object({
   agencyPhone: z.string().optional().default(""),
   agencyEmail: z.string().optional().default(""),
   agencyWebsite: z.string().optional().default(""),
+  letterheadColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "لون غير صالح").default("#1f3864"),
   defaultCurrency: z.string().min(1).default("DZD"),
   reminderDaysAhead: z.coerce.number().int().min(0).default(7),
 });
@@ -40,6 +41,7 @@ export async function updateSettings(formData: FormData) {
     agencyPhone: formData.get("agencyPhone"),
     agencyEmail: formData.get("agencyEmail"),
     agencyWebsite: formData.get("agencyWebsite"),
+    letterheadColor: formData.get("letterheadColor"),
     defaultCurrency: formData.get("defaultCurrency"),
     reminderDaysAhead: formData.get("reminderDaysAhead"),
   });

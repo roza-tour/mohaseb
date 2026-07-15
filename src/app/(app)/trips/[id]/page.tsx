@@ -412,8 +412,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
           </Table>
         )}
 
-        <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
           <LinkButton href={`/task-orders/new?tripId=${id}`}>+ إصدار أمر تكليف جديد</LinkButton>
+          <LinkButton href={`/documents/new?tripId=${id}`} variant="secondary">
+            + إصدار مستند (دعوة، تصريح...)
+          </LinkButton>
         </div>
       </Card>
     </div>

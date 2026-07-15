@@ -49,6 +49,14 @@ export default async function SettingsPage() {
                 <option value="SAR">ريال سعودي (SAR)</option>
               </Select>
             </Field>
+            <Field label="لون ترويسة المستندات (الاسم والشريط في ورق الشركة)">
+              <Input
+                type="color"
+                name="letterheadColor"
+                defaultValue={settings?.letterheadColor ?? "#1f3864"}
+                className="h-10 w-24 p-1 cursor-pointer"
+              />
+            </Field>
             <Field label="عدد الأيام قبل موعد الرحلة لإظهار التنبيه">
               <Input
                 name="reminderDaysAhead"

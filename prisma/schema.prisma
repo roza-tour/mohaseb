@@ -29,6 +29,7 @@ model Settings {
   agencyWebsite   String   @default("")
   logoPath        String?
   stampPath       String?
+  letterheadColor String   @default("#1f3864") // لون اسم الوكالة والشريط في ورق الشركة
   defaultCurrency String   @default("DZD")
   reminderDaysAhead Int    @default(7)
   updatedAt       DateTime @updatedAt
@@ -43,6 +44,7 @@ model Customer {
   notes     String? @db.Text
   createdAt DateTime @default(now())
   trips     Trip[]
+  documents Document[]
 }
 
 // ---------- الفنادق ----------
@@ -121,6 +123,7 @@ model Trip {
   otherBookings  OtherBooking[]
   transactions   Transaction[]
   taskOrders     TaskOrder[]
+  documents      Document[]
 }
 
 // ---------- حجوزات الفنادق ----------
@@ -211,4 +214,28 @@ model TaskOrder {
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdById  String?
   createdAt    DateTime @default(now())
+}
+
+// ---------- قوالب المستندات (يديرها المستخدم بنفسه) ----------
+model DocumentTemplate {
+  id        String   @id @default(cuid())
+  name      String   // اسم القالب في القائمة، مثال: دعوة سياحية
+  title     String   // عنوان المستند الظاهر في الـ PDF
+  body      String   @db.Text // نص القالب مع متغيرات مثل [CLIENT] و [PROGRAM]
+  createdAt DateTime @default(now())
+}
+
+// ---------- المستندات الصادرة (دعوة سياحية، تصريح عمل، ...) ----------
+model Document {
+  id         String    @id @default(cuid())
+  docNumber  String    // رقم تسلسلي مثل 2026/0001
+  title      String
+  body       String    @db.Text
+  trip       Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  tripId     String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+  showStamp  Boolean   @default(true)
+  docDate    DateTime  @default(now())
+  createdAt  DateTime  @default(now())
 }

@@ -38,8 +38,9 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
     ],
   },
   {
-    title: "المهام والإعدادات",
+    title: "المستندات والمهام",
     items: [
+      { href: "/documents", label: "المستندات الصادرة", icon: "📄" },
       { href: "/task-orders", label: "أوامر التكليف", icon: "📝" },
       { href: "/settings", label: "الإعدادات", icon: "⚙️" },
     ],
