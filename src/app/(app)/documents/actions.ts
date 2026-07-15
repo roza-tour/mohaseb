@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { buildDocNumber } from "@/lib/documents";
+import { buildDocNumber, docStyleFromForm } from "@/lib/documents";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -44,6 +44,7 @@ export async function createDocument(formData: FormData) {
       customerId: data.customerId || null,
       docDate: data.docDate,
       showStamp: data.showStamp,
+      style: docStyleFromForm(formData),
     },
   });
 
@@ -69,7 +70,7 @@ export async function createTemplate(formData: FormData) {
     title: formData.get("title"),
     body: formData.get("body"),
   });
-  await prisma.documentTemplate.create({ data });
+  await prisma.documentTemplate.create({ data: { ...data, style: docStyleFromForm(formData) } });
   redirect("/documents/templates");
 }
 
@@ -79,7 +80,10 @@ export async function updateTemplate(id: string, formData: FormData) {
     title: formData.get("title"),
     body: formData.get("body"),
   });
-  await prisma.documentTemplate.update({ where: { id }, data });
+  await prisma.documentTemplate.update({
+    where: { id },
+    data: { ...data, style: docStyleFromForm(formData) },
+  });
   redirect("/documents/templates");
 }
 

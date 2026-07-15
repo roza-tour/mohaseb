@@ -1,5 +1,6 @@
 import { Field, Input, Textarea, Button, LinkButton } from "@/components/ui";
-import { TEMPLATE_VARIABLES } from "@/lib/documents";
+import { parseDocStyle, TEMPLATE_VARIABLES } from "@/lib/documents";
+import { StyleFields } from "../StyleFields";
 import type { DocumentTemplate } from "@prisma/client";
 
 export function TemplateForm({
@@ -42,6 +43,8 @@ export function TemplateForm({
           ))}
         </ul>
       </div>
+
+      <StyleFields style={parseDocStyle(template?.style)} />
 
       <div className="flex items-center gap-2">
         <Button type="submit">حفظ القالب</Button>

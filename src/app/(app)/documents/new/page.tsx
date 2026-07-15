@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { formatDate, formatDateForInput } from "@/lib/format";
-import { fillTemplate, TEMPLATE_VARIABLES } from "@/lib/documents";
+import { fillTemplate, parseDocStyle, TEMPLATE_VARIABLES } from "@/lib/documents";
+import { StyleFields } from "../StyleFields";
 import { createDocument } from "../actions";
 
 export default async function NewDocumentPage({
@@ -27,6 +28,7 @@ export default async function NewDocumentPage({
   const trip = tripId ? trips.find((t) => t.id === tripId) : null;
 
   const prefilledTitle = template?.title ?? "";
+  const prefilledStyle = parseDocStyle(template?.style);
   const prefilledBody = template ? fillTemplate(template.body, { trip, settings }) : "";
   const prefilledCustomerId = trip?.customerId ?? "";
 
@@ -105,6 +107,8 @@ export default async function NewDocumentPage({
             المتغيرات المتاحة في القوالب (تُستبدل تلقائياً عند تحميل قالب مع رحلة):{" "}
             {TEMPLATE_VARIABLES.map((v) => `${v.token} = ${v.label}`).join("، ")}
           </p>
+
+          <StyleFields style={prefilledStyle} />
 
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" name="showStamp" defaultChecked />

@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { Page, Text, View, Image, Font, StyleSheet } from "@react-pdf/renderer";
 import type { Settings } from "@prisma/client";
+import { MixedText } from "./MixedText";
 
 const DEFAULT_COLOR = "#1f3864";
 
@@ -115,7 +116,7 @@ function FooterLineRTL({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ flexDirection: "row-reverse", marginBottom: 2 }}>
       <Text style={styles.footerLabel}>{label} : </Text>
-      <Text style={[styles.footerText, { flex: 1, textAlign: "right" }]}>{value}</Text>
+      <MixedText text={value} style={styles.footerText} size={8} containerStyle={{ flex: 1 }} />
     </View>
   );
 }

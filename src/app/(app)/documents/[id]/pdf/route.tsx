@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { Document as PdfDocument, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
+import { MixedText } from "@/lib/pdf/MixedText";
+import { parseBodyLines, parseDocStyle } from "@/lib/documents";
 
 function formatDate(date: Date) {
   const day = String(date.getDate()).padStart(2, "0");
@@ -13,7 +15,7 @@ function formatDate(date: Date) {
 
 registerArabicFonts();
 
-const styles = StyleSheet.create({
+const staticStyles = StyleSheet.create({
   metaRow: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
@@ -22,18 +24,6 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 9,
     color: "#475569",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 18,
-  },
-  paragraph: {
-    fontSize: 11.5,
-    lineHeight: 1.7,
-    textAlign: "right",
-    marginBottom: 10,
   },
   signRow: {
     flexDirection: "row-reverse",
@@ -72,38 +62,101 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = doc.showStamp ? loadPublicImage(settings?.stampPath) : null;
 
-  // كل سطر غير فارغ فقرة مستقلة حتى يحافظ النص الحر على تنسيقه
-  const paragraphs = doc.body
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  const style = parseDocStyle(doc.style);
+  const lines = parseBodyLines(doc.body);
+  // "يمين" = محاذاة طبيعية حسب اتجاه كل فقرة (يمين للعربية، يسار للإنجليزية)
+  const align = style.align === "center" ? ("center" as const) : ("auto" as const);
+
+  const paragraphText = {
+    fontSize: style.fontSize,
+    lineHeight: style.lineHeight,
+    color: style.textColor,
+  };
+  const h1Text = {
+    fontSize: style.fontSize + 4,
+    lineHeight: style.lineHeight,
+    color: style.accentColor,
+    fontWeight: "bold" as const,
+  };
+  const h2Text = {
+    fontSize: style.fontSize + 2,
+    lineHeight: style.lineHeight,
+    color: style.accentColor,
+    fontWeight: "bold" as const,
+  };
+
+  const body = (
+    <View
+      style={
+        style.bodyBorder
+          ? { border: `1.2px solid ${style.accentColor}`, borderRadius: 6, padding: 14 }
+          : {}
+      }
+    >
+      {lines.map((line, i) => {
+        if (line.kind === "divider") {
+          return (
+            <View
+              key={i}
+              style={{ borderBottom: `1px solid ${style.accentColor}`, marginVertical: 8 }}
+            />
+          );
+        }
+        if (line.kind === "h1" || line.kind === "h2") {
+          const textStyle = line.kind === "h1" ? h1Text : h2Text;
+          return (
+            <MixedText
+              key={i}
+              text={line.text}
+              style={textStyle}
+              size={textStyle.fontSize}
+              align={align}
+              containerStyle={{ marginBottom: 6, marginTop: 4 }}
+            />
+          );
+        }
+        return (
+          <MixedText
+            key={i}
+            text={line.text}
+            style={paragraphText}
+            size={style.fontSize}
+            align={align}
+            containerStyle={{ marginBottom: 9 }}
+          />
+        );
+      })}
+    </View>
+  );
 
   const pdf = (
     <PdfDocument>
       <LetterheadPage settings={settings}>
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>الرقم: {doc.docNumber}</Text>
-          <Text style={styles.metaText}>التاريخ: {formatDate(doc.docDate)}</Text>
+        <View style={staticStyles.metaRow}>
+          <Text style={staticStyles.metaText}>الرقم: {doc.docNumber}</Text>
+          <Text style={staticStyles.metaText}>التاريخ: {formatDate(doc.docDate)}</Text>
         </View>
 
-        <Text style={styles.title}>{doc.title}</Text>
+        <MixedText
+          text={doc.title}
+          style={{ fontSize: 18, fontWeight: "bold", color: style.textColor }}
+          size={18}
+          align="center"
+          containerStyle={{ marginBottom: 18 }}
+        />
 
-        {paragraphs.map((p, i) => (
-          <Text key={i} style={styles.paragraph}>
-            {p}
-          </Text>
-        ))}
+        {body}
 
         {doc.showStamp ? (
-          <View style={styles.signRow} wrap={false}>
-            <View style={styles.signBox}>
-              <Text style={styles.signLabel}>التوقيع</Text>
+          <View style={staticStyles.signRow} wrap={false}>
+            <View style={staticStyles.signBox}>
+              <Text style={staticStyles.signLabel}>التوقيع</Text>
             </View>
-            <View style={styles.signBox}>
-              <Text style={styles.signLabel}>ختم الوكالة</Text>
+            <View style={staticStyles.signBox}>
+              <Text style={staticStyles.signLabel}>ختم الوكالة</Text>
               {stampBuffer ? (
                 // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
-                <Image src={stampBuffer} style={styles.stampImage} />
+                <Image src={stampBuffer} style={staticStyles.stampImage} />
               ) : null}
             </View>
           </View>

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { Document, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
+import { MixedText } from "@/lib/pdf/MixedText";
 
 // react-pdf/pdfkit doesn't implement the Unicode bidi algorithm, so Arabic-locale
 // digit grouping (toLocaleDateString) can render in a reversed/garbled order.
@@ -128,13 +129,21 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
           {rows.map(([label, value], i) => (
             <View key={label} style={[styles.detailRow, ...(i === rows.length - 1 ? [{ borderBottom: "none" }] : [])]}>
               <Text style={styles.detailLabel}>{label}</Text>
-              <Text style={styles.detailValue}>{value}</Text>
+              <MixedText text={String(value)} size={11} containerStyle={{ flex: 1 }} />
             </View>
           ))}
         </View>
 
         <Text style={styles.sectionTitle}>تفاصيل المهمة</Text>
-        <Text style={styles.detailsTextBox}>{taskOrder.details || "لا توجد تفاصيل إضافية"}</Text>
+        <View style={styles.detailsTextBox}>
+          {(taskOrder.details || "لا توجد تفاصيل إضافية")
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line, i) => (
+              <MixedText key={i} text={line} size={11} containerStyle={{ marginBottom: 4 }} />
+            ))}
+        </View>
 
         <View style={styles.signRow} wrap={false}>
           <View style={styles.signBox}>

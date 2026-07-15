@@ -50,3 +50,77 @@ export function fillTemplate(
 export function buildDocNumber(year: number, count: number) {
   return `${year}/${String(count + 1).padStart(4, "0")}`;
 }
+
+// ---------- نظام تنسيق المستندات ----------
+// يُخزَّن كـ JSON مع كل مستند/قالب، ويتحكم في حجم الخط والألوان
+// وتباعد الأسطر والمحاذاة وإطار النص — دون الحاجة لتعديل الكود.
+
+export type DocumentStyle = {
+  fontSize: number; // حجم خط النص الأساسي (نقاط)
+  lineHeight: number; // تباعد الأسطر
+  align: "right" | "center"; // محاذاة الفقرات
+  textColor: string; // لون النص الأساسي
+  accentColor: string; // لون العناوين الفرعية والإطار والخط الفاصل
+  bodyBorder: boolean; // إطار حول نص المستند
+};
+
+export const DEFAULT_DOC_STYLE: DocumentStyle = {
+  fontSize: 11.5,
+  lineHeight: 1.7,
+  align: "right",
+  textColor: "#0f172a",
+  accentColor: "#1f3864",
+  bodyBorder: false,
+};
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+export function parseDocStyle(raw: unknown): DocumentStyle {
+  const src = (raw ?? {}) as Partial<DocumentStyle>;
+  const fontSize = Number(src.fontSize);
+  const lineHeight = Number(src.lineHeight);
+  return {
+    fontSize: fontSize >= 8 && fontSize <= 22 ? fontSize : DEFAULT_DOC_STYLE.fontSize,
+    lineHeight: lineHeight >= 1.2 && lineHeight <= 2.5 ? lineHeight : DEFAULT_DOC_STYLE.lineHeight,
+    align: src.align === "center" ? "center" : "right",
+    textColor: typeof src.textColor === "string" && HEX_RE.test(src.textColor) ? src.textColor : DEFAULT_DOC_STYLE.textColor,
+    accentColor:
+      typeof src.accentColor === "string" && HEX_RE.test(src.accentColor) ? src.accentColor : DEFAULT_DOC_STYLE.accentColor,
+    bodyBorder: Boolean(src.bodyBorder),
+  };
+}
+
+// يقرأ حقول التنسيق من FormData (تشترك فيها نماذج المستند والقالب)
+export function docStyleFromForm(formData: FormData): DocumentStyle {
+  return parseDocStyle({
+    fontSize: Number(formData.get("styleFontSize")),
+    lineHeight: Number(formData.get("styleLineHeight")),
+    align: formData.get("styleAlign"),
+    textColor: formData.get("styleTextColor"),
+    accentColor: formData.get("styleAccentColor"),
+    bodyBorder: formData.get("styleBodyBorder") === "on",
+  });
+}
+
+// سطور خاصة داخل نص المستند:
+//   "# عنوان"   → عنوان فرعي كبير بلون التمييز
+//   "## عنوان"  → عنوان فرعي أصغر
+//   "---"       → خط فاصل
+export type BodyLine =
+  | { kind: "h1"; text: string }
+  | { kind: "h2"; text: string }
+  | { kind: "divider" }
+  | { kind: "paragraph"; text: string };
+
+export function parseBodyLines(body: string): BodyLine[] {
+  return body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line): BodyLine => {
+      if (line === "---") return { kind: "divider" };
+      if (line.startsWith("## ")) return { kind: "h2", text: line.slice(3).trim() };
+      if (line.startsWith("# ")) return { kind: "h1", text: line.slice(2).trim() };
+      return { kind: "paragraph", text: line };
+    });
+}

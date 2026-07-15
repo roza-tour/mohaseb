@@ -222,6 +222,7 @@ model DocumentTemplate {
   name      String   // اسم القالب في القائمة، مثال: دعوة سياحية
   title     String   // عنوان المستند الظاهر في الـ PDF
   body      String   @db.Text // نص القالب مع متغيرات مثل [CLIENT] و [PROGRAM]
+  style     Json?    // تنسيق افتراضي: حجم الخط، الألوان، تباعد الأسطر، الإطار...
   createdAt DateTime @default(now())
 }
 
@@ -236,6 +237,7 @@ model Document {
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerId String?
   showStamp  Boolean   @default(true)
+  style      Json?     // تنسيق هذا المستند (يبدأ من تنسيق القالب ويعدَّل بحرية)
   docDate    DateTime  @default(now())
   createdAt  DateTime  @default(now())
 }
