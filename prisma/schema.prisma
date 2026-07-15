@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- المستخدمون (موظفو الوكالة) ----------
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("STAFF") // ADMIN | STAFF
+  createdAt    DateTime @default(now())
+  taskOrders   TaskOrder[]
+}
+
+// ---------- إعدادات الوكالة (سجل واحد) ----------
+model Settings {
+  id              Int      @id @default(1)
+  agencyName      String   @default("وكالة روزا تور السياحية")
+  agencyAddress   String   @default("")
+  agencyPhone     String   @default("")
+  agencyEmail     String   @default("")
+  logoPath        String?
+  stampPath       String?
+  defaultCurrency String   @default("JOD")
+  reminderDaysAhead Int    @default(7)
+  updatedAt       DateTime @updatedAt
+}
+
+// ---------- العملاء ----------
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  trips     Trip[]
+}
+
+// ---------- الفنادق ----------
+model Hotel {
+  id            String   @id @default(cuid())
+  name          String
+  city          String?
+  phone         String?
+  email         String?
+  contactPerson String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  bookings      HotelBooking[]
+}
+
+// ---------- المرشدون السياحيون ----------
+model Guide {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  languages String?
+  notes     String?
+  createdAt DateTime @default(now())
+  taskOrders TaskOrder[]
+}
+
+// ---------- السائقون ----------
+model Driver {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  vehicleInfo String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  taskOrders  TaskOrder[]
+}
+
+// ---------- البرامج السياحية (القالب) ----------
+model TourProgram {
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  durationDays        Int
+  standardPrice       Float // السعر المعروض للعميل (للفرد)
+  estHotelCostPerNight Float   @default(0)
+  estTransportCost    Float    @default(0)
+  estGuideFee         Float    @default(0)
+  estOtherCosts       Float    @default(0)
+  currency            String   @default("JOD")
+  itinerary           String? // نص وصف البرنامج يوم بيوم
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  trips               Trip[]
+}
+
+// ---------- الرحلة الفعلية (تنفيذ برنامج لعميل بتاريخ محدد) ----------
+model Trip {
+  id            String   @id @default(cuid())
+  program       TourProgram @relation(fields: [programId], references: [id])
+  programId     String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  customerId    String
+  startDate     DateTime
+  endDate       DateTime
+  numPax        Int      @default(1)
+  agreedPrice   Float    @default(0) // السعر الإجمالي المتفق عليه مع العميل
+  currency      String   @default("JOD")
+  status        String   @default("PLANNED") // PLANNED | CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  hotelBookings  HotelBooking[]
+  flightBookings FlightBooking[]
+  otherBookings  OtherBooking[]
+  transactions   Transaction[]
+  taskOrders     TaskOrder[]
+}
+
+// ---------- حجوزات الفنادق ----------
+model HotelBooking {
+  id                String   @id @default(cuid())
+  trip              Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId            String
+  hotel             Hotel    @relation(fields: [hotelId], references: [id])
+  hotelId           String
+  checkIn           DateTime
+  checkOut          DateTime
+  roomType          String?
+  numRooms          Int      @default(1)
+  cost              Float    @default(0)
+  confirmationNumber String?
+  notes             String?
+  createdAt         DateTime @default(now())
+}
+
+// ---------- حجوزات الطيران ----------
+model FlightBooking {
+  id               String   @id @default(cuid())
+  trip             Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId           String
+  airline          String
+  flightNumber     String?
+  departureAirport String?
+  arrivalAirport   String?
+  departureDate    DateTime
+  arrivalDate      DateTime?
+  cost             Float    @default(0)
+  pnr              String?
+  notes            String?
+  createdAt        DateTime @default(now())
+}
+
+// ---------- حجوزات أخرى (تأمين، نشاطات، مطاعم...) ----------
+model OtherBooking {
+  id          String   @id @default(cuid())
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId      String
+  type        String
+  description String?
+  provider    String?
+  cost        Float    @default(0)
+  date        DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+// ---------- القيود المحاسبية (إيرادات / مصروفات) ----------
+model Transaction {
+  id          String   @id @default(cuid())
+  trip        Trip?    @relation(fields: [tripId], references: [id])
+  tripId      String?
+  type        String   // INCOME | EXPENSE
+  category    String
+  amount      Float
+  currency    String   @default("JOD")
+  date        DateTime
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+// ---------- الميزانية الافتتاحية ----------
+model OpeningBalance {
+  id        String   @id @default(cuid())
+  fiscalYear Int
+  itemName  String
+  itemType  String   // ASSET | LIABILITY | EQUITY
+  amount    Float
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+// ---------- أوامر التكليف بمهمة ----------
+model TaskOrder {
+  id           String   @id @default(cuid())
+  trip         Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId       String
+  assigneeType String   // GUIDE | DRIVER
+  guide        Guide?   @relation(fields: [guideId], references: [id])
+  guideId      String?
+  driver       Driver?  @relation(fields: [driverId], references: [id])
+  driverId     String?
+  taskDate     DateTime
+  details      String?
+  createdBy    User?    @relation(fields: [createdById], references: [id])
+  createdById  String?
+  createdAt    DateTime @default(now())
+}
