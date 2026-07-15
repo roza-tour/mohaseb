@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -38,7 +38,7 @@ model Customer {
   name      String
   phone     String?
   email     String?
-  notes     String?
+  notes     String? @db.Text
   createdAt DateTime @default(now())
   trips     Trip[]
 }
@@ -51,7 +51,7 @@ model Hotel {
   phone         String?
   email         String?
   contactPerson String?
-  notes         String?
+  notes         String? @db.Text
   createdAt     DateTime @default(now())
   bookings      HotelBooking[]
 }
@@ -63,7 +63,7 @@ model Guide {
   phone     String?
   email     String?
   languages String?
-  notes     String?
+  notes     String? @db.Text
   createdAt DateTime @default(now())
   taskOrders TaskOrder[]
 }
@@ -75,7 +75,7 @@ model Driver {
   phone       String?
   email       String?
   vehicleInfo String?
-  notes       String?
+  notes       String? @db.Text
   createdAt   DateTime @default(now())
   taskOrders  TaskOrder[]
 }
@@ -84,7 +84,7 @@ model Driver {
 model TourProgram {
   id                  String   @id @default(cuid())
   name                String
-  description         String?
+  description         String? @db.Text
   durationDays        Int
   standardPrice       Float // السعر المعروض للعميل (للفرد)
   estHotelCostPerNight Float   @default(0)
@@ -92,7 +92,7 @@ model TourProgram {
   estGuideFee         Float    @default(0)
   estOtherCosts       Float    @default(0)
   currency            String   @default("JOD")
-  itinerary           String? // نص وصف البرنامج يوم بيوم
+  itinerary           String? @db.Text // نص وصف البرنامج يوم بيوم
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   trips               Trip[]
@@ -111,7 +111,7 @@ model Trip {
   agreedPrice   Float    @default(0) // السعر الإجمالي المتفق عليه مع العميل
   currency      String   @default("JOD")
   status        String   @default("PLANNED") // PLANNED | CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED
-  notes         String?
+  notes         String? @db.Text
   createdAt     DateTime @default(now())
 
   hotelBookings  HotelBooking[]
@@ -134,7 +134,7 @@ model HotelBooking {
   numRooms          Int      @default(1)
   cost              Float    @default(0)
   confirmationNumber String?
-  notes             String?
+  notes             String? @db.Text
   createdAt         DateTime @default(now())
 }
 
@@ -151,7 +151,7 @@ model FlightBooking {
   arrivalDate      DateTime?
   cost             Float    @default(0)
   pnr              String?
-  notes            String?
+  notes            String? @db.Text
   createdAt        DateTime @default(now())
 }
 
@@ -161,11 +161,11 @@ model OtherBooking {
   trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId      String
   type        String
-  description String?
+  description String? @db.Text
   provider    String?
   cost        Float    @default(0)
   date        DateTime?
-  notes       String?
+  notes       String? @db.Text
   createdAt   DateTime @default(now())
 }
 
@@ -179,7 +179,7 @@ model Transaction {
   amount      Float
   currency    String   @default("JOD")
   date        DateTime
-  description String?
+  description String? @db.Text
   createdAt   DateTime @default(now())
 }
 
@@ -190,7 +190,7 @@ model OpeningBalance {
   itemName  String
   itemType  String   // ASSET | LIABILITY | EQUITY
   amount    Float
-  notes     String?
+  notes     String? @db.Text
   createdAt DateTime @default(now())
 }
 
@@ -205,7 +205,7 @@ model TaskOrder {
   driver       Driver?  @relation(fields: [driverId], references: [id])
   driverId     String?
   taskDate     DateTime
-  details      String?
+  details      String? @db.Text
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdById  String?
   createdAt    DateTime @default(now())
