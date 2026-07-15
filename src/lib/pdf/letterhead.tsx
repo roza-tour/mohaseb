@@ -1,10 +1,13 @@
-// قالب "ورق الشركة" الموحّد لكل مستندات PDF الصادرة من النظام:
-// لوغو الوكالة أعلى الصفحة، وتذييل ثابت بخط رقيق أسفل كل صفحة يحوي
+// قالب "ورق الشركة" الموحّد لكل مستندات PDF الصادرة من النظام،
+// مطابق لورق روزا تور الرسمي: اللوغو أعلى يسار الصفحة، اسم الوكالة وسطرها
+// الفرعي في المنتصف بالأزرق الداكن، وأسفل كل صفحة شريط أزرق سميك تحته
 // العنوان وأرقام الهواتف والبريد الإلكتروني والموقع — تُدار كلها من صفحة الإعدادات.
 import fs from "fs";
 import path from "path";
 import { Page, Text, View, Image, Font, StyleSheet } from "@react-pdf/renderer";
 import type { Settings } from "@prisma/client";
+
+const NAVY = "#1f3864";
 
 let fontsRegistered = false;
 
@@ -35,75 +38,119 @@ const styles = StyleSheet.create({
     fontFamily: "Tajawal",
     fontSize: 11,
     color: "#0f172a",
-    paddingTop: 30,
+    paddingTop: 28,
     paddingHorizontal: 40,
     // مساحة محجوزة للتذييل الثابت حتى لا يتداخل معه المحتوى
-    paddingBottom: 80,
+    paddingBottom: 92,
   },
   header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 18,
+  },
+  logoBox: {
+    width: 95,
+    alignItems: "flex-start",
   },
   logo: {
-    height: 56,
-    maxWidth: 180,
+    height: 72,
+    maxWidth: 95,
     objectFit: "contain",
-    marginBottom: 6,
+  },
+  nameBox: {
+    flex: 1,
+    alignItems: "center",
   },
   agencyName: {
-    fontSize: 15,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#0f172a",
+    color: NAVY,
+    letterSpacing: 1,
   },
-  headerRule: {
-    marginTop: 8,
-    marginBottom: 14,
-    borderBottom: "1.5px solid #0369a1",
+  agencyTagline: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: NAVY,
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  // عمود فارغ يوازن عرض اللوغو حتى يبقى الاسم في منتصف الصفحة تماماً
+  headerSpacer: {
+    width: 95,
   },
   footer: {
     position: "absolute",
-    bottom: 26,
+    bottom: 24,
     left: 40,
     right: 40,
-    borderTop: "0.75px solid #cbd5e1",
-    paddingTop: 7,
   },
-  footerRow: {
+  footerBar: {
+    height: 5,
+    backgroundColor: NAVY,
+    marginBottom: 7,
+  },
+  footerCols: {
     flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    gap: 14,
   },
-  footerItem: {
-    fontSize: 7.5,
-    fontWeight: 300,
-    color: "#64748b",
+  footerColRight: {
+    flex: 3,
   },
-  footerSep: {
-    fontSize: 7.5,
-    color: "#94a3b8",
-    marginHorizontal: 6,
+  footerColLeft: {
+    flex: 2,
+  },
+  footerLabel: {
+    fontSize: 8,
+    fontWeight: "bold",
+    color: "#1e293b",
+  },
+  footerText: {
+    fontSize: 8,
+    color: "#1e293b",
   },
 });
 
-function FooterItems({ settings }: { settings: Settings | null }) {
-  // كل عنصر في <Text> مستقل داخل صف row-reverse لتفادي مشاكل اتجاه
-  // الأرقام والروابط اللاتينية داخل النص العربي (محرك PDF لا يدعم bidi كاملاً)
-  const items: string[] = [];
-  if (settings?.agencyAddress) items.push(settings.agencyAddress);
-  if (settings?.agencyPhone) items.push(settings.agencyPhone);
-  if (settings?.agencyEmail) items.push(settings.agencyEmail);
-  if (settings?.agencyWebsite) items.push(settings.agencyWebsite);
+function FooterLineRTL({ label, value }: { label: string; value: string }) {
+  // التسمية في أقصى اليمين والقيمة تمتد لليسار وتلتف داخل عمودها،
+  // كما في ورق الشركة الرسمي (محرك PDF لا يدعم خوارزمية bidi كاملة،
+  // لذا نفصل التسمية عن القيمة في عنصرين داخل صف معكوس)
+  return (
+    <View style={{ flexDirection: "row-reverse", marginBottom: 2 }}>
+      <Text style={styles.footerLabel}>{label} : </Text>
+      <Text style={[styles.footerText, { flex: 1, textAlign: "right" }]}>{value}</Text>
+    </View>
+  );
+}
 
-  if (items.length === 0) return null;
+function FooterLineLTR({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: "row", marginBottom: 2 }}>
+      <Text style={styles.footerLabel}>{label} : </Text>
+      <Text style={[styles.footerText, { flex: 1, textAlign: "left" }]}>{value}</Text>
+    </View>
+  );
+}
+
+function Footer({ settings }: { settings: Settings | null }) {
+  const address = settings?.agencyAddress || "";
+  const phone = settings?.agencyPhone || "";
+  const email = settings?.agencyEmail || "";
+  const website = settings?.agencyWebsite || "";
 
   return (
-    <View style={styles.footerRow}>
-      {items.map((item, i) => (
-        <View key={i} style={{ flexDirection: "row-reverse" }}>
-          {i > 0 ? <Text style={styles.footerSep}>•</Text> : null}
-          <Text style={styles.footerItem}>{item}</Text>
+    <View style={styles.footer} fixed>
+      <View style={styles.footerBar} />
+      <View style={styles.footerCols}>
+        <View style={styles.footerColRight}>
+          {address ? <FooterLineRTL label="Adresse" value={address} /> : null}
+          {email ? <FooterLineLTR label="E-Mail" value={email} /> : null}
         </View>
-      ))}
+        <View style={styles.footerColLeft}>
+          {phone ? <FooterLineLTR label="Tel" value={phone} /> : null}
+          {website ? <FooterLineLTR label="Web" value={website} /> : null}
+        </View>
+      </View>
     </View>
   );
 }
@@ -119,20 +166,25 @@ export function LetterheadPage({
 
   return (
     <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
-        {logoBuffer ? (
-          // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
-          <Image src={logoBuffer} style={styles.logo} />
-        ) : null}
-        <Text style={styles.agencyName}>{settings?.agencyName ?? "وكالة روزا تور السياحية"}</Text>
+      <View style={styles.header} fixed>
+        <View style={styles.logoBox}>
+          {logoBuffer ? (
+            // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
+            <Image src={logoBuffer} style={styles.logo} />
+          ) : null}
+        </View>
+        <View style={styles.nameBox}>
+          <Text style={styles.agencyName}>{settings?.agencyName ?? "ROZATOUR"}</Text>
+          {settings?.agencyTagline ? (
+            <Text style={styles.agencyTagline}>{settings.agencyTagline}</Text>
+          ) : null}
+        </View>
+        <View style={styles.headerSpacer} />
       </View>
-      <View style={styles.headerRule} />
 
       {children}
 
-      <View style={styles.footer} fixed>
-        <FooterItems settings={settings} />
-      </View>
+      <Footer settings={settings} />
     </Page>
   );
 }

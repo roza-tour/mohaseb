@@ -10,11 +10,12 @@ import { revalidatePath } from "next/cache";
 
 const settingsSchema = z.object({
   agencyName: z.string().min(1),
+  agencyTagline: z.string().optional().default(""),
   agencyAddress: z.string().optional().default(""),
   agencyPhone: z.string().optional().default(""),
   agencyEmail: z.string().optional().default(""),
   agencyWebsite: z.string().optional().default(""),
-  defaultCurrency: z.string().min(1).default("JOD"),
+  defaultCurrency: z.string().min(1).default("DZD"),
   reminderDaysAhead: z.coerce.number().int().min(0).default(7),
 });
 
@@ -34,6 +35,7 @@ async function saveUpload(file: File, prefix: string): Promise<string | undefine
 export async function updateSettings(formData: FormData) {
   const data = settingsSchema.parse({
     agencyName: formData.get("agencyName"),
+    agencyTagline: formData.get("agencyTagline"),
     agencyAddress: formData.get("agencyAddress"),
     agencyPhone: formData.get("agencyPhone"),
     agencyEmail: formData.get("agencyEmail"),

@@ -17,8 +17,15 @@ export default async function SettingsPage() {
             وأرقام الهواتف والبريد والموقع الإلكتروني في تذييل أنيق أسفل كل صفحة — أدخلها مرة واحدة فقط.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="اسم الوكالة">
-              <Input name="agencyName" required defaultValue={settings?.agencyName ?? "وكالة روزا تور السياحية"} />
+            <Field label="اسم الوكالة (يظهر بخط كبير في ترويسة المستندات)">
+              <Input name="agencyName" required defaultValue={settings?.agencyName ?? "ROZATOUR"} />
+            </Field>
+            <Field label="السطر الفرعي تحت الاسم (اختياري)">
+              <Input
+                name="agencyTagline"
+                placeholder="مثال: DE-TOURISMES ET-VOYAGES"
+                defaultValue={settings?.agencyTagline ?? ""}
+              />
             </Field>
             <Field label="رقم الهاتف">
               <Input name="agencyPhone" defaultValue={settings?.agencyPhone ?? ""} />
@@ -33,12 +40,13 @@ export default async function SettingsPage() {
               <Input name="agencyWebsite" dir="ltr" placeholder="www.example.com" defaultValue={settings?.agencyWebsite ?? ""} />
             </Field>
             <Field label="العملة الافتراضية">
-              <Select name="defaultCurrency" defaultValue={settings?.defaultCurrency ?? "JOD"}>
-                <option value="JOD">دينار أردني (JOD)</option>
-                <option value="USD">دولار أمريكي (USD)</option>
+              <Select name="defaultCurrency" defaultValue={settings?.defaultCurrency ?? "DZD"}>
+                <option value="DZD">دينار جزائري (DZD)</option>
                 <option value="EUR">يورو (EUR)</option>
+                <option value="USD">دولار أمريكي (USD)</option>
+                <option value="TND">دينار تونسي (TND)</option>
+                <option value="MAD">درهم مغربي (MAD)</option>
                 <option value="SAR">ريال سعودي (SAR)</option>
-                <option value="EGP">جنيه مصري (EGP)</option>
               </Select>
             </Field>
             <Field label="عدد الأيام قبل موعد الرحلة لإظهار التنبيه">

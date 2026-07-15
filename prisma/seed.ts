@@ -29,8 +29,9 @@ async function main() {
     update: {},
     create: {
       id: 1,
-      agencyName: "وكالة روزا تور السياحية",
-      defaultCurrency: "JOD",
+      agencyName: "ROZATOUR",
+      agencyTagline: "DE-TOURISMES ET-VOYAGES",
+      defaultCurrency: "DZD",
       reminderDaysAhead: 7,
     },
   });

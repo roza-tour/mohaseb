@@ -24,7 +24,7 @@ const tripSchema = z.object({
   endDate: z.coerce.date({ message: "تاريخ النهاية مطلوب" }),
   numPax: z.coerce.number().int().min(1).default(1),
   agreedPrice: z.coerce.number().min(0).default(0),
-  currency: z.string().min(1).default("JOD"),
+  currency: z.string().min(1).default("DZD"),
   status: z.string().default("PLANNED"),
   notes: z
     .string()

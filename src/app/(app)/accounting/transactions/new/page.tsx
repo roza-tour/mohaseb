@@ -3,7 +3,7 @@ import { PageHeader, Card, Field, Input, Textarea, Select, Button, LinkButton } 
 import { formatDate } from "@/lib/format";
 import { createTransaction } from "../actions";
 
-const CURRENCIES = ["JOD", "USD", "EUR", "SAR", "EGP"];
+const CURRENCIES = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];
 
 export default async function NewTransactionPage() {
   const trips = await prisma.trip.findMany({
@@ -36,7 +36,7 @@ export default async function NewTransactionPage() {
             </Field>
 
             <Field label="العملة">
-              <Select name="currency" defaultValue="JOD">
+              <Select name="currency" defaultValue="DZD">
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
                     {c}

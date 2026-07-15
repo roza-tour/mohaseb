@@ -1,4 +1,4 @@
-export function formatCurrency(amount: number, currency = "JOD") {
+export function formatCurrency(amount: number, currency = "DZD") {
   return `${amount.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 

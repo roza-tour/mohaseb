@@ -1,0 +1,13 @@
+-- AlterTable
+ALTER TABLE `Settings` ADD COLUMN `agencyTagline` VARCHAR(191) NOT NULL DEFAULT '',
+    MODIFY `agencyName` VARCHAR(191) NOT NULL DEFAULT 'ROZATOUR',
+    MODIFY `defaultCurrency` VARCHAR(191) NOT NULL DEFAULT 'DZD';
+
+-- AlterTable
+ALTER TABLE `TourProgram` MODIFY `currency` VARCHAR(191) NOT NULL DEFAULT 'DZD';
+
+-- AlterTable
+ALTER TABLE `Transaction` MODIFY `currency` VARCHAR(191) NOT NULL DEFAULT 'DZD';
+
+-- AlterTable
+ALTER TABLE `Trip` MODIFY `currency` VARCHAR(191) NOT NULL DEFAULT 'DZD';

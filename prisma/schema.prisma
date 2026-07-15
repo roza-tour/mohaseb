@@ -21,14 +21,15 @@ model User {
 // ---------- إعدادات الوكالة (سجل واحد) ----------
 model Settings {
   id              Int      @id @default(1)
-  agencyName      String   @default("وكالة روزا تور السياحية")
+  agencyName      String   @default("ROZATOUR")
+  agencyTagline   String   @default("") // سطر فرعي تحت الاسم في ترويسة المستندات
   agencyAddress   String   @default("")
   agencyPhone     String   @default("")
   agencyEmail     String   @default("")
   agencyWebsite   String   @default("")
   logoPath        String?
   stampPath       String?
-  defaultCurrency String   @default("JOD")
+  defaultCurrency String   @default("DZD")
   reminderDaysAhead Int    @default(7)
   updatedAt       DateTime @updatedAt
 }
@@ -92,7 +93,7 @@ model TourProgram {
   estTransportCost    Float    @default(0)
   estGuideFee         Float    @default(0)
   estOtherCosts       Float    @default(0)
-  currency            String   @default("JOD")
+  currency            String   @default("DZD")
   itinerary           String? @db.Text // نص وصف البرنامج يوم بيوم
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
@@ -110,7 +111,7 @@ model Trip {
   endDate       DateTime
   numPax        Int      @default(1)
   agreedPrice   Float    @default(0) // السعر الإجمالي المتفق عليه مع العميل
-  currency      String   @default("JOD")
+  currency      String   @default("DZD")
   status        String   @default("PLANNED") // PLANNED | CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED
   notes         String? @db.Text
   createdAt     DateTime @default(now())
@@ -178,7 +179,7 @@ model Transaction {
   type        String   // INCOME | EXPENSE
   category    String
   amount      Float
-  currency    String   @default("JOD")
+  currency    String   @default("DZD")
   date        DateTime
   description String? @db.Text
   createdAt   DateTime @default(now())

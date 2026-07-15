@@ -1,7 +1,7 @@
 import { Field, Input, Textarea, Select, Button, LinkButton, Card } from "@/components/ui";
 import type { TourProgram } from "@prisma/client";
 
-const currencies = ["JOD", "USD", "EUR", "SAR", "EGP"];
+const currencies = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];
 
 export function ProgramForm({
   action,
@@ -33,7 +33,7 @@ export function ProgramForm({
           </Field>
 
           <Field label="العملة">
-            <Select name="currency" defaultValue={program?.currency ?? "JOD"}>
+            <Select name="currency" defaultValue={program?.currency ?? "DZD"}>
               {currencies.map((c) => (
                 <option key={c} value={c}>
                   {c}

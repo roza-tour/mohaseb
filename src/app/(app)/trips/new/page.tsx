@@ -78,7 +78,7 @@ export default async function NewTripPage() {
             </Field>
 
             <Field label="العملة">
-              <Select name="currency" defaultValue="JOD">
+              <Select name="currency" defaultValue="DZD">
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
                     {c}

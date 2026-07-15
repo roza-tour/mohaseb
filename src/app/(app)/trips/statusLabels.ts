@@ -18,4 +18,4 @@ export const TRIP_STATUS_COLORS: Record<TripStatus, "slate" | "green" | "red" | 
   CANCELLED: "red",
 };
 
-export const CURRENCIES = ["JOD", "USD", "EUR", "SAR", "EGP"];
+export const CURRENCIES = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];

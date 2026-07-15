@@ -17,7 +17,7 @@ const programSchema = z.object({
   estTransportCost: z.coerce.number().min(0).default(0),
   estGuideFee: z.coerce.number().min(0).default(0),
   estOtherCosts: z.coerce.number().min(0).default(0),
-  currency: z.string().min(1).default("JOD"),
+  currency: z.string().min(1).default("DZD"),
   itinerary: z
     .string()
     .optional()

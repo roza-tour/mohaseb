@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     prisma.settings.findUnique({ where: { id: 1 } }),
   ]);
 
-  const currency = settings?.defaultCurrency ?? "JOD";
+  const currency = settings?.defaultCurrency ?? "DZD";
   const income = monthTransactions.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
   const expense = monthTransactions.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
 
