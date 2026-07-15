@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { firstErrorMessage, withError } from "@/lib/formErrors";
 
 function orNull(value: FormDataEntryValue | null) {
   const s = typeof value === "string" ? value.trim() : "";
@@ -32,8 +33,9 @@ const tripSchema = z.object({
     .transform((v) => (v && v.trim() !== "" ? v : null)),
 });
 
-function parseTripForm(formData: FormData) {
-  return tripSchema.parse({
+// يتحقق من البيانات ويعيد إما البيانات الصالحة أو رسالة خطأ عربية
+function parseTripForm(formData: FormData): { data: z.infer<typeof tripSchema> } | { error: string } {
+  const parsed = tripSchema.safeParse({
     programId: formData.get("programId"),
     customerId: formData.get("customerId"),
     startDate: formData.get("startDate") || undefined,
@@ -44,18 +46,25 @@ function parseTripForm(formData: FormData) {
     status: formData.get("status") || undefined,
     notes: formData.get("notes"),
   });
+  if (!parsed.success) return { error: firstErrorMessage(parsed.error) };
+  if (parsed.data.endDate < parsed.data.startDate) {
+    return { error: "تاريخ نهاية الرحلة لا يمكن أن يسبق تاريخ بدايتها" };
+  }
+  return { data: parsed.data };
 }
 
 export async function createTrip(formData: FormData) {
-  const data = parseTripForm(formData);
-  const trip = await prisma.trip.create({ data });
+  const result = parseTripForm(formData);
+  if ("error" in result) redirect(withError("/trips/new", result.error));
+  const trip = await prisma.trip.create({ data: result.data });
   revalidatePath("/trips");
   redirect(`/trips/${trip.id}`);
 }
 
 export async function updateTrip(id: string, formData: FormData) {
-  const data = parseTripForm(formData);
-  await prisma.trip.update({ where: { id }, data });
+  const result = parseTripForm(formData);
+  if ("error" in result) redirect(withError(`/trips/${id}/edit`, result.error));
+  await prisma.trip.update({ where: { id }, data: result.data });
   revalidatePath("/trips");
   revalidatePath(`/trips/${id}`);
   redirect(`/trips/${id}`);
@@ -90,7 +99,7 @@ const hotelBookingSchema = z.object({
 });
 
 export async function createHotelBooking(tripId: string, formData: FormData) {
-  const data = hotelBookingSchema.parse({
+  const parsed = hotelBookingSchema.safeParse({
     hotelId: formData.get("hotelId"),
     checkIn: formData.get("checkIn") || undefined,
     checkOut: formData.get("checkOut") || undefined,
@@ -99,7 +108,11 @@ export async function createHotelBooking(tripId: string, formData: FormData) {
     cost: formData.get("cost") || undefined,
     confirmationNumber: orNull(formData.get("confirmationNumber")),
   });
-  await prisma.hotelBooking.create({ data: { ...data, tripId } });
+  if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
+  if (parsed.data.checkOut < parsed.data.checkIn) {
+    redirect(withError(`/trips/${tripId}`, "تاريخ مغادرة الفندق لا يمكن أن يسبق تاريخ الوصول"));
+  }
+  await prisma.hotelBooking.create({ data: { ...parsed.data, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
 
@@ -122,7 +135,7 @@ const flightBookingSchema = z.object({
 });
 
 export async function createFlightBooking(tripId: string, formData: FormData) {
-  const data = flightBookingSchema.parse({
+  const parsed = flightBookingSchema.safeParse({
     airline: formData.get("airline"),
     flightNumber: orNull(formData.get("flightNumber")),
     departureAirport: orNull(formData.get("departureAirport")),
@@ -132,7 +145,8 @@ export async function createFlightBooking(tripId: string, formData: FormData) {
     cost: formData.get("cost") || undefined,
     pnr: orNull(formData.get("pnr")),
   });
-  await prisma.flightBooking.create({ data: { ...data, tripId } });
+  if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
+  await prisma.flightBooking.create({ data: { ...parsed.data, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
 
@@ -152,14 +166,15 @@ const otherBookingSchema = z.object({
 });
 
 export async function createOtherBooking(tripId: string, formData: FormData) {
-  const data = otherBookingSchema.parse({
+  const parsed = otherBookingSchema.safeParse({
     type: formData.get("type"),
     description: orNull(formData.get("description")),
     provider: orNull(formData.get("provider")),
     cost: formData.get("cost") || undefined,
     date: orUndefined(formData.get("date")),
   });
-  await prisma.otherBooking.create({ data: { ...data, tripId } });
+  if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
+  await prisma.otherBooking.create({ data: { ...parsed.data, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
 

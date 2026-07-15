@@ -14,6 +14,7 @@ import {
   Field,
   Input,
   Select,
+  ErrorBanner,
 } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate, formatCurrency } from "@/lib/format";
@@ -34,8 +35,15 @@ const ASSIGNEE_TYPE_LABELS: Record<string, string> = {
   DRIVER: "سائق",
 };
 
-export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TripDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
 
   const [trip, hotels] = await Promise.all([
     prisma.trip.findUnique({
@@ -78,6 +86,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
           </div>
         }
       />
+
+      <ErrorBanner message={sp.error} />
 
       {/* بطاقة معلومات الرحلة */}
       <Card className="p-5">

@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Textarea, Select, Button } from "@/components/ui";
+import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { updateTrip } from "../../actions";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, CURRENCIES } from "../../statusLabels";
 
-export default async function EditTripPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditTripPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
 
   const [trip, customers, programs] = await Promise.all([
     prisma.trip.findUnique({ where: { id } }),
@@ -20,6 +27,8 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
   return (
     <div>
       <PageHeader title="تعديل الرحلة" description="تعديل بيانات الرحلة" />
+
+      <ErrorBanner message={sp.error} />
 
       <Card className="p-5">
         <form action={updateTrip.bind(null, id)} className="space-y-4">

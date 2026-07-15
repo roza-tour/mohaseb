@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { firstErrorMessage, withError } from "@/lib/formErrors";
 
 const taskOrderSchema = z
   .object({
@@ -22,7 +23,7 @@ const taskOrderSchema = z
   }));
 
 export async function createTaskOrder(formData: FormData) {
-  const data = taskOrderSchema.parse({
+  const parsed = taskOrderSchema.safeParse({
     tripId: formData.get("tripId"),
     assigneeType: formData.get("assigneeType"),
     guideId: formData.get("guideId") || undefined,
@@ -30,6 +31,14 @@ export async function createTaskOrder(formData: FormData) {
     taskDate: formData.get("taskDate"),
     details: formData.get("details") || undefined,
   });
+  if (!parsed.success) redirect(withError("/task-orders/new", firstErrorMessage(parsed.error)));
+  const data = parsed.data;
+  if (data.assigneeType === "GUIDE" && !data.guideId) {
+    redirect(withError("/task-orders/new", "اختر المرشد السياحي المكلَّف بالمهمة"));
+  }
+  if (data.assigneeType === "DRIVER" && !data.driverId) {
+    redirect(withError("/task-orders/new", "اختر السائق المكلَّف بالمهمة"));
+  }
 
   const created = await prisma.taskOrder.create({ data });
   redirect(`/task-orders/${created.id}/pdf`);

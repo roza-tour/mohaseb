@@ -128,6 +128,17 @@ export function EmptyState({ message }: { message: string }) {
   return <p className="text-center text-sm text-slate-400 py-10">{message}</p>;
 }
 
+// شريط خطأ يظهر أعلى النماذج — يُقرأ من searchParams.error بعد إعادة التوجيه
+export function ErrorBanner({ message }: { message?: string | string[] }) {
+  const text = typeof message === "string" ? message : Array.isArray(message) ? message[0] : "";
+  if (!text) return null;
+  return (
+    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      ⚠️ {text}
+    </div>
+  );
+}
+
 export function Badge({ children, color = "slate" }: { children: React.ReactNode; color?: "slate" | "green" | "red" | "amber" | "sky" }) {
   const colors = {
     slate: "bg-slate-100 text-slate-600",

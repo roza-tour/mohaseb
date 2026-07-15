@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { buildDocNumber, docStyleFromForm } from "@/lib/documents";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { firstErrorMessage, withError } from "@/lib/formErrors";
 
 const documentSchema = z.object({
   title: z.string().min(1),
@@ -16,7 +17,7 @@ const documentSchema = z.object({
 });
 
 export async function createDocument(formData: FormData) {
-  const data = documentSchema.parse({
+  const parsed = documentSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
     tripId: formData.get("tripId") || undefined,
@@ -24,6 +25,8 @@ export async function createDocument(formData: FormData) {
     docDate: formData.get("docDate") || new Date(),
     showStamp: formData.get("showStamp") === "on",
   });
+  if (!parsed.success) redirect(withError("/documents/new", firstErrorMessage(parsed.error)));
+  const data = parsed.data;
 
   const year = data.docDate.getFullYear();
   const countThisYear = await prisma.document.count({

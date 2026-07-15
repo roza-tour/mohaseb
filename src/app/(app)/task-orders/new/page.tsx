@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Field, Select, Input, Textarea, Button, LinkButton, ErrorBanner } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { createTaskOrder } from "../actions";
 import { AssigneeFields } from "../AssigneeFields";
@@ -11,6 +11,7 @@ export default async function NewTaskOrderPage({
 }) {
   const sp = await searchParams;
   const tripId = typeof sp.tripId === "string" ? sp.tripId : "";
+  const error = sp.error;
 
   const [trips, guides, drivers] = await Promise.all([
     prisma.trip.findMany({
@@ -24,6 +25,14 @@ export default async function NewTaskOrderPage({
   return (
     <div>
       <PageHeader title="أمر تكليف جديد" description="إصدار أمر تكليف بمهمة لمرشد سياحي أو سائق" />
+
+      <ErrorBanner message={error} />
+
+      {trips.length === 0 && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 max-w-2xl">
+          لا توجد رحلات بعد — أمر التكليف يرتبط برحلة. أنشئ رحلة أولاً من صفحة الرحلات.
+        </div>
+      )}
 
       <Card className="p-5 max-w-2xl">
         <form action={createTaskOrder} className="space-y-4">

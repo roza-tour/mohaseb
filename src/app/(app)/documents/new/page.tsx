@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Field, Select, Input, Textarea, Button, LinkButton, ErrorBanner } from "@/components/ui";
 import { formatDate, formatDateForInput } from "@/lib/format";
 import { fillTemplate, parseDocStyle, TEMPLATE_VARIABLES } from "@/lib/documents";
 import { StyleFields } from "../StyleFields";
@@ -38,6 +38,8 @@ export default async function NewDocumentPage({
         title="مستند جديد"
         description="اختر قالباً جاهزاً واربطه برحلة لتعبئة البيانات تلقائياً، أو اكتب مستنداً بنص حر من الصفر — يمكنك تعديل النص بالكامل قبل الإصدار"
       />
+
+      <ErrorBanner message={sp.error} />
 
       <Card className="p-5 mb-6 max-w-3xl">
         <form method="get" className="flex flex-wrap items-end gap-3">

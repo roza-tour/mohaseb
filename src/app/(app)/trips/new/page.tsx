@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Textarea, Select, Button } from "@/components/ui";
+import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner } from "@/components/ui";
 import { createTrip } from "../actions";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, CURRENCIES } from "../statusLabels";
 
-export default async function NewTripPage() {
+export default async function NewTripPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
   const [customers, programs] = await Promise.all([
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.tourProgram.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -13,6 +18,26 @@ export default async function NewTripPage() {
   return (
     <div>
       <PageHeader title="رحلة جديدة" description="إنشاء رحلة فعلية جديدة لعميل" />
+
+      <ErrorBanner message={sp.error} />
+
+      {(customers.length === 0 || programs.length === 0) && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          لإنشاء رحلة تحتاج أولاً إلى{" "}
+          {customers.length === 0 && (
+            <Link href="/customers/new" className="font-medium underline">
+              إضافة عميل
+            </Link>
+          )}
+          {customers.length === 0 && programs.length === 0 && " و"}
+          {programs.length === 0 && (
+            <Link href="/programs/new" className="font-medium underline">
+              إضافة برنامج سياحي نشط
+            </Link>
+          )}
+          .
+        </div>
+      )}
 
       <Card className="p-5">
         <form action={createTrip} className="space-y-4">
@@ -103,7 +128,9 @@ export default async function NewTripPage() {
           </Field>
 
           <div>
-            <Button type="submit">حفظ</Button>
+            <Button type="submit" disabled={customers.length === 0 || programs.length === 0}>
+              حفظ
+            </Button>
           </div>
         </form>
       </Card>
