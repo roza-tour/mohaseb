@@ -1,8 +1,12 @@
 "use client";
 
+// هيكل التطبيق المتجاوب: قائمة جانبية ثابتة على الشاشات الكبيرة،
+// وقائمة منسدلة (drawer) بزر ☰ على الهواتف والأجهزة اللوحية.
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import ReminderBell from "@/components/ReminderBell";
 
 const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: string }[] }[] = [
   {
@@ -47,12 +51,12 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
   },
 ];
 
-export default function Sidebar() {
+function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="no-print w-64 shrink-0 bg-slate-900 text-slate-200 min-h-screen flex flex-col">
-      <div className="p-4 border-b border-slate-800 flex items-center gap-2">
+    <div className="h-full w-72 lg:w-64 bg-slate-900 text-slate-200 flex flex-col">
+      <div className="p-4 border-b border-slate-800 flex items-center gap-2 shrink-0">
         <div className="h-9 w-9 rounded-full bg-sky-600 flex items-center justify-center font-bold text-white">
           ر
         </div>
@@ -71,7 +75,8 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm transition ${
+                  onClick={onNavigate}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm transition ${
                     active
                       ? "bg-sky-600 text-white"
                       : "text-slate-300 hover:bg-slate-800 hover:text-white"
@@ -85,7 +90,7 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 shrink-0">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="w-full text-sm text-slate-300 hover:text-white flex items-center gap-2"
@@ -93,6 +98,58 @@ export default function Sidebar() {
           🚪 تسجيل الخروج
         </button>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export default function AppShell({
+  userName,
+  children,
+}: {
+  userName?: string | null;
+  children: React.ReactNode;
+}) {
+  // روابط القائمة المنسدلة تغلقها بنفسها عبر onNavigate
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen">
+      {/* القائمة الجانبية الثابتة — شاشات كبيرة فقط */}
+      <aside className="no-print hidden lg:block shrink-0 sticky top-0 h-screen">
+        <SidebarNav />
+      </aside>
+
+      {/* القائمة المنسدلة — هواتف وأجهزة لوحية */}
+      {open && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div className="absolute inset-y-0 right-0 shadow-2xl">
+            <SidebarNav onNavigate={() => setOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="no-print h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-10">
+          <button
+            className="lg:hidden text-2xl text-slate-600 hover:text-slate-900 px-1"
+            onClick={() => setOpen(true)}
+            aria-label="فتح القائمة"
+          >
+            ☰
+          </button>
+          <div className="hidden lg:block" />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <ReminderBell />
+            <span className="text-sm text-slate-600 truncate max-w-32 sm:max-w-none">{userName}</span>
+          </div>
+        </header>
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
+      </div>
+    </div>
   );
 }

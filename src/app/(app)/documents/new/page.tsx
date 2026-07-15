@@ -41,7 +41,7 @@ export default async function NewDocumentPage({
 
       <Card className="p-5 mb-6 max-w-3xl">
         <form method="get" className="flex flex-wrap items-end gap-3">
-          <div className="min-w-52">
+          <div className="w-full sm:w-auto sm:min-w-52">
             <label className="block text-sm font-medium text-slate-700 mb-1">القالب</label>
             <Select name="templateId" defaultValue={templateId}>
               <option value="">بدون قالب (نص حر)</option>
@@ -52,7 +52,7 @@ export default async function NewDocumentPage({
               ))}
             </Select>
           </div>
-          <div className="min-w-64">
+          <div className="w-full sm:w-auto sm:min-w-64">
             <label className="block text-sm font-medium text-slate-700 mb-1">الرحلة (لتعبئة البيانات تلقائياً)</label>
             <Select name="tripId" defaultValue={tripId}>
               <option value="">بدون ربط برحلة</option>
