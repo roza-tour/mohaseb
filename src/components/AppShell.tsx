@@ -45,6 +45,7 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
     title: "المستندات والمهام",
     items: [
       { href: "/documents", label: "المستندات الصادرة", icon: "📄" },
+      { href: "/invoices", label: "الفواتير", icon: "🧾" },
       { href: "/task-orders", label: "أوامر التكليف", icon: "📝" },
       { href: "/settings", label: "الإعدادات", icon: "⚙️" },
     ],

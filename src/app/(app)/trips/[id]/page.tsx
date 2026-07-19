@@ -21,6 +21,8 @@ import { formatDate, formatCurrency } from "@/lib/format";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "../statusLabels";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { createPayment, deletePayment } from "../paymentActions";
+import { createAttachment, deleteAttachment } from "../attachmentActions";
+import { waLink } from "@/lib/whatsapp";
 import { formatDateForInput } from "@/lib/format";
 import {
   deleteTrip,
@@ -59,6 +61,7 @@ export default async function TripDetailPage({
         otherBookings: { orderBy: { date: "asc" } },
         taskOrders: { include: { guide: true, driver: true }, orderBy: { taskDate: "desc" } },
         payments: { orderBy: { paidAt: "asc" } },
+        attachments: { orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.hotel.findMany({ orderBy: { name: "asc" } }),
@@ -72,6 +75,8 @@ export default async function TripDetailPage({
     trip.otherBookings.reduce((s, b) => s + b.cost, 0);
   const estimatedProfit = trip.agreedPrice - totalBookingCost;
   const profitColor = estimatedProfit > 0 ? "green" : estimatedProfit < 0 ? "red" : "slate";
+  const waMessage = `مرحباً ${trip.customer.name}، تذكير بموعد رحلتكم "${trip.program.name}" من ${formatDate(trip.startDate)} إلى ${formatDate(trip.endDate)}. نتمنى لكم رحلة سعيدة!`;
+  const customerWa = waLink(trip.customer.phone, waMessage);
   const totalPaid = trip.payments.reduce((s, p) => s + p.amount, 0);
   const remaining = trip.agreedPrice - totalPaid;
   const remainingColor = remaining <= 0 ? "green" : "amber";
@@ -107,7 +112,21 @@ export default async function TripDetailPage({
           <div>
             <p className="text-xs text-slate-500 mb-1">العميل</p>
             <p className="text-slate-800 font-medium">{trip.customer.name}</p>
-            {trip.customer.phone && <p className="text-xs text-slate-500 mt-0.5">{trip.customer.phone}</p>}
+            {trip.customer.phone && (
+              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                {trip.customer.phone}
+                {customerWa && (
+                  <a
+                    href={customerWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-600 hover:underline font-medium"
+                  >
+                    💬 واتساب
+                  </a>
+                )}
+              </p>
+            )}
             {trip.customer.email && <p className="text-xs text-slate-500 mt-0.5">{trip.customer.email}</p>}
           </div>
           <div>
@@ -480,6 +499,67 @@ export default async function TripDetailPage({
         </form>
       </Card>
 
+      {/* مرفقات الرحلة */}
+      <Card className="p-5">
+        <h2 className="font-bold text-slate-800 mb-4">مرفقات الرحلة (جوازات، تذاكر، تأكيدات...)</h2>
+        {trip.attachments.length === 0 ? (
+          <EmptyState message="لا توجد مرفقات بعد" />
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <Th>الوصف</Th>
+                <Th>الحجم</Th>
+                <Th>أضيف بتاريخ</Th>
+                <Th></Th>
+                <Th></Th>
+              </tr>
+            </thead>
+            <tbody>
+              {trip.attachments.map((a) => (
+                <tr key={a.id}>
+                  <Td className="font-medium text-slate-800">{a.label}</Td>
+                  <Td>{(a.size / 1024).toFixed(0)} KB</Td>
+                  <Td>{formatDate(a.createdAt)}</Td>
+                  <Td>
+                    <a
+                      href={a.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sky-600 text-sm hover:underline"
+                    >
+                      فتح / تحميل
+                    </a>
+                  </Td>
+                  <Td>
+                    <DeleteButton action={deleteAttachment.bind(null, id, a.id)} />
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+
+        <form
+          action={createAttachment.bind(null, id)}
+          className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-end gap-3"
+        >
+          <div className="w-full sm:w-auto sm:min-w-64">
+            <Field label="الملف (صورة أو PDF، حتى 8MB)">
+              <Input type="file" name="file" accept="image/*,application/pdf" required />
+            </Field>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-52">
+            <Field label="وصف الملف (اختياري)">
+              <Input name="label" placeholder="مثال: جواز سفر العميل" />
+            </Field>
+          </div>
+          <Button type="submit" variant="secondary">
+            رفع المرفق
+          </Button>
+        </form>
+      </Card>
+
       {/* أوامر التكليف */}
       <Card className="p-5">
         <h2 className="font-bold text-slate-800 mb-4">أوامر التكليف الصادرة</h2>
@@ -516,6 +596,9 @@ export default async function TripDetailPage({
           <LinkButton href={`/task-orders/new?tripId=${id}`}>+ إصدار أمر تكليف جديد</LinkButton>
           <LinkButton href={`/documents/new?tripId=${id}`} variant="secondary">
             + إصدار مستند (دعوة، تصريح...)
+          </LinkButton>
+          <LinkButton href={`/invoices/new?tripId=${id}`} variant="secondary">
+            + إصدار فاتورة
           </LinkButton>
         </div>
       </Card>

@@ -45,6 +45,7 @@ model Customer {
   createdAt DateTime @default(now())
   trips     Trip[]
   documents Document[]
+  invoices  Invoice[]
 }
 
 // ---------- الفنادق ----------
@@ -125,6 +126,8 @@ model Trip {
   taskOrders     TaskOrder[]
   documents      Document[]
   payments       Payment[]
+  invoices       Invoice[]
+  attachments    Attachment[]
 }
 
 // ---------- حجوزات الفنادق ----------
@@ -255,4 +258,32 @@ model Payment {
   notes         String?  @db.Text
   paidAt        DateTime @default(now())
   createdAt     DateTime @default(now())
+}
+
+// ---------- الفواتير ----------
+model Invoice {
+  id            String    @id @default(cuid())
+  invoiceNumber String    // رقم الفاتورة، مثال: 2026/0001
+  trip          Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  tripId        String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId    String?
+  currency      String    @default("DZD")
+  items         Json      // [{ description, qty, unitPrice }]
+  discount      Float     @default(0)
+  notes         String?   @db.Text
+  showStamp     Boolean   @default(true)
+  docDate       DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+}
+
+// ---------- مرفقات الرحلات (جوازات، تذاكر، تأكيدات...) ----------
+model Attachment {
+  id        String   @id @default(cuid())
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId    String
+  label     String   // وصف الملف، مثال: جواز سفر العميل
+  path      String   // /uploads/attachments/xxx.pdf
+  size      Int      @default(0)
+  createdAt DateTime @default(now())
 }

@@ -7,7 +7,18 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="الإعدادات" description="بيانات الوكالة والشعار والختم والإعدادات العامة" />
+      <PageHeader
+        title="الإعدادات"
+        description="بيانات الوكالة والشعار والختم والإعدادات العامة"
+        action={
+          <a
+            href="/settings/users"
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition bg-slate-100 text-slate-700 hover:bg-slate-200"
+          >
+            👥 إدارة المستخدمين
+          </a>
+        }
+      />
 
       <form action={updateSettings} encType="multipart/form-data" className="space-y-6">
         <Card className="p-5 space-y-4">
