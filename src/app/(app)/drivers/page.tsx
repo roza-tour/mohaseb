@@ -1,10 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteDriver } from "./actions";
 
-export default async function DriversPage() {
-  const drivers = await prisma.driver.findMany({ orderBy: { name: "asc" } });
+export default async function DriversPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const page = parsePage(sp.page);
+  const where = q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }, { vehicleInfo: { contains: q } }] } : {};
+  const [drivers, total] = await Promise.all([
+    prisma.driver.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.driver.count({ where }),
+  ]);
 
   return (
     <div>
@@ -13,6 +30,8 @@ export default async function DriversPage() {
         description="قاعدة بيانات السائقين ومركباتهم وبيانات التواصل الخاصة بهم"
         action={<LinkButton href="/drivers/new">+ إضافة سائق</LinkButton>}
       />
+
+      <SearchBox q={q} basePath="/drivers" placeholder="بحث بالاسم أو الهاتف أو المركبة..." />
 
       <Card>
         {drivers.length === 0 ? (
@@ -49,6 +68,8 @@ export default async function DriversPage() {
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/drivers" params={{ q }} />
     </div>
   );
 }

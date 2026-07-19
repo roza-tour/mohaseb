@@ -19,6 +19,9 @@ import {
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "../statusLabels";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/payments";
+import { createPayment, deletePayment } from "../paymentActions";
+import { formatDateForInput } from "@/lib/format";
 import {
   deleteTrip,
   updateTripStatus,
@@ -55,6 +58,7 @@ export default async function TripDetailPage({
         flightBookings: { orderBy: { departureDate: "asc" } },
         otherBookings: { orderBy: { date: "asc" } },
         taskOrders: { include: { guide: true, driver: true }, orderBy: { taskDate: "desc" } },
+        payments: { orderBy: { paidAt: "asc" } },
       },
     }),
     prisma.hotel.findMany({ orderBy: { name: "asc" } }),
@@ -68,6 +72,9 @@ export default async function TripDetailPage({
     trip.otherBookings.reduce((s, b) => s + b.cost, 0);
   const estimatedProfit = trip.agreedPrice - totalBookingCost;
   const profitColor = estimatedProfit > 0 ? "green" : estimatedProfit < 0 ? "red" : "slate";
+  const totalPaid = trip.payments.reduce((s, p) => s + p.amount, 0);
+  const remaining = trip.agreedPrice - totalPaid;
+  const remainingColor = remaining <= 0 ? "green" : "amber";
 
   return (
     <div className="space-y-6">
@@ -152,7 +159,7 @@ export default async function TripDetailPage({
       {/* بطاقة الملخص المالي */}
       <Card className="p-5">
         <h2 className="font-bold text-slate-800 mb-4">الملخص المالي</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
           <div>
             <p className="text-xs text-slate-500 mb-1">السعر الإجمالي المتفق عليه</p>
             <p className="text-slate-800 font-medium">{formatCurrency(trip.agreedPrice, trip.currency)}</p>
@@ -165,7 +172,90 @@ export default async function TripDetailPage({
             <p className="text-xs text-slate-500 mb-1">الربح التقديري</p>
             <Badge color={profitColor}>{formatCurrency(estimatedProfit, trip.currency)}</Badge>
           </div>
+          <div>
+            <p className="text-xs text-slate-500 mb-1">المدفوع من العميل</p>
+            <p className="text-emerald-700 font-medium">{formatCurrency(totalPaid, trip.currency)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 mb-1">المتبقي على العميل</p>
+            <Badge color={remainingColor}>{formatCurrency(remaining, trip.currency)}</Badge>
+          </div>
         </div>
+      </Card>
+
+      {/* دفعات العميل وسندات القبض */}
+      <Card className="p-5">
+        <h2 className="font-bold text-slate-800 mb-4">دفعات العميل (سندات القبض)</h2>
+        {trip.payments.length === 0 ? (
+          <EmptyState message="لا توجد دفعات مسجلة بعد" />
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <Th>رقم السند</Th>
+                <Th>التاريخ</Th>
+                <Th>المبلغ</Th>
+                <Th>طريقة الدفع</Th>
+                <Th>المرجع</Th>
+                <Th></Th>
+                <Th></Th>
+              </tr>
+            </thead>
+            <tbody>
+              {trip.payments.map((p) => (
+                <tr key={p.id}>
+                  <Td className="font-mono text-xs">{p.receiptNumber}</Td>
+                  <Td>{formatDate(p.paidAt)}</Td>
+                  <Td className="font-medium text-emerald-700">{formatCurrency(p.amount, trip.currency)}</Td>
+                  <Td>{PAYMENT_METHOD_LABELS[p.method] ?? p.method}</Td>
+                  <Td>{p.reference ?? "-"}</Td>
+                  <Td>
+                    <Link
+                      href={`/payments/${p.id}/pdf`}
+                      target="_blank"
+                      className="text-sky-600 text-sm hover:underline"
+                    >
+                      سند القبض PDF
+                    </Link>
+                  </Td>
+                  <Td>
+                    <DeleteButton action={deletePayment.bind(null, id, p.id)} />
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+
+        <form
+          action={createPayment.bind(null, id)}
+          className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end"
+        >
+          <Field label="المبلغ">
+            <Input type="number" name="amount" step="0.01" min={0.01} required />
+          </Field>
+          <Field label="تاريخ الدفعة">
+            <Input type="date" name="paidAt" required defaultValue={formatDateForInput(new Date())} />
+          </Field>
+          <Field label="طريقة الدفع">
+            <Select name="method" defaultValue="CASH">
+              {PAYMENT_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {PAYMENT_METHOD_LABELS[m]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="المرجع (شيك/تحويل)">
+            <Input name="reference" />
+          </Field>
+          <Field label="ملاحظات">
+            <Input name="notes" />
+          </Field>
+          <div>
+            <Button type="submit">تسجيل دفعة</Button>
+          </div>
+        </form>
       </Card>
 
       {/* حجوزات الفنادق */}

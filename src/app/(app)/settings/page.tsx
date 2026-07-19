@@ -93,6 +93,21 @@ export default async function SettingsPage() {
         <Button type="submit">حفظ الإعدادات</Button>
       </form>
 
+      <Card className="p-5 space-y-3 mt-6 max-w-lg">
+        <h2 className="font-bold text-slate-800">النسخ الاحتياطي</h2>
+        <p className="text-xs text-slate-500">
+          حمّل نسخة كاملة من قاعدة البيانات (ملف SQL يمكن استعادته من phpMyAdmin). ننصح بأخذ نسخة
+          أسبوعياً على الأقل وحفظها خارج السيرفر. لا تنسَ أيضاً نسخ مجلد <code dir="ltr">public/uploads</code>
+          {" "}(الشعار والختم) من مدير الملفات.
+        </p>
+        <a
+          href="/api/backup"
+          className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition bg-sky-600 text-white hover:bg-sky-700 w-fit"
+        >
+          ⬇️ تحميل نسخة احتياطية الآن
+        </a>
+      </Card>
+
       <Card className="p-5 space-y-4 mt-6 max-w-lg">
         <h2 className="font-bold text-slate-800">تغيير كلمة المرور</h2>
         <form action={changePassword} className="space-y-4">

@@ -124,6 +124,7 @@ model Trip {
   transactions   Transaction[]
   taskOrders     TaskOrder[]
   documents      Document[]
+  payments       Payment[]
 }
 
 // ---------- حجوزات الفنادق ----------
@@ -240,4 +241,18 @@ model Document {
   style      Json?     // تنسيق هذا المستند (يبدأ من تنسيق القالب ويعدَّل بحرية)
   docDate    DateTime  @default(now())
   createdAt  DateTime  @default(now())
+}
+
+// ---------- دفعات العملاء (سندات القبض) ----------
+model Payment {
+  id            String   @id @default(cuid())
+  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId        String
+  receiptNumber String   // رقم سند القبض، مثال: 2026/0001
+  amount        Float
+  method        String   @default("CASH") // CASH | BANK | CHEQUE | OTHER
+  reference     String?  // رقم الشيك أو التحويل البنكي
+  notes         String?  @db.Text
+  paidAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
 }

@@ -4,12 +4,36 @@ import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/compo
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate } from "@/lib/format";
 import { deleteDocument } from "./actions";
+import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 
-export default async function DocumentsPage() {
-  const documents = await prisma.document.findMany({
-    include: { trip: { include: { program: true } }, customer: true },
-    orderBy: { createdAt: "desc" },
-  });
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const page = parsePage(sp.page);
+  const where = q
+    ? {
+        OR: [
+          { title: { contains: q } },
+          { docNumber: { contains: q } },
+          { customer: { name: { contains: q } } },
+        ],
+      }
+    : {};
+
+  const [documents, total] = await Promise.all([
+    prisma.document.findMany({
+      where,
+      include: { trip: { include: { program: true } }, customer: true },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.document.count({ where }),
+  ]);
 
   return (
     <div>
@@ -25,6 +49,8 @@ export default async function DocumentsPage() {
           </div>
         }
       />
+
+      <SearchBox q={q} basePath="/documents" placeholder="بحث بالعنوان أو الرقم أو العميل..." />
 
       <Card>
         {documents.length === 0 ? (
@@ -68,6 +94,8 @@ export default async function DocumentsPage() {
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/documents" params={{ q }} />
     </div>
   );
 }

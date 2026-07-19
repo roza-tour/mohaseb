@@ -1,10 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteGuide } from "./actions";
 
-export default async function GuidesPage() {
-  const guides = await prisma.guide.findMany({ orderBy: { name: "asc" } });
+export default async function GuidesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const page = parsePage(sp.page);
+  const where = q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }, { email: { contains: q } }] } : {};
+  const [guides, total] = await Promise.all([
+    prisma.guide.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.guide.count({ where }),
+  ]);
 
   return (
     <div>
@@ -13,6 +30,8 @@ export default async function GuidesPage() {
         description="قاعدة بيانات المرشدين السياحيين واللغات التي يتقنونها وبيانات التواصل"
         action={<LinkButton href="/guides/new">+ إضافة مرشد</LinkButton>}
       />
+
+      <SearchBox q={q} basePath="/guides" placeholder="بحث بالاسم أو الهاتف..." />
 
       <Card>
         {guides.length === 0 ? (
@@ -49,6 +68,8 @@ export default async function GuidesPage() {
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/guides" params={{ q }} />
     </div>
   );
 }

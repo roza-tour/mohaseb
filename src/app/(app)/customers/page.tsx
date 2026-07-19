@@ -1,13 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteCustomer } from "./actions";
 
-export default async function CustomersPage() {
-  const customers = await prisma.customer.findMany({
+export default async function CustomersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const page = parsePage(sp.page);
+  const where = q ? { OR: [{ name: { contains: q } }, { phone: { contains: q } }, { email: { contains: q } }] } : {};
+  const [customers, total] = await Promise.all([
+    prisma.customer.findMany({
+      where,
     orderBy: { name: "asc" },
     include: { _count: { select: { trips: true } } },
-  });
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.customer.count({ where }),
+  ]);
 
   return (
     <div>
@@ -16,6 +31,8 @@ export default async function CustomersPage() {
         description="قاعدة بيانات عملاء الوكالة وأرقام هواتفهم وبريدهم الإلكتروني"
         action={<LinkButton href="/customers/new">+ إضافة عميل</LinkButton>}
       />
+
+      <SearchBox q={q} basePath="/customers" placeholder="بحث بالاسم أو الهاتف أو البريد..." />
 
       <Card>
         {customers.length === 0 ? (
@@ -52,6 +69,8 @@ export default async function CustomersPage() {
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/customers" params={{ q }} />
     </div>
   );
 }

@@ -34,43 +34,49 @@ export default async function ClosingDetailedPage({
     ? await prisma.transaction.findMany({ where: { tripId: { in: allTripIds } } })
     : [];
 
+  // صف لكل (برنامج، عملة) حتى لا تُجمع مبالغ بعملات مختلفة كرقم واحد
   const rows = relevantPrograms
-    .map((p) => {
-      const tripIds = p.trips.map((t) => t.id);
-      const tripAgreedRevenue = p.trips.reduce((s, t) => s + t.agreedPrice, 0);
-      const bookingCost = p.trips.reduce(
-        (s, t) =>
-          s +
-          t.hotelBookings.reduce((a, b) => a + b.cost, 0) +
-          t.flightBookings.reduce((a, b) => a + b.cost, 0) +
-          t.otherBookings.reduce((a, b) => a + b.cost, 0),
-        0
-      );
-      const txIncome = linkedTransactions
-        .filter((tx) => tx.tripId && tripIds.includes(tx.tripId) && tx.type === "INCOME")
-        .reduce((s, tx) => s + tx.amount, 0);
-      const txExpense = linkedTransactions
-        .filter((tx) => tx.tripId && tripIds.includes(tx.tripId) && tx.type === "EXPENSE")
-        .reduce((s, tx) => s + tx.amount, 0);
+    .flatMap((p) => {
+      const currencies = [...new Set(p.trips.map((t) => t.currency))];
+      return currencies.map((currency) => {
+        const trips = p.trips.filter((t) => t.currency === currency);
+        const tripIds = trips.map((t) => t.id);
+        const tripAgreedRevenue = trips.reduce((s, t) => s + t.agreedPrice, 0);
+        const bookingCost = trips.reduce(
+          (s, t) =>
+            s +
+            t.hotelBookings.reduce((a, b) => a + b.cost, 0) +
+            t.flightBookings.reduce((a, b) => a + b.cost, 0) +
+            t.otherBookings.reduce((a, b) => a + b.cost, 0),
+          0
+        );
+        const txIncome = linkedTransactions
+          .filter((tx) => tx.tripId && tripIds.includes(tx.tripId) && tx.type === "INCOME" && tx.currency === currency)
+          .reduce((s, tx) => s + tx.amount, 0);
+        const txExpense = linkedTransactions
+          .filter((tx) => tx.tripId && tripIds.includes(tx.tripId) && tx.type === "EXPENSE" && tx.currency === currency)
+          .reduce((s, tx) => s + tx.amount, 0);
 
-      const revenue = tripAgreedRevenue + txIncome;
-      const cost = bookingCost + txExpense;
-      const profit = revenue - cost;
-      const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
+        const revenue = tripAgreedRevenue + txIncome;
+        const cost = bookingCost + txExpense;
+        const profit = revenue - cost;
+        const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-      return { program: p, tripCount: p.trips.length, revenue, cost, profit, marginPct };
+        return { program: p, currency, tripCount: trips.length, revenue, cost, profit, marginPct };
+      });
     })
     .sort((a, b) => b.profit - a.profit);
 
-  const totals = rows.reduce(
-    (acc, r) => ({
-      tripCount: acc.tripCount + r.tripCount,
-      revenue: acc.revenue + r.revenue,
-      cost: acc.cost + r.cost,
-      profit: acc.profit + r.profit,
-    }),
-    { tripCount: 0, revenue: 0, cost: 0, profit: 0 }
-  );
+  // إجمالي لكل عملة على حدة
+  const totalsByCurrency = new Map<string, { tripCount: number; revenue: number; cost: number; profit: number }>();
+  for (const r of rows) {
+    const acc = totalsByCurrency.get(r.currency) ?? { tripCount: 0, revenue: 0, cost: 0, profit: 0 };
+    acc.tripCount += r.tripCount;
+    acc.revenue += r.revenue;
+    acc.cost += r.cost;
+    acc.profit += r.profit;
+    totalsByCurrency.set(r.currency, acc);
+  }
 
   const fromStr = from.toISOString().slice(0, 10);
   const toStr = to.toISOString().slice(0, 10);
@@ -125,27 +131,29 @@ export default async function ClosingDetailedPage({
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.program.id}>
+                <tr key={r.program.id + r.currency}>
                   <Td className="font-medium text-slate-800">{r.program.name}</Td>
                   <Td>{r.tripCount}</Td>
-                  <Td>{formatCurrency(r.revenue)}</Td>
-                  <Td>{formatCurrency(r.cost)}</Td>
+                  <Td>{formatCurrency(r.revenue, r.currency)}</Td>
+                  <Td>{formatCurrency(r.cost, r.currency)}</Td>
                   <Td>
-                    <Badge color={r.profit >= 0 ? "green" : "red"}>{formatCurrency(r.profit)}</Badge>
+                    <Badge color={r.profit >= 0 ? "green" : "red"}>{formatCurrency(r.profit, r.currency)}</Badge>
                   </Td>
                   <Td>{r.marginPct.toFixed(1)}%</Td>
                 </tr>
               ))}
-              <tr className="bg-slate-50 font-bold">
-                <Td>الإجمالي</Td>
-                <Td>{totals.tripCount}</Td>
-                <Td>{formatCurrency(totals.revenue)}</Td>
-                <Td>{formatCurrency(totals.cost)}</Td>
-                <Td className={totals.profit >= 0 ? "text-emerald-600" : "text-red-600"}>
-                  {formatCurrency(totals.profit)}
-                </Td>
-                <Td>—</Td>
-              </tr>
+              {[...totalsByCurrency.entries()].map(([currency, t]) => (
+                <tr key={currency} className="bg-slate-50 font-bold">
+                  <Td>الإجمالي ({currency})</Td>
+                  <Td>{t.tripCount}</Td>
+                  <Td>{formatCurrency(t.revenue, currency)}</Td>
+                  <Td>{formatCurrency(t.cost, currency)}</Td>
+                  <Td className={t.profit >= 0 ? "text-emerald-600" : "text-red-600"}>
+                    {formatCurrency(t.profit, currency)}
+                  </Td>
+                  <Td>—</Td>
+                </tr>
+              ))}
             </tbody>
           </Table>
         )}

@@ -1,10 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteHotel } from "./actions";
 
-export default async function HotelsPage() {
-  const hotels = await prisma.hotel.findMany({ orderBy: { name: "asc" } });
+export default async function HotelsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const page = parsePage(sp.page);
+  const where = q ? { OR: [{ name: { contains: q } }, { city: { contains: q } }, { phone: { contains: q } }, { email: { contains: q } }] } : {};
+  const [hotels, total] = await Promise.all([
+    prisma.hotel.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.hotel.count({ where }),
+  ]);
 
   return (
     <div>
@@ -13,6 +30,8 @@ export default async function HotelsPage() {
         description="قاعدة بيانات الفنادق المتعامل معها وبيانات التواصل الخاصة بها"
         action={<LinkButton href="/hotels/new">+ إضافة فندق</LinkButton>}
       />
+
+      <SearchBox q={q} basePath="/hotels" placeholder="بحث بالاسم أو المدينة..." />
 
       <Card>
         {hotels.length === 0 ? (
@@ -51,6 +70,8 @@ export default async function HotelsPage() {
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/hotels" params={{ q }} />
     </div>
   );
 }

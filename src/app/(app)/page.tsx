@@ -5,7 +5,7 @@ import { formatDate, formatCurrency } from "@/lib/format";
 import Link from "next/link";
 
 export default async function DashboardPage() {
-  const [customersCount, activeTrips, upcoming, monthTransactions, settings] = await Promise.all([
+  const [customersCount, activeTrips, upcoming, monthTransactions, settings, unpaidTrips] = await Promise.all([
     prisma.customer.count(),
     prisma.trip.count({ where: { status: { in: ["PLANNED", "CONFIRMED", "IN_PROGRESS"] } } }),
     getUpcomingTrips(),
@@ -17,9 +17,27 @@ export default async function DashboardPage() {
       },
     }),
     prisma.settings.findUnique({ where: { id: 1 } }),
+    prisma.trip.findMany({
+      where: { status: { notIn: ["CANCELLED"] } },
+      include: { payments: true },
+    }),
   ]);
 
+
   const currency = settings?.defaultCurrency ?? "DZD";
+  // المستحقات المتبقية لدى العملاء، مفصولة حسب العملة
+  const outstandingByCurrency = new Map<string, number>();
+  for (const t of unpaidTrips) {
+    const paid = t.payments.reduce((s, p) => s + p.amount, 0);
+    const remaining = t.agreedPrice - paid;
+    if (remaining > 0) {
+      outstandingByCurrency.set(t.currency, (outstandingByCurrency.get(t.currency) ?? 0) + remaining);
+    }
+  }
+  const outstandingText =
+    outstandingByCurrency.size === 0
+      ? formatCurrency(0, currency)
+      : [...outstandingByCurrency.entries()].map(([c, v]) => formatCurrency(v, c)).join("  +  ");
   const income = monthTransactions.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
   const expense = monthTransactions.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
 
@@ -28,13 +46,14 @@ export default async function DashboardPage() {
     { label: "رحلات نشطة", value: activeTrips, href: "/trips" },
     { label: "إيرادات الشهر", value: formatCurrency(income, currency), href: "/accounting/transactions" },
     { label: "مصروفات الشهر", value: formatCurrency(expense, currency), href: "/accounting/transactions" },
+    { label: "مستحقات متبقية لدى العملاء", value: outstandingText, href: "/trips" },
   ];
 
   return (
     <div>
       <PageHeader title="لوحة التحكم" description="نظرة عامة على أعمال الوكالة" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {stats.map((s) => (
           <Link key={s.label} href={s.href}>
             <Card className="p-5 hover:shadow-md transition">
