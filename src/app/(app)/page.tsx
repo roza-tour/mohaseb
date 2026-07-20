@@ -3,6 +3,7 @@ import { getUpcomingTrips } from "@/lib/reminders";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { formatDate, formatCurrency } from "@/lib/format";
 import Link from "next/link";
+import { MonthlyChart, type MonthPoint } from "@/components/MonthlyChart";
 
 export default async function DashboardPage() {
   const [customersCount, activeTrips, upcoming, monthTransactions, settings, unpaidTrips] = await Promise.all([
@@ -23,6 +24,13 @@ export default async function DashboardPage() {
     }),
   ]);
 
+  // بيانات رسم آخر ستة أشهر (بالعملة الافتراضية فقط)
+  const sixMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
+  const chartTxs = await prisma.transaction.findMany({
+    where: { date: { gte: sixMonthsAgo } },
+    select: { type: true, amount: true, date: true, currency: true },
+  });
+
 
   const currency = settings?.defaultCurrency ?? "DZD";
   // المستحقات المتبقية لدى العملاء، مفصولة حسب العملة
@@ -38,6 +46,20 @@ export default async function DashboardPage() {
     outstandingByCurrency.size === 0
       ? formatCurrency(0, currency)
       : [...outstandingByCurrency.entries()].map(([c, v]) => formatCurrency(v, c)).join("  +  ");
+
+  const chartData: MonthPoint[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
+    const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    const monthTxs = chartTxs.filter(
+      (t) => t.currency === currency && t.date >= d && t.date < next
+    );
+    chartData.push({
+      label: `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`,
+      income: monthTxs.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0),
+      expense: monthTxs.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0),
+    });
+  }
   const income = monthTransactions.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
   const expense = monthTransactions.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
 
@@ -63,6 +85,11 @@ export default async function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      <Card className="p-5 mb-6">
+        <h2 className="font-bold text-slate-800 mb-3">📈 الإيرادات والمصروفات — آخر ستة أشهر (من القيود المحاسبية)</h2>
+        <MonthlyChart data={chartData} currency={currency} />
+      </Card>
 
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner } from "@/components/ui";
 import { createTrip } from "../actions";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, CURRENCIES } from "../statusLabels";
+import { ProgramDatesFields } from "../ProgramDatesFields";
 
 export default async function NewTripPage({
   searchParams,
@@ -64,35 +65,20 @@ export default async function NewTripPage({
               )}
             </Field>
 
-            <Field label="البرنامج السياحي">
-              {programs.length === 0 ? (
+            {programs.length === 0 ? (
+              <Field label="البرنامج السياحي">
                 <p className="text-xs text-slate-500">
                   لا توجد برامج نشطة بعد.{" "}
                   <Link href="/programs/new" className="text-sky-600 hover:underline">
                     إضافة برنامج جديد
                   </Link>
                 </p>
-              ) : (
-                <Select name="programId" required defaultValue="">
-                  <option value="" disabled>
-                    اختر برنامجاً
-                  </option>
-                  {programs.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-
-            <Field label="تاريخ البداية">
-              <Input type="date" name="startDate" required />
-            </Field>
-
-            <Field label="تاريخ النهاية">
-              <Input type="date" name="endDate" required />
-            </Field>
+              </Field>
+            ) : (
+              <ProgramDatesFields
+                programs={programs.map((p) => ({ id: p.id, name: p.name, durationDays: p.durationDays }))}
+              />
+            )}
 
             <Field label="عدد الأشخاص">
               <Input type="number" name="numPax" min={1} defaultValue={1} />

@@ -40,6 +40,28 @@ export async function createTaskOrder(formData: FormData) {
     redirect(withError("/task-orders/new", "اختر السائق المكلَّف بالمهمة"));
   }
 
+  // كشف تعارض المواعيد: نفس المكلَّف لا يُكلَّف بمهمتين في نفس اليوم
+  const dayStart = new Date(data.taskDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  const conflict = await prisma.taskOrder.findFirst({
+    where: {
+      taskDate: { gte: dayStart, lt: dayEnd },
+      ...(data.assigneeType === "GUIDE" ? { guideId: data.guideId } : { driverId: data.driverId }),
+    },
+    include: { trip: { include: { program: true } }, guide: true, driver: true },
+  });
+  if (conflict) {
+    const who = conflict.guide?.name ?? conflict.driver?.name ?? "المكلَّف";
+    redirect(
+      withError(
+        "/task-orders/new",
+        `تعارض في المواعيد: ${who} مكلَّف بمهمة أخرى في نفس اليوم (رحلة ${conflict.trip.program.name}) — غيّر التاريخ أو اختر مكلَّفاً آخر`
+      )
+    );
+  }
+
   const created = await prisma.taskOrder.create({ data });
   redirect(`/task-orders/${created.id}/pdf`);
 }

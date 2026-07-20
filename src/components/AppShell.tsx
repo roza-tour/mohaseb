@@ -13,6 +13,7 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
     title: "عام",
     items: [
       { href: "/", label: "لوحة التحكم", icon: "🏠" },
+      { href: "/schedule", label: "جدول المهام", icon: "📅" },
       { href: "/trip-suggestions", label: "اقتراح رحلة وتسعير", icon: "🧮" },
     ],
   },

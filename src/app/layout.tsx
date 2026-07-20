@@ -12,6 +12,20 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: "محاسب | نظام محاسبة وكالة روزا تور السياحية",
   description: "نظام إدارة محاسبية وحجوزات لوكالة سياحية",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "محاسب",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({

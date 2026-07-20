@@ -5,6 +5,7 @@ import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner }
 import { formatDateForInput } from "@/lib/format";
 import { updateTrip } from "../../actions";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, CURRENCIES } from "../../statusLabels";
+import { ProgramDatesFields } from "../../ProgramDatesFields";
 
 export default async function EditTripPage({
   params,
@@ -52,32 +53,12 @@ export default async function EditTripPage({
               )}
             </Field>
 
-            <Field label="البرنامج السياحي">
-              {programs.length === 0 ? (
-                <p className="text-xs text-slate-500">
-                  لا توجد برامج نشطة بعد.{" "}
-                  <Link href="/programs/new" className="text-sky-600 hover:underline">
-                    إضافة برنامج جديد
-                  </Link>
-                </p>
-              ) : (
-                <Select name="programId" required defaultValue={trip.programId}>
-                  {programs.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-
-            <Field label="تاريخ البداية">
-              <Input type="date" name="startDate" required defaultValue={formatDateForInput(trip.startDate)} />
-            </Field>
-
-            <Field label="تاريخ النهاية">
-              <Input type="date" name="endDate" required defaultValue={formatDateForInput(trip.endDate)} />
-            </Field>
+            <ProgramDatesFields
+              programs={programs.map((p) => ({ id: p.id, name: p.name, durationDays: p.durationDays }))}
+              initialProgramId={trip.programId}
+              initialStart={formatDateForInput(trip.startDate)}
+              initialEnd={formatDateForInput(trip.endDate)}
+            />
 
             <Field label="عدد الأشخاص">
               <Input type="number" name="numPax" min={1} defaultValue={trip.numPax} />
