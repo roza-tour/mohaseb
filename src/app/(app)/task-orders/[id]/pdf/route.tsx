@@ -11,9 +11,9 @@ import { MixedText } from "@/lib/pdf/MixedText";
 // Use plain Western digits in a fixed DD/MM/YYYY order to keep dates unambiguous.
 function formatDate(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${d.getFullYear()}`;
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${d.getUTCFullYear()}`;
 }
 
 registerArabicFonts();

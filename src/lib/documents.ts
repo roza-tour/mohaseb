@@ -14,9 +14,10 @@ export const TEMPLATE_VARIABLES: { token: string; label: string }[] = [
 ];
 
 function fmt(date: Date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${date.getFullYear()}`;
+  // تواريخ الرحلة تُخزَّن عند منتصف ليل UTC — نقرأها بتوقيت UTC حتى لا ينزاح اليوم
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getUTCFullYear()}`;
 }
 
 export function fillTemplate(

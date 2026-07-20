@@ -30,14 +30,22 @@ export default async function ClosingDetailedPage({
   const relevantPrograms = programs.filter((p) => p.trips.length > 0);
   const allTripIds = relevantPrograms.flatMap((p) => p.trips.map((t) => t.id));
 
+  // نفلتر القيود بنفس فترة التقرير حتى يتطابق مع الميزانية المجملة
   const linkedTransactions = allTripIds.length
-    ? await prisma.transaction.findMany({ where: { tripId: { in: allTripIds } } })
+    ? await prisma.transaction.findMany({
+        where: { tripId: { in: allTripIds }, date: { gte: from, lte: to } },
+      })
     : [];
 
   // صف لكل (برنامج، عملة) حتى لا تُجمع مبالغ بعملات مختلفة كرقم واحد
   const rows = relevantPrograms
     .flatMap((p) => {
-      const currencies = [...new Set(p.trips.map((t) => t.currency))];
+      const pTripIds = new Set(p.trips.map((t) => t.id));
+      // العملات = عملات الرحلات + عملات القيود المرتبطة بها (قد يُسجَّل مصروف بعملة مختلفة عن الرحلة)
+      const pTxCurrencies = linkedTransactions
+        .filter((tx) => tx.tripId && pTripIds.has(tx.tripId))
+        .map((tx) => tx.currency);
+      const currencies = [...new Set([...p.trips.map((t) => t.currency), ...pTxCurrencies])];
       return currencies.map((currency) => {
         const trips = p.trips.filter((t) => t.currency === currency);
         const tripIds = trips.map((t) => t.id);

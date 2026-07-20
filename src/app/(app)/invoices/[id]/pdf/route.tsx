@@ -8,9 +8,9 @@ import { MixedText } from "@/lib/pdf/MixedText";
 import type { InvoiceItem } from "../../actions";
 
 function formatDate(date: Date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${date.getFullYear()}`;
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getUTCFullYear()}`;
 }
 
 function money(n: number) {

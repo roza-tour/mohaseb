@@ -8,9 +8,10 @@ import { Field, Input, Select } from "@/components/ui";
 type ProgramOption = { id: string; name: string; durationDays: number };
 
 function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
+  // نحسب بتوقيت UTC حتى لا يتأثر الناتج بالمنطقة الزمنية للمتصفح (ينزاح اليوم لولاها)
+  const d = new Date(dateStr + "T00:00:00Z");
   if (isNaN(d.getTime())) return "";
-  d.setDate(d.getDate() + days);
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 

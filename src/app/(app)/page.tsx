@@ -60,14 +60,26 @@ export default async function DashboardPage() {
       expense: monthTxs.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0),
     });
   }
-  const income = monthTransactions.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
-  const expense = monthTransactions.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0);
+  // إيرادات ومصروفات الشهر مفصولة حسب العملة حتى لا تُجمع عملات مختلفة في رقم واحد
+  const monthIncomeByCurrency = new Map<string, number>();
+  const monthExpenseByCurrency = new Map<string, number>();
+  for (const t of monthTransactions) {
+    const target =
+      t.type === "INCOME" ? monthIncomeByCurrency : t.type === "EXPENSE" ? monthExpenseByCurrency : null;
+    if (target) target.set(t.currency, (target.get(t.currency) ?? 0) + t.amount);
+  }
+  const perCurrencyText = (m: Map<string, number>) =>
+    m.size === 0
+      ? formatCurrency(0, currency)
+      : [...m.entries()].map(([c, v]) => formatCurrency(v, c)).join("  +  ");
+  const incomeText = perCurrencyText(monthIncomeByCurrency);
+  const expenseText = perCurrencyText(monthExpenseByCurrency);
 
   const stats = [
     { label: "عدد العملاء", value: customersCount, href: "/customers" },
     { label: "رحلات نشطة", value: activeTrips, href: "/trips" },
-    { label: "إيرادات الشهر", value: formatCurrency(income, currency), href: "/accounting/transactions" },
-    { label: "مصروفات الشهر", value: formatCurrency(expense, currency), href: "/accounting/transactions" },
+    { label: "إيرادات الشهر", value: incomeText, href: "/accounting/transactions" },
+    { label: "مصروفات الشهر", value: expenseText, href: "/accounting/transactions" },
     { label: "مستحقات متبقية لدى العملاء", value: outstandingText, href: "/trips" },
   ];
 

@@ -1,6 +1,11 @@
 // نقطة تشغيل التطبيق على استضافة cPanel المشتركة (Phusion Passenger).
 // في "Setup Node.js App" اجعل Application startup file = server.js
 // Passenger يمرر رقم المنفذ عبر متغير البيئة PORT تلقائياً.
+// نثبّت المنطقة الزمنية على UTC حتى تُخزَّن التواريخ وتُعرض بنفس اليوم بالضبط
+// أياً كانت المنطقة الزمنية لخادم الاستضافة (سيرفرات cPanel كثيراً ما تكون بتوقيت أمريكي).
+// يجب ضبطها قبل أي استخدام لـ Date.
+process.env.TZ = "UTC";
+
 const { createServer } = require("http");
 const next = require("next");
 

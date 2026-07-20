@@ -60,7 +60,8 @@ export default async function TransactionsPage({
             return formatCurrency(v, c);
           })
           .join("  +  ");
-  const netNegative = currencies.every((c) => sumOf("INCOME", c) - sumOf("EXPENSE", c) < 0);
+  // صافي كل عملة على حدة حتى يُلوَّن كل رقم بلونه الصحيح (لا يصح لون واحد لعملات مختلفة الإشارة)
+  const nets = currencies.map((c) => ({ currency: c, value: sumOf("INCOME", c) - sumOf("EXPENSE", c) }));
 
   const dateQS = `${from ? `&from=${from}` : ""}${to ? `&to=${to}` : ""}`;
   const tabs: { key: string; label: string; href: string }[] = [
@@ -89,8 +90,19 @@ export default async function TransactionsPage({
         </Card>
         <Card className="p-5">
           <p className="text-xs text-slate-500 mb-1">الصافي</p>
-          <p className={`text-lg font-bold ${netNegative ? "text-red-600" : "text-emerald-600"}`}>
-            {fmtPerCurrency("NET")}
+          <p className="text-lg font-bold">
+            {nets.length === 0 ? (
+              <span className="text-emerald-600">{formatCurrency(0)}</span>
+            ) : (
+              nets.map((n, i) => (
+                <span key={n.currency}>
+                  {i > 0 && <span className="text-slate-400">{"  +  "}</span>}
+                  <span className={n.value < 0 ? "text-red-600" : "text-emerald-600"}>
+                    {formatCurrency(n.value, n.currency)}
+                  </span>
+                </span>
+              ))
+            )}
           </p>
         </Card>
       </div>

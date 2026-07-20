@@ -4,13 +4,16 @@ export async function getUpcomingTrips(daysAheadOverride?: number) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const daysAhead = daysAheadOverride ?? settings?.reminderDaysAhead ?? 7;
 
-  const now = new Date();
-  const horizon = new Date();
-  horizon.setDate(horizon.getDate() + daysAhead);
+  // بداية اليوم (UTC) حتى تظهر الرحلات التي تبدأ اليوم — تواريخ الرحلات مخزَّنة عند منتصف ليل UTC
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const horizon = new Date(today);
+  horizon.setUTCDate(horizon.getUTCDate() + daysAhead);
+  horizon.setUTCHours(23, 59, 59, 999);
 
   const trips = await prisma.trip.findMany({
     where: {
-      startDate: { gte: now, lte: horizon },
+      startDate: { gte: today, lte: horizon },
       status: { notIn: ["CANCELLED", "COMPLETED"] },
     },
     include: { program: true, customer: true },
@@ -22,7 +25,7 @@ export async function getUpcomingTrips(daysAheadOverride?: number) {
     programName: t.program.name,
     customerName: t.customer.name,
     startDate: t.startDate,
-    daysRemaining: Math.ceil((t.startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    daysRemaining: Math.round((t.startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
     status: t.status,
   }));
 }

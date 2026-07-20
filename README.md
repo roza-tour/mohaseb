@@ -33,37 +33,49 @@ npm run dev
 3. أضف المستخدم إلى القاعدة وامنحه **ALL PRIVILEGES**.
 4. ركّب رابط الاتصال: `mysql://cpaneluser_dbuser:PASSWORD@localhost:3306/cpaneluser_mohaseb`
 
-### 2) رفع الملفات
-ارفع محتوى المشروع (بدون `node_modules` و`.next`) إلى مجلد خارج `public_html`، مثلاً `~/apps/mohaseb` (عبر Git™ Version Control في cPanel أو File Manager/ZIP).
+### 2) رفع الملفات (عبر Git — الأسهل للتحديثات لاحقاً)
+من cPanel → **Git™ Version Control** → Create، والصق رابط المستودع، واجعل المسار خارج `public_html` مثل `~/apps/mohaseb`. بعدها أي تحديث = `git pull` فقط (انظر قسم التحديثات في الأسفل). أو ارفع المحتوى (بدون `node_modules` و`.next`) عبر File Manager/ZIP.
 
 ### 3) إنشاء التطبيق (Setup Node.js App في cPanel)
 1. **Create Application**: اختر Node.js **20+**، وضع Production.
 2. **Application root**: مسار المجلد الذي رفعت إليه (مثل `apps/mohaseb`).
 3. **Application URL**: الدومين أو الساب-دومين المطلوب.
 4. **Application startup file**: `server.js`
-5. أضف متغيرات البيئة (Environment Variables):
-   - `DATABASE_URL` = رابط الاتصال من الخطوة 1
-   - `AUTH_SECRET` = سلسلة عشوائية طويلة (`openssl rand -base64 32`)
-6. احفظ، ثم من نفس الصفحة انسخ أمر تفعيل البيئة الافتراضية (يظهر أعلى الصفحة بصيغة `source /home/USER/nodevenv/...`).
+5. احفظ، ثم من نفس الصفحة انسخ أمر تفعيل البيئة الافتراضية (يظهر أعلى الصفحة بصيغة `source /home/USER/nodevenv/...`).
 
-### 4) التثبيت والبناء (عبر Terminal في cPanel)
+> إعداد المتغيرات (`DATABASE_URL` و`AUTH_SECRET`) يتم عبر ملف `.env` في الخطوة التالية — وهو يكفي التطبيق والأوامر معاً. (يمكن بدلاً من ذلك إضافتها في خانة Environment Variables، لكنها لا تظهر داخل الـ Terminal فتفشل أوامر Prisma، لذلك ملف `.env` هو الأضمن.)
+
+### 4) الإعداد والبناء (عبر Terminal في cPanel)
 ```bash
 source /home/USER/nodevenv/apps/mohaseb/20/bin/activate && cd ~/apps/mohaseb
-npm install --include=dev     # البناء يحتاج حزم التطوير (typescript, tailwind, tsx)
-npx prisma migrate deploy     # إنشاء الجداول
-npm run db:seed               # حساب المدير الأول
+cp .env.example .env          # ثم عدّله: DATABASE_URL (من الخطوة 1) و AUTH_SECRET
+npm install --include=dev     # ضروري: البناء يحتاج حزم التطوير (typescript, tailwind, tsx)
+npm run db:deploy             # إنشاء كل الجداول (prisma migrate deploy)
+npm run db:seed               # حساب المدير الأول والإعدادات (مرة واحدة فقط)
 npm run build                 # بناء نسخة الإنتاج
 ```
 ثم اضغط **Restart** في صفحة Setup Node.js App.
 
+> ملف `.env` غير مرفوع مع الكود (لأسباب أمنية)، لذا تنشئه مرة واحدة على السيرفر بالأمر أعلاه ويبقى كما هو عند كل `git pull`.
+
 ### 5) الدومين من Namecheap
 - إن كانت الاستضافة تدير DNS: غيّر Nameservers في Namecheap إلى نيم سيرفرات الاستضافة (تجدها في رسالة الترحيب أو من مزود الاستضافة).
 - أو أبقِ DNS عند Namecheap وأضف **A Record** يشير `@` و`www` إلى IP السيرفر (تجده في cPanel → General Information).
-- فعّل شهادة SSL من cPanel (AutoSSL / Let's Encrypt) بعد ارتباط الدومين.
+- فعّل شهادة SSL من cPanel (AutoSSL / Let's Encrypt) **قبل أول تسجيل دخول**: في وضع الإنتاج تُصدَر كوكيز الجلسة كـ `__Secure-` ولا تعمل إلا على HTTPS، فالدخول عبر HTTP قد يفشل صامتاً.
+
+### التحديثات لاحقاً (git pull فقط)
+من مجلد التطبيق في الـ Terminal:
+```bash
+git pull
+npm install --include=dev     # فقط إن تغيّرت الحزم
+npm run db:deploy             # فقط إن أُضيفت هجرات جديدة
+npm run build
+```
+ثم **Restart**. (لا تُعِد `db:seed` — يُشغَّل مرة واحدة فقط عند أول تركيب.)
 
 ### ملاحظات مهمة للاستضافة المشتركة
-- مجلد `public/uploads/` (الشعار والختم) يُخزَّن على قرص الاستضافة نفسه — ضمّنه في أي نسخ احتياطي.
-- عند تحديث الكود لاحقاً: ارفع التغييرات ثم أعد `npm install --include=dev && npx prisma migrate deploy && npm run build` واضغط Restart.
+- مجلد `public/uploads/` (الشعار والختم) يُخزَّن على قرص الاستضافة نفسه ولا يُمسّ عند `git pull` — ضمّنه في أي نسخ احتياطي.
+- المنطقة الزمنية مثبَّتة على UTC داخل `server.js` حتى تظهر التواريخ بنفس اليوم بغضّ النظر عن توقيت السيرفر.
 - إن ظهر خطأ 503/الصفحة لا تفتح: راجع ملف `stderr.log` داخل مجلد التطبيق.
 
 ## البنية

@@ -8,9 +8,9 @@ import { MixedText } from "@/lib/pdf/MixedText";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 
 function formatDate(date: Date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${date.getFullYear()}`;
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getUTCFullYear()}`;
 }
 
 function formatAmount(amount: number, currency: string) {
@@ -137,9 +137,10 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const stampBuffer = loadPublicImage(settings?.stampPath);
 
   const trip = payment.trip;
-  // المدفوع حتى تاريخ هذا السند (شاملاً إياه) والمتبقي بعده
+  // المدفوع حتى هذا السند (شاملاً إياه) والمتبقي بعده — نرتّب زمنياً بـ createdAt
+  // (وليس paidAt) لأن عدة سندات في نفس اليوم لها نفس تاريخ الدفع فتُحتسب خطأً
   const paidUpToThis = trip.payments
-    .filter((p) => p.paidAt <= payment.paidAt || p.id === payment.id)
+    .filter((p) => p.createdAt < payment.createdAt || p.id === payment.id)
     .reduce((s, p) => s + p.amount, 0);
   const remainingAfter = trip.agreedPrice - paidUpToThis;
 
