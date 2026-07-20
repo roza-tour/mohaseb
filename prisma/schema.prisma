@@ -27,6 +27,7 @@ model Settings {
   agencyPhone     String   @default("")
   agencyEmail     String   @default("")
   agencyWebsite   String   @default("")
+  agencyRC        String   @default("") // رقم السجل التجاري (N° RC) لملفات الفيزا الرسمية
   logoPath        String?
   stampPath       String?
   letterheadColor String   @default("#1f3864") // لون اسم الوكالة والشريط في ورق الشركة
@@ -286,4 +287,38 @@ model Attachment {
   path      String   // /uploads/attachments/xxx.pdf
   size      Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+// ---------- طلبات الفيزا الصحراوية ----------
+model VisaApplication {
+  id           String   @id @default(cuid())
+  refNumber    String   // رقم مرجعي 2026/0001
+  wilaya       String   // ولاية مديرية السياحة الموجه إليها الملف
+  wilayasConcernees String @default("") // الولايات المعنية بالبرنامج
+  arrivalDate  DateTime
+  departureDate DateTime
+  programDetail String  @db.Text // تفاصيل البرنامج يوم بيوم (يُملأ في ملف الوورد)
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  travelers    VisaTraveler[]
+}
+
+model VisaTraveler {
+  id              String   @id @default(cuid())
+  application     VisaApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId   String
+  nom             String   // اللقب (كما في الجواز)
+  prenom          String   // الاسم
+  dateNaissance   DateTime?
+  lieuNaissance   String   @default("")
+  lieuResidence   String   @default("")
+  typePasseport   String   @default("Passeport ordinaire")
+  numeroPasseport String
+  dateDelivrance  DateTime?
+  dateExpiration  DateTime?
+  nationalite     String   @default("")
+  visaAnterieur   Boolean  @default(false)
+  visaEmission    DateTime?
+  visaExpirationA DateTime?
+  createdAt       DateTime @default(now())
 }

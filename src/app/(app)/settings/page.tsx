@@ -50,6 +50,9 @@ export default async function SettingsPage() {
             <Field label="الموقع الإلكتروني">
               <Input name="agencyWebsite" dir="ltr" placeholder="www.example.com" defaultValue={settings?.agencyWebsite ?? ""} />
             </Field>
+            <Field label="رقم السجل التجاري N° RC (يظهر في ملفات الفيزا الصحراوية)">
+              <Input name="agencyRC" dir="ltr" defaultValue={settings?.agencyRC ?? ""} />
+            </Field>
             <Field label="العملة الافتراضية">
               <Select name="defaultCurrency" defaultValue={settings?.defaultCurrency ?? "DZD"}>
                 <option value="DZD">دينار جزائري (DZD)</option>

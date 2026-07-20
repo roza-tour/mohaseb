@@ -4,7 +4,14 @@ import { formatCurrency } from "@/lib/format";
 import { DeleteButton } from "@/components/DeleteButton";
 import { deleteProgram } from "./actions";
 
-export default async function ProgramsPage() {
+export default async function ProgramsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const imported = typeof sp.imported === "string" ? sp.imported : undefined;
+  const skipped = typeof sp.skipped === "string" ? sp.skipped : undefined;
   const programs = await prisma.tourProgram.findMany({ orderBy: { createdAt: "desc" } });
 
   return (
@@ -12,8 +19,22 @@ export default async function ProgramsPage() {
       <PageHeader
         title="البرامج السياحية"
         description="إدارة قوالب البرامج السياحية ومكوّنات التكلفة التقديرية"
-        action={<LinkButton href="/programs/new">+ إضافة</LinkButton>}
+        action={
+          <div className="flex items-center gap-2">
+            <LinkButton href="/programs/import" variant="secondary">
+              🌐 استيراد من الموقع
+            </LinkButton>
+            <LinkButton href="/programs/new">+ إضافة</LinkButton>
+          </div>
+        }
       />
+
+      {imported !== undefined && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          ✅ تم استيراد {imported} برنامجاً
+          {skipped && skipped !== "0" ? ` — وتم تخطي ${skipped} موجود مسبقاً بنفس الاسم` : ""}
+        </div>
+      )}
 
       <Card>
         {programs.length === 0 ? (

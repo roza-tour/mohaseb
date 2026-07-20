@@ -48,6 +48,7 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
       { href: "/documents", label: "المستندات الصادرة", icon: "📄" },
       { href: "/invoices", label: "الفواتير", icon: "🧾" },
       { href: "/task-orders", label: "أوامر التكليف", icon: "📝" },
+      { href: "/visa", label: "الفيزا الصحراوية", icon: "🛂" },
       { href: "/settings", label: "الإعدادات", icon: "⚙️" },
     ],
   },

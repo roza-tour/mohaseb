@@ -600,6 +600,9 @@ export default async function TripDetailPage({
           <LinkButton href={`/invoices/new?tripId=${id}`} variant="secondary">
             + إصدار فاتورة
           </LinkButton>
+          <LinkButton href={`/visa/new?tripId=${id}`} variant="secondary">
+            + إنشاء فيزا صحراوية
+          </LinkButton>
         </div>
       </Card>
     </div>
