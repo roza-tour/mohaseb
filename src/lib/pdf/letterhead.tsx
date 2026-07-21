@@ -11,6 +11,7 @@ import { MixedText } from "./MixedText";
 const DEFAULT_COLOR = "#1f3864";
 
 let fontsRegistered = false;
+let displayFontAvailable = false;
 
 export function registerArabicFonts() {
   if (fontsRegistered) return;
@@ -21,7 +22,23 @@ export function registerArabicFonts() {
       { src: path.join(process.cwd(), "public/fonts/Tajawal-Bold.ttf"), fontWeight: "bold" },
     ],
   });
+  // خط عرض اختياري لاسم الوكالة وسطرها الفرعي في الترويسة (مثل خط Algerian)
+  // يُفعَّل تلقائياً عند وضع الملف في public/fonts/agency-display.ttf
+  try {
+    const displayPath = path.join(process.cwd(), "public/fonts/agency-display.ttf");
+    if (fs.existsSync(displayPath)) {
+      Font.register({ family: "AgencyDisplay", fonts: [{ src: displayPath }] });
+      displayFontAvailable = true;
+    }
+  } catch {
+    /* نتجاهل ونستعمل الخط الافتراضي */
+  }
   fontsRegistered = true;
+}
+
+// اسم خط الترويسة إن توفّر ملفه، وإلا undefined ليُستعمل الخط الافتراضي
+export function agencyDisplayFont(): string | undefined {
+  return displayFontAvailable ? "AgencyDisplay" : undefined;
 }
 
 export function loadPublicImage(publicRelativePath: string | null | undefined): Buffer | null {
@@ -175,6 +192,7 @@ export function LetterheadPage({
 }) {
   const logoBuffer = loadPublicImage(settings?.logoPath);
   const color = settings?.letterheadColor || DEFAULT_COLOR;
+  const displayFont = agencyDisplayFont();
 
   return (
     <Page size="A4" style={styles.page}>
@@ -186,9 +204,13 @@ export function LetterheadPage({
           ) : null}
         </View>
         <View style={styles.nameBox}>
-          <Text style={[styles.agencyName, { color }]}>{settings?.agencyName?.trim() || "ROZATOUR"}</Text>
+          <Text style={[styles.agencyName, { color }, displayFont ? { fontFamily: displayFont } : {}]}>
+            {settings?.agencyName?.trim() || "ROZATOUR"}
+          </Text>
           {settings?.agencyTagline ? (
-            <Text style={[styles.agencyTagline, { color }]}>{settings.agencyTagline}</Text>
+            <Text style={[styles.agencyTagline, { color }, displayFont ? { fontFamily: displayFont } : {}]}>
+              {settings.agencyTagline}
+            </Text>
           ) : null}
         </View>
         <View style={styles.headerSpacer} />
