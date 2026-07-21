@@ -77,10 +77,17 @@ async function fillVisaExcelTemplate(
   // عنوان الولاية أعلى النموذج (نحافظ على صياغة المديرية الرسمية)
   ws.getCell("B7").value = `Direction du Tourisme et de l'Artisanat de la Wilaya de ${app.wilaya ?? ""}`;
 
-  // بيانات الوكالة (القيم مدمجة D:E)
-  ws.getCell("D12").value = settings?.agencyName ?? "";
-  ws.getCell("D13").value = settings?.agencyAddress ?? "";
-  ws.getCell("D14").value = settings?.agencyRC ?? "";
+  // بيانات الوكالة (القيم مدمجة D:E) — نُصغّر النص تلقائياً ليتّسع داخل الخانة (shrinkToFit)
+  const agencyVals: [string, string][] = [
+    ["D12", settings?.agencyName ?? ""],
+    ["D13", settings?.agencyAddress ?? ""],
+    ["D14", settings?.agencyRC ?? ""],
+  ];
+  for (const [addr, val] of agencyVals) {
+    const c = ws.getCell(addr);
+    c.value = val;
+    c.alignment = { ...(c.alignment ?? {}), shrinkToFit: true };
+  }
 
   // صفوف المسافرين تبدأ من الصف 19 (نكتب القيم فقط؛ الإطارات والخطوط موجودة في النموذج)
   app.travelers.forEach((t, i) => {
