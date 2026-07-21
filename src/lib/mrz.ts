@@ -37,12 +37,15 @@ export function parseMRZ(text: string): Partial<MrzResult> | null {
     .map((l) => l.replace(/[^A-Z0-9<]/g, ""))
     .filter((l) => l.length >= 40 && l.includes("<"));
 
-  const l1 = lines.find((l) => l.startsWith("P<"));
+  // السطر الأول لجواز TD3 يحتوي دائماً على «<<» بين اللقب والاسم (نتسامح مع أخطاء OCR في «P<»)
+  const l1 = lines.find((l) => l.includes("<<")) ?? lines.find((l) => l.startsWith("P"));
   const idx = l1 ? lines.indexOf(l1) : -1;
-  const l2 = idx >= 0 ? lines[idx + 1] : lines.find((l, i) => i > 0 && /^[A-Z0-9<]{40,}$/.test(l));
+  const l2 =
+    idx >= 0 ? lines.find((l, i) => i > idx && /\d/.test(l) && l.length >= 40) ?? lines[idx + 1] : undefined;
   if (!l1 || !l2) return null;
 
-  const names = l1.slice(5).split("<<");
+  // بعد «P<» ورمز الدولة (5 خانات) يبدأ الاسم
+  const names = l1.replace(/^P.?[A-Z<]{3}/, "").replace(/^</, "").split("<<");
   const nom = (names[0] ?? "").replace(/</g, " ").trim();
   const prenom = (names[1] ?? "").replace(/</g, " ").trim();
 

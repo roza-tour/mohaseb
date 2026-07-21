@@ -23,11 +23,6 @@ export function CustomerForm({
   const onScan = (d: Partial<MrzResult>) => {
     const full = `${d.prenom ?? ""} ${d.nom ?? ""}`.trim();
     if (full) setName(full);
-    // نضيف رقم الجواز والجنسية للملاحظات إن كانت فارغة (بيانات مفيدة دون حفظ صورة الجواز)
-    const extra = [d.numero ? `جواز: ${d.numero}` : "", d.nationalite ? `الجنسية: ${d.nationalite}` : ""]
-      .filter(Boolean)
-      .join(" — ");
-    if (extra && !notes.trim()) setNotes(extra);
   };
 
   return (

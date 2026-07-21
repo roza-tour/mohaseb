@@ -3,7 +3,8 @@
 // زر مشترك: يصوّر الجواز، يقرأ شريط MRZ داخل المتصفح (tesseract.js) بدون رفع الصورة،
 // ثم يمرّر البيانات المقروءة للأب عبر onScan.
 import { useRef, useState } from "react";
-import { parseMRZ, type MrzResult } from "@/lib/mrz";
+import type { MrzResult } from "@/lib/mrz";
+import { scanPassport } from "@/lib/passportScan";
 
 export function PassportScanButton({
   onScan,
@@ -23,9 +24,7 @@ export function PassportScanButton({
     setScanning(true);
     onMessage?.("جارٍ قراءة الجواز... (قد تستغرق 10-20 ثانية أول مرة)");
     try {
-      const Tesseract = (await import("tesseract.js")).default;
-      const { data } = await Tesseract.recognize(file, "eng", {});
-      const parsed = parseMRZ(data.text);
+      const parsed = await scanPassport(file);
       if (parsed) {
         onScan(parsed);
         onMessage?.("✅ تمت قراءة الجواز — راجعي البيانات وأكملي الناقص");
