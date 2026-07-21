@@ -235,14 +235,15 @@ export function LetterheadPage({
         <View style={styles.headerSpacer} />
       </View>
 
-      {stamp ? (
-        // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
-        <Image src={stamp} style={styles.stampTopRight} />
-      ) : null}
-
       {children}
 
       <Footer settings={settings} />
+
+      {/* الختم يُرسم آخر عنصر (وثابت على كل صفحة) ليظهر فوق كل المحتوى ولا يغطّيه شيء */}
+      {stamp ? (
+        // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
+        <Image src={stamp} style={styles.stampTopRight} fixed />
+      ) : null}
     </Page>
   );
 }
