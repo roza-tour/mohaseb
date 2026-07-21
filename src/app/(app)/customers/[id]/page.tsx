@@ -190,7 +190,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         <h2 className="font-bold text-slate-800 mb-4">تعديل بيانات العميل</h2>
         <form action={updateCustomer.bind(null, id)} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required defaultValue={customer.name} />
+            <Input name="name" defaultValue={customer.name} />
           </Field>
           <Field label="رقم الهاتف">
             <Input name="phone" defaultValue={customer.phone ?? ""} />
