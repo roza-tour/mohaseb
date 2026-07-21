@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { pickLang, dirStyles, type Lang } from "@/lib/pdf/docLang";
+import { makeQrPng, docQrText } from "@/lib/qr";
 import { nameOr } from "@/lib/format";
 
 function formatDate(date: Date | string) {
@@ -109,6 +110,9 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = loadPublicImage(settings?.stampPath);
+  const qr = await makeQrPng(
+    docQrText({ agency: settings?.agencyName, type: "Ordre de mission", number: taskOrder.id.slice(-8).toUpperCase(), date: formatDate(taskOrder.taskDate), website: settings?.agencyWebsite })
+  );
 
   const assigneeName = nameOr(taskOrder.guide?.name ?? taskOrder.driver?.name);
   const assigneePhone = taskOrder.guide?.phone ?? taskOrder.driver?.phone ?? "—";
@@ -129,7 +133,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const doc = (
     <Document>
-      <LetterheadPage settings={settings} stamp={stampBuffer}>
+      <LetterheadPage settings={settings} stamp={stampBuffer} qr={qr}>
         <Text style={styles.title}>{t.title}</Text>
 
         <View style={styles.detailsBox}>

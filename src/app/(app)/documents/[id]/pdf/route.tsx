@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { parseBodyLines, parseDocStyle, PAGE_BREAK } from "@/lib/documents";
+import { makeQrPng, docQrText } from "@/lib/qr";
 
 function formatDate(date: Date) {
   const day = String(date.getUTCDate()).padStart(2, "0");
@@ -60,6 +61,9 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = doc.showStamp ? loadPublicImage(settings?.stampPath) : null;
+  const qr = await makeQrPng(
+    docQrText({ agency: settings?.agencyName, type: "Document", number: doc.docNumber, date: formatDate(doc.docDate), website: settings?.agencyWebsite })
+  );
 
   const style = parseDocStyle(doc.style);
   // "يمين" = محاذاة طبيعية حسب اتجاه كل فقرة (يمين للعربية، يسار للإنجليزية)
@@ -134,7 +138,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const pdf = (
     <PdfDocument>
       {pageTexts.map((pageText, p) => (
-        <LetterheadPage key={p} settings={settings} stamp={stampBuffer}>
+        <LetterheadPage key={p} settings={settings} stamp={stampBuffer} qr={qr}>
           {p === 0 ? (
             <>
               <View style={staticStyles.metaRow}>

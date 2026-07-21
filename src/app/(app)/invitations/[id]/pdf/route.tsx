@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { invitationBody, type InvLang, type Person } from "@/lib/invitation";
+import { makeQrPng, docQrText } from "@/lib/qr";
 
 registerArabicFonts();
 
@@ -30,6 +31,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stamp = loadPublicImage(settings?.stampPath);
+  const qr = await makeQrPng(
+    docQrText({ agency: settings?.agencyName, type: "Invitation", number: inv.refNumber, date: fmt(inv.docDate), website: settings?.agencyWebsite })
+  );
 
   const lang = (["ar", "fr", "en"].includes(inv.language) ? inv.language : "fr") as InvLang;
   const rtl = lang === "ar";
@@ -70,7 +74,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   const doc = (
     <Document>
-      <LetterheadPage settings={settings} stamp={stamp}>
+      <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
         <View style={{ flexDirection: rtl ? "row-reverse" : "row", justifyContent: "space-between" }}>
           <Text style={styles.meta}>N° {inv.refNumber}</Text>
           <Text style={styles.meta}>{fmt(inv.docDate)}</Text>
@@ -79,7 +83,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         {renderLines(built.page1)}
       </LetterheadPage>
 
-      <LetterheadPage settings={settings} stamp={stamp}>
+      <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
         <MixedText text={built.itineraryTitle} size={14} align={align} baseDir={baseDir} style={{ fontWeight: "bold", color: "#1f3864" }} containerStyle={{ marginBottom: 10 }} />
         {itinerary ? renderLines(itinerary) : <Text style={{ fontSize: 10.5, color: "#94a3b8" }}>—</Text>}
       </LetterheadPage>

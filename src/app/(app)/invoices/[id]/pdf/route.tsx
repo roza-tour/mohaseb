@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { pickLang, dirStyles, type Lang } from "@/lib/pdf/docLang";
+import { makeQrPng, docQrText } from "@/lib/qr";
 import { nameOr } from "@/lib/format";
 import type { InvoiceItem } from "../../actions";
 
@@ -111,6 +112,9 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = invoice.showStamp ? loadPublicImage(settings?.stampPath) : null;
+  const qr = await makeQrPng(
+    docQrText({ agency: settings?.agencyName, type: "Facture", number: invoice.invoiceNumber, date: formatDate(invoice.docDate), website: settings?.agencyWebsite })
+  );
 
   const items = Array.isArray(invoice.items) ? (invoice.items as InvoiceItem[]) : [];
   const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
@@ -121,7 +125,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const doc = (
     <Document>
-      <LetterheadPage settings={settings} stamp={invoice.showStamp ? stampBuffer : null}>
+      <LetterheadPage settings={settings} stamp={invoice.showStamp ? stampBuffer : null} qr={qr}>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.meta}>
           {t.invoiceNo}: {invoice.invoiceNumber}   |   {t.date}: {formatDate(invoice.docDate)}

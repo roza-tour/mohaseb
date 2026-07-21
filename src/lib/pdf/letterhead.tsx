@@ -133,6 +133,11 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#1e293b",
   },
+  footerQr: {
+    width: 44,
+    height: 44,
+    marginRight: 6,
+  },
 });
 
 // سطر تذييل موحّد: التسمية على اليسار ثم القيمة بعدها مباشرةً.
@@ -162,7 +167,7 @@ function FooterLine({
   );
 }
 
-function Footer({ settings }: { settings: Settings | null }) {
+function Footer({ settings, qr }: { settings: Settings | null; qr?: Buffer | null }) {
   const color = settings?.letterheadColor || DEFAULT_COLOR;
   const address = settings?.agencyAddress || "";
   const phone = settings?.agencyPhone || "";
@@ -181,6 +186,10 @@ function Footer({ settings }: { settings: Settings | null }) {
           {phone ? <FooterLine label="Tel" value={phone} /> : null}
           {website ? <FooterLine label="Web" value={website} /> : null}
         </View>
+        {qr ? (
+          // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image
+          <Image src={qr} style={styles.footerQr} />
+        ) : null}
       </View>
     </View>
   );
@@ -190,11 +199,14 @@ export function LetterheadPage({
   settings,
   children,
   stamp,
+  qr,
 }: {
   settings: Settings | null;
   children: React.ReactNode;
   // ختم الوكالة كصورة مستقلة (بدون مربع أو تسمية) أعلى يمين الورقة عند تمريره
   stamp?: Buffer | null;
+  // رمز QR للمستند يظهر في التذييل عند تمريره
+  qr?: Buffer | null;
 }) {
   const logoBuffer = loadPublicImage(settings?.logoPath);
   const color = settings?.letterheadColor || DEFAULT_COLOR;
@@ -237,7 +249,7 @@ export function LetterheadPage({
 
       {children}
 
-      <Footer settings={settings} />
+      <Footer settings={settings} qr={qr} />
 
       {/* الختم يُرسم آخر عنصر (وثابت على كل صفحة) ليظهر فوق كل المحتوى ولا يغطّيه شيء */}
       {stamp ? (

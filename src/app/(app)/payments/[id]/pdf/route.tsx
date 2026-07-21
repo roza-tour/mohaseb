@@ -8,6 +8,7 @@ import { MixedText } from "@/lib/pdf/MixedText";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { nameOr } from "@/lib/format";
 import { pickLang, dirStyles, type Lang } from "@/lib/pdf/docLang";
+import { makeQrPng, docQrText } from "@/lib/qr";
 
 function formatDate(date: Date) {
   const day = String(date.getUTCDate()).padStart(2, "0");
@@ -91,6 +92,9 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = loadPublicImage(settings?.stampPath);
+  const qr = await makeQrPng(
+    docQrText({ agency: settings?.agencyName, type: "Reçu", number: payment.receiptNumber, date: formatDate(payment.paidAt), website: settings?.agencyWebsite })
+  );
 
   const trip = payment.trip;
   // المدفوع حتى هذا السند (شاملاً إياه) والمتبقي بعده — نرتّب زمنياً بـ createdAt
@@ -117,7 +121,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const doc = (
     <Document>
-      <LetterheadPage settings={settings} stamp={stampBuffer}>
+      <LetterheadPage settings={settings} stamp={stampBuffer} qr={qr}>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.receiptNumber}>
           {t.receiptNo}: {payment.receiptNumber}   |   {t.date}: {formatDate(payment.paidAt)}
