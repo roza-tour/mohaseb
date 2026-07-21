@@ -95,6 +95,10 @@ export default async function NewDocumentPage({
             </Field>
           </div>
 
+          <Field label="اسم القنصلية / الجهة الموجَّه إليها (للدعوة — اختياري)">
+            <Input name="consulate" placeholder="مثال: Consulat Général de France à Alger" />
+          </Field>
+
           <Field label="نص المستند">
             <Textarea
               name="body"

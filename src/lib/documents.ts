@@ -9,6 +9,7 @@ export const TEMPLATE_VARIABLES: { token: string; label: string }[] = [
   { token: "[END_DATE]", label: "تاريخ نهاية الرحلة" },
   { token: "[DURATION]", label: "مدة البرنامج بالأيام" },
   { token: "[PAX]", label: "عدد الأشخاص" },
+  { token: "[CONSULATE]", label: "اسم القنصلية (للدعوة)" },
   { token: "[TODAY]", label: "تاريخ اليوم" },
   { token: "[AGENCY]", label: "اسم الوكالة" },
 ];
@@ -26,6 +27,7 @@ export function fillTemplate(
     trip?: (Trip & { program: TourProgram; customer: Customer }) | null;
     customer?: Customer | null;
     settings?: Settings | null;
+    consulate?: string | null;
   }
 ): string {
   const customer = ctx.customer ?? ctx.trip?.customer ?? null;
@@ -36,6 +38,8 @@ export function fillTemplate(
     "[END_DATE]": ctx.trip ? fmt(ctx.trip.endDate) : "[END_DATE]",
     "[DURATION]": ctx.trip ? String(ctx.trip.program.durationDays) : "[DURATION]",
     "[PAX]": ctx.trip ? String(ctx.trip.numPax) : "[PAX]",
+    // اسم القنصلية يُملأ من حقل مستقل عند الإصدار؛ يبقى كما هو إن لم يُدخَل
+    "[CONSULATE]": ctx.consulate?.trim() || "[CONSULATE]",
     "[TODAY]": fmt(new Date()),
     "[AGENCY]": ctx.settings?.agencyName ?? "[AGENCY]",
   };

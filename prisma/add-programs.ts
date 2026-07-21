@@ -112,9 +112,55 @@ const PROGRAMS: Seed[] = [
   },
 ];
 
+// ---------- قوالب المستندات الجاهزة ----------
+type Tpl = { name: string; title: string; body: string };
+
+const TEMPLATES: Tpl[] = [
+  {
+    name: "دعوة سياحية (موجَّهة إلى قنصلية)",
+    title: "Lettre d'invitation",
+    body: [
+      "À l'attention de [CONSULATE]",
+      "",
+      "Objet : Lettre d'invitation touristique",
+      "",
+      "Madame, Monsieur,",
+      "",
+      "Par la présente, l'agence [AGENCY] a l'honneur d'inviter M./Mme [CLIENT] à effectuer un voyage touristique en Algérie dans le cadre du programme « [PROGRAM] ».",
+      "",
+      "Le séjour est prévu du [START_DATE] au [END_DATE], pour un groupe de [PAX] personne(s).",
+      "",
+      "Notre agence se porte garante de la prise en charge du programme touristique (hébergement, transport et accompagnement) pendant toute la durée du séjour.",
+      "",
+      "En conséquence, nous vous prions de bien vouloir accorder à l'intéressé(e) le visa nécessaire pour la réalisation de ce voyage.",
+      "",
+      "Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.",
+      "",
+      "Fait le [TODAY]",
+      "[AGENCY]",
+    ].join("\n"),
+  },
+];
+
 async function main() {
   let added = 0;
   let skipped = 0;
+
+  // قوالب المستندات
+  for (const t of TEMPLATES) {
+    const exists = await prisma.documentTemplate.findFirst({ where: { name: t.name } });
+    if (exists) {
+      skipped++;
+      console.log(`↷ قالب موجود بالفعل: ${t.name}`);
+      continue;
+    }
+    await prisma.documentTemplate.create({
+      data: { name: t.name, title: t.title, body: t.body },
+    });
+    added++;
+    console.log(`✓ أُضيف قالب: ${t.name}`);
+  }
+
   for (const p of PROGRAMS) {
     const exists = await prisma.tourProgram.findFirst({ where: { name: p.name } });
     if (exists) {

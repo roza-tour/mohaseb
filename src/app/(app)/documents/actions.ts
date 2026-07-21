@@ -12,6 +12,7 @@ const documentSchema = z.object({
   body: z.string().optional().default(""),
   tripId: z.string().optional(),
   customerId: z.string().optional(),
+  consulate: z.string().optional().default(""),
   docDate: z.coerce.date(),
   showStamp: z.boolean(),
 });
@@ -22,11 +23,17 @@ export async function createDocument(formData: FormData) {
     body: formData.get("body"),
     tripId: formData.get("tripId") || undefined,
     customerId: formData.get("customerId") || undefined,
+    consulate: formData.get("consulate") ?? "",
     docDate: formData.get("docDate") || new Date(),
     showStamp: formData.get("showStamp") === "on",
   });
   if (!parsed.success) redirect(withError("/documents/new", firstErrorMessage(parsed.error)));
   const data = parsed.data;
+
+  // نستبدل متغيّر القنصلية بالقيمة المُدخلة (للدعوة الموجَّهة إلى قنصلية)
+  const body = data.consulate.trim()
+    ? data.body.split("[CONSULATE]").join(data.consulate.trim())
+    : data.body;
 
   const year = data.docDate.getFullYear();
   const countThisYear = await prisma.document.count({
@@ -42,7 +49,7 @@ export async function createDocument(formData: FormData) {
     data: {
       docNumber: buildDocNumber(year, countThisYear),
       title: data.title,
-      body: data.body,
+      body,
       tripId: data.tripId || null,
       customerId: data.customerId || null,
       docDate: data.docDate,
