@@ -337,6 +337,16 @@ model Invitation {
   transactions  Transaction[]
 }
 
+// عروض الولاء المُرسَلة بالبريد للعملاء
+model Offer {
+  id         String    @id @default(cuid())
+  subject    String
+  body       String    @db.Text
+  lastSentAt DateTime?
+  sentCount  Int       @default(0)
+  createdAt  DateTime  @default(now())
+}
+
 model VisaTraveler {
   id              String   @id @default(cuid())
   application     VisaApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
