@@ -18,7 +18,7 @@ import {
 } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
-import { formatDate, formatCurrency } from "@/lib/format";
+import { formatDate, formatCurrency, nameOr } from "@/lib/format";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "../statusLabels";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { createPayment, deletePayment } from "../paymentActions";
@@ -76,7 +76,7 @@ export default async function TripDetailPage({
     trip.otherBookings.reduce((s, b) => s + b.cost, 0);
   const estimatedProfit = trip.agreedPrice - totalBookingCost;
   const profitColor = estimatedProfit > 0 ? "green" : estimatedProfit < 0 ? "red" : "slate";
-  const waMessage = `مرحباً ${trip.customer.name}، تذكير بموعد رحلتكم "${trip.program.name}" من ${formatDate(trip.startDate)} إلى ${formatDate(trip.endDate)}. نتمنى لكم رحلة سعيدة!`;
+  const waMessage = `مرحباً ${nameOr(trip.customer.name, "")}، تذكير بموعد رحلتكم "${nameOr(trip.program.name, "")}" من ${formatDate(trip.startDate)} إلى ${formatDate(trip.endDate)}. نتمنى لكم رحلة سعيدة!`;
   const customerWa = waLink(trip.customer.phone, waMessage);
   const totalPaid = trip.payments.reduce((s, p) => s + p.amount, 0);
   const remaining = trip.agreedPrice - totalPaid;
@@ -297,8 +297,8 @@ export default async function TripDetailPage({
                 <tr key={hb.id}>
                   <Td>{hb.hotel.name}</Td>
                   <Td>{hb.hotel.city ?? "-"}</Td>
-                  <Td>{formatDate(hb.checkIn)}</Td>
-                  <Td>{formatDate(hb.checkOut)}</Td>
+                  <Td>{hb.checkIn ? formatDate(hb.checkIn) : "-"}</Td>
+                  <Td>{hb.checkOut ? formatDate(hb.checkOut) : "-"}</Td>
                   <Td>{hb.roomType ?? "-"}</Td>
                   <Td>{hb.numRooms}</Td>
                   <Td>{formatCurrency(hb.cost, trip.currency)}</Td>
@@ -388,7 +388,7 @@ export default async function TripDetailPage({
                   <Td>{fb.flightNumber ?? "-"}</Td>
                   <Td>{fb.departureAirport ?? "-"}</Td>
                   <Td>{fb.arrivalAirport ?? "-"}</Td>
-                  <Td>{formatDate(fb.departureDate)}</Td>
+                  <Td>{fb.departureDate ? formatDate(fb.departureDate) : "-"}</Td>
                   <Td>{fb.arrivalDate ? formatDate(fb.arrivalDate) : "-"}</Td>
                   <Td>{formatCurrency(fb.cost, trip.currency)}</Td>
                   <Td>{fb.pnr ?? "-"}</Td>
@@ -518,7 +518,7 @@ export default async function TripDetailPage({
                   <Td>{formatDate(a.createdAt)}</Td>
                   <Td>
                     <a
-                      href={a.path}
+                      href={`/attachments/${a.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sky-600 text-sm hover:underline"

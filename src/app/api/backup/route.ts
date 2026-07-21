@@ -118,8 +118,10 @@ async function jsonExport(): Promise<Buffer> {
 
 export async function GET() {
   const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  // النسخة الاحتياطية تحتوي على كل البيانات وكلمات المرور المشفّرة — للمدير فقط
+  if (!session?.user?.email || role !== "ADMIN") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   const stamp = new Date().toISOString().slice(0, 10);

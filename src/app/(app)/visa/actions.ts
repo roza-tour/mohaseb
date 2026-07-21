@@ -26,7 +26,8 @@ function orEmpty(v: FormDataEntryValue | null): string {
 function orDate(v: FormDataEntryValue | null): Date | null {
   const s = orEmpty(v);
   if (!s) return null;
-  const d = new Date(s + "T00:00:00");
+  // UTC حتى تتّسق مع بقية تواريخ الطلب (arrival/departure عبر coerce.date = UTC)
+  const d = new Date(s + "T00:00:00Z");
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -68,18 +69,9 @@ export async function createVisaApplication(formData: FormData) {
     const dateNaissance = orDate(naissances[i]);
     const dateDelivrance = orDate(delivrances[i]);
     const dateExpiration = orDate(expirations[i]);
-    // نتجاهل الصف الفارغ تماماً — كل الحقول اختيارية
-    if (
-      !nom &&
-      !prenom &&
-      !numero &&
-      !lieuNaissance &&
-      !lieuResidence &&
-      !nationalite &&
-      !dateNaissance &&
-      !dateDelivrance &&
-      !dateExpiration
-    ) {
+    // الملف رسمي للمديرية: نُدرج فقط الصفوف التي فيها اللقب ورقم الجواز على الأقل،
+    // ونتجاهل بصمت أي صف ناقص حتى لا تظهر أسماء/أرقام فارغة في القائمة الرسمية
+    if (!nom || !numero) {
       continue;
     }
     travelers.push({

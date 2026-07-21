@@ -44,3 +44,6 @@ next-env.d.ts
 # uploaded files
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# private uploads (attachments: passports, tickets — served only via authenticated route)
+/private_uploads

@@ -10,9 +10,10 @@ import type { Settings, VisaApplication, VisaTraveler } from "@prisma/client";
 
 export function fmtFr(date: Date | null | undefined): string {
   if (!date) return "";
-  const d = String(date.getDate()).padStart(2, "0");
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  return `${d}/${m}/${date.getFullYear()}`;
+  // التواريخ مخزَّنة عند منتصف ليل UTC — نقرأها UTC حتى لا ينزاح اليوم على سيرفر بمنطقة زمنية مختلفة
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${d}/${m}/${date.getUTCFullYear()}`;
 }
 
 type App = VisaApplication & { travelers: VisaTraveler[] };

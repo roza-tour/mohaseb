@@ -118,10 +118,10 @@ export async function createHotelBooking(tripId: string, formData: FormData) {
   if (parsed.data.checkIn && parsed.data.checkOut && parsed.data.checkOut < parsed.data.checkIn) {
     redirect(withError(`/trips/${tripId}`, "تاريخ مغادرة الفندق لا يمكن أن يسبق تاريخ الوصول"));
   }
-  // التاريخان اختياريان — إن تُركا فارغين نضع تاريخ اليوم (الحقلان غير قابلين للفراغ في قاعدة البيانات)
-  const checkIn = parsed.data.checkIn ?? new Date();
-  const checkOut = parsed.data.checkOut ?? checkIn;
-  await prisma.hotelBooking.create({ data: { ...parsed.data, checkIn, checkOut, tripId } });
+  // التاريخان اختياريان — يبقيان فارغين (null) إن لم يُدخلا، بدل افتراض تاريخ اليوم
+  await prisma.hotelBooking.create({
+    data: { ...parsed.data, checkIn: parsed.data.checkIn ?? null, checkOut: parsed.data.checkOut ?? null, tripId },
+  });
   revalidatePath(`/trips/${tripId}`);
 }
 
@@ -155,9 +155,10 @@ export async function createFlightBooking(tripId: string, formData: FormData) {
     pnr: orNull(formData.get("pnr")),
   });
   if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
-  // تاريخ المغادرة اختياري — إن تُرك فارغاً نضع تاريخ اليوم (الحقل غير قابل للفراغ في قاعدة البيانات)
-  const departureDate = parsed.data.departureDate ?? new Date();
-  await prisma.flightBooking.create({ data: { ...parsed.data, departureDate, tripId } });
+  // تاريخ المغادرة اختياري — يبقى فارغاً (null) إن لم يُدخل
+  await prisma.flightBooking.create({
+    data: { ...parsed.data, departureDate: parsed.data.departureDate ?? null, tripId },
+  });
   revalidatePath(`/trips/${tripId}`);
 }
 

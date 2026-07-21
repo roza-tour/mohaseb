@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL || "agence.rozatour@gmail.com";
+  const usingDefaultPassword = !process.env.SEED_ADMIN_PASSWORD;
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || "RozaTour@2026";
 
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -18,8 +19,12 @@ async function main() {
         role: "ADMIN",
       },
     });
-    console.log(`تم إنشاء حساب المدير: ${adminEmail} / كلمة المرور: ${adminPassword}`);
-    console.log("يرجى تغيير كلمة المرور بعد أول تسجيل دخول من صفحة الإعدادات.");
+    // لا نطبع كلمة المرور في السجلّات
+    console.log(`تم إنشاء حساب المدير: ${adminEmail}`);
+    if (usingDefaultPassword) {
+      console.log("⚠️  تم استخدام كلمة مرور افتراضية معروفة — غيّرها فوراً بعد أول تسجيل دخول،");
+      console.log("    أو عيّن SEED_ADMIN_PASSWORD في ملف .env قبل التشغيل.");
+    }
   } else {
     console.log("حساب المدير موجود مسبقاً، تم التخطي.");
   }

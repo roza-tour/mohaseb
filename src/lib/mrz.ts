@@ -21,12 +21,16 @@ export const NATIONALITIES: Record<string, string> = {
   KOR: "Corée du Sud", IND: "Inde", IDN: "Indonésie", MYS: "Malaisie", SGP: "Singapour",
 };
 
-export function mrzDate(s: string): string {
+// الـ MRZ لا يحمل القرن. تاريخ الميلاد لا يكون في المستقبل (فمسافر عمره 90 سنة
+// مولود 1935 لا يُقرأ 2035)، أما انتهاء الجواز فدائماً في هذا القرن.
+export function mrzDate(s: string, kind: "birth" | "expiry" = "expiry"): string {
   if (!/^\d{6}$/.test(s)) return "";
   const yy = parseInt(s.slice(0, 2), 10);
-  const nowYY = new Date().getUTCFullYear() % 100;
-  const century = yy > nowYY + 10 ? 1900 : 2000;
-  return `${century + yy}-${s.slice(2, 4)}-${s.slice(4, 6)}`;
+  let year = 2000 + yy;
+  if (kind === "birth" && year > new Date().getUTCFullYear()) {
+    year -= 100;
+  }
+  return `${year}-${s.slice(2, 4)}-${s.slice(4, 6)}`;
 }
 
 export function parseMRZ(text: string): Partial<MrzResult> | null {
@@ -51,8 +55,8 @@ export function parseMRZ(text: string): Partial<MrzResult> | null {
 
   const numero = l2.slice(0, 9).replace(/</g, "").trim();
   const natCode = l2.slice(10, 13).replace(/</g, "");
-  const naissance = mrzDate(l2.slice(13, 19));
-  const expiration = mrzDate(l2.slice(21, 27));
+  const naissance = mrzDate(l2.slice(13, 19), "birth");
+  const expiration = mrzDate(l2.slice(21, 27), "expiry");
 
   if (!nom && !numero) return null;
   return {

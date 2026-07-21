@@ -137,7 +137,36 @@ function fromLinks(html: string, baseUrl: string): ImportedProgram[] {
   return results;
 }
 
+// منع طلبات الخادم لعناوين داخلية (SSRF): نسمح فقط بـ https ونرفض المضيفات الخاصة/المحلية
+function assertSafeUrl(raw: string): URL {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error("رابط غير صالح");
+  }
+  if (u.protocol !== "https:") {
+    throw new Error("يجب أن يبدأ الرابط بـ https://");
+  }
+  const host = u.hostname.toLowerCase();
+  const blocked =
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "[::1]" ||
+    host.endsWith(".localhost") ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  if (blocked) {
+    throw new Error("لا يُسمح باستيراد من عنوان داخلي");
+  }
+  return u;
+}
+
 export async function fetchProgramsFromSite(url: string): Promise<ImportedProgram[]> {
+  assertSafeUrl(url);
   const res = await fetch(url, {
     headers: {
       "User-Agent":

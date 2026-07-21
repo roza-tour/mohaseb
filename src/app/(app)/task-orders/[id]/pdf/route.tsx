@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { pickLang, dirStyles, type Lang } from "@/lib/pdf/docLang";
+import { nameOr } from "@/lib/format";
 
 function formatDate(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -107,15 +108,15 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = loadPublicImage(settings?.stampPath);
 
-  const assigneeName = taskOrder.guide?.name ?? taskOrder.driver?.name ?? "—";
+  const assigneeName = nameOr(taskOrder.guide?.name ?? taskOrder.driver?.name);
   const assigneePhone = taskOrder.guide?.phone ?? taskOrder.driver?.phone ?? "—";
   const roleLabel = taskOrder.assigneeType === "GUIDE" ? t.GUIDE : taskOrder.assigneeType === "DRIVER" ? t.DRIVER : taskOrder.assigneeType;
 
   const rows: [string, string | number][] = [
     [t.orderNo, taskOrder.id],
     [t.date, formatDate(taskOrder.taskDate)],
-    [t.program, taskOrder.trip.program.name],
-    [t.client, taskOrder.trip.customer.name],
+    [t.program, nameOr(taskOrder.trip.program.name)],
+    [t.client, nameOr(taskOrder.trip.customer.name)],
     [t.pax, taskOrder.trip.numPax],
     [t.tripStart, formatDate(taskOrder.trip.startDate)],
     [t.tripEnd, formatDate(taskOrder.trip.endDate)],

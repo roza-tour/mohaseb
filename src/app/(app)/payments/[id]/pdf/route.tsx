@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
+import { nameOr } from "@/lib/format";
 import { pickLang, dirStyles, type Lang } from "@/lib/pdf/docLang";
 
 function formatDate(date: Date) {
@@ -92,16 +93,20 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   const trip = payment.trip;
   // المدفوع حتى هذا السند (شاملاً إياه) والمتبقي بعده — نرتّب زمنياً بـ createdAt
   const paidUpToThis = trip.payments
-    .filter((p) => p.createdAt < payment.createdAt || p.id === payment.id)
+    .filter(
+      (p) =>
+        p.createdAt.getTime() < payment.createdAt.getTime() ||
+        (p.createdAt.getTime() === payment.createdAt.getTime() && p.id <= payment.id)
+    )
     .reduce((s, p) => s + p.amount, 0);
   const remainingAfter = trip.agreedPrice - paidUpToThis;
 
   const methodLabel = lang === "fr" ? METHOD_FR[payment.method] ?? payment.method : PAYMENT_METHOD_LABELS[payment.method] ?? payment.method;
 
   const rows: [string, string][] = [
-    [t.receivedFrom, trip.customer.name],
+    [t.receivedFrom, nameOr(trip.customer.name)],
     [t.amountWords, formatAmount(payment.amount, trip.currency)],
-    [t.forWhat, `${trip.program.name} (${formatDate(trip.startDate)} - ${formatDate(trip.endDate)})`],
+    [t.forWhat, `${nameOr(trip.program.name)} (${formatDate(trip.startDate)} - ${formatDate(trip.endDate)})`],
     [t.method, methodLabel],
     ...(payment.reference ? ([[t.reference, payment.reference]] as [string, string][]) : []),
     ...(payment.notes ? ([[t.notes, payment.notes]] as [string, string][]) : []),
@@ -173,7 +178,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="receipt-${payment.receiptNumber.replace("/", "-")}-${lang}.pdf"`,
+      "Content-Disposition": `inline; filename="receipt-${payment.receiptNumber.replace(/[^0-9A-Za-z]/g, "-")}-${lang}.pdf"`,
     },
   });
 }

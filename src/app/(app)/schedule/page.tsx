@@ -8,10 +8,11 @@ const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأر
 // جدول الثلاثين يوماً القادمة: أوامر التكليف والرحلات التي تبدأ في كل يوم،
 // لرؤية أشغال المرشدين والسائقين وتفادي التعارضات
 export default async function SchedulePage() {
+  // بتوقيت UTC (نفس تخزين التواريخ) حتى تظهر رحلات/مهام اليوم على أي سيرفر
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
   const horizon = new Date(today);
-  horizon.setDate(horizon.getDate() + 30);
+  horizon.setUTCDate(horizon.getUTCDate() + 30);
 
   const [taskOrders, startingTrips] = await Promise.all([
     prisma.taskOrder.findMany({
@@ -63,7 +64,7 @@ export default async function SchedulePage() {
             <Card key={keyOf(day.date)} className="p-5">
               <div className="flex items-center gap-3 mb-3">
                 <h2 className="font-bold text-slate-800">
-                  {DAY_NAMES[day.date.getDay()]} {formatDate(day.date)}
+                  {DAY_NAMES[day.date.getUTCDay()]} {formatDate(day.date)}
                 </h2>
                 {keyOf(day.date) === keyOf(new Date()) && <Badge color="sky">اليوم</Badge>}
               </div>

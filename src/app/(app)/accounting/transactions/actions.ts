@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -29,7 +30,7 @@ const transactionSchema = z.object({
 });
 
 export async function createTransaction(formData: FormData) {
-  const data = transactionSchema.parse({
+  const parsed = transactionSchema.safeParse({
     type: formData.get("type"),
     category: formData.get("category"),
     amount: formData.get("amount") || undefined,
@@ -38,8 +39,11 @@ export async function createTransaction(formData: FormData) {
     tripId: orUndefined(formData.get("tripId")),
     description: orNull(formData.get("description")),
   });
+  if (!parsed.success) {
+    redirect(withError("/accounting/transactions/new", firstErrorMessage(parsed.error)));
+  }
 
-  const { tripId, ...rest } = data;
+  const { tripId, ...rest } = parsed.data;
 
   await prisma.transaction.create({
     data: {

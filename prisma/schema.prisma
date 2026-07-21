@@ -138,8 +138,8 @@ model HotelBooking {
   tripId            String
   hotel             Hotel    @relation(fields: [hotelId], references: [id])
   hotelId           String
-  checkIn           DateTime
-  checkOut          DateTime
+  checkIn           DateTime?
+  checkOut          DateTime?
   roomType          String?
   numRooms          Int      @default(1)
   cost              Float    @default(0)
@@ -157,7 +157,7 @@ model FlightBooking {
   flightNumber     String?
   departureAirport String?
   arrivalAirport   String?
-  departureDate    DateTime
+  departureDate    DateTime?
   arrivalDate      DateTime?
   cost             Float    @default(0)
   pnr              String?

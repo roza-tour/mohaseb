@@ -12,3 +12,9 @@ export function formatDateForInput(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toISOString().slice(0, 10);
 }
+
+// اسم بديل عندما يكون الحقل فارغاً (الأسماء صارت اختيارية وتُخزَّن "" لا null،
+// فحارس `?? "—"` لا يلتقطها). يُستخدم في المستندات والقوائم.
+export function nameOr(s: string | null | undefined, fallback = "—") {
+  return s && s.trim() !== "" ? s : fallback;
+}

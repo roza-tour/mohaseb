@@ -19,16 +19,20 @@ export default async function TransactionsPage({
   const page = parsePage(params.page);
   const TX_PER_PAGE = 50;
 
-  const where: Prisma.TransactionWhereInput = {
-    ...(typeFilter ? { type: typeFilter } : {}),
-    ...(from || to
+  // فلتر التاريخ فقط (تشترك فيه القائمة وبطاقات الملخص حتى تعكس نفس الفترة)
+  const dateWhere: Prisma.TransactionWhereInput =
+    from || to
       ? {
           date: {
             ...(from ? { gte: new Date(from) } : {}),
             ...(to ? { lte: new Date(`${to}T23:59:59`) } : {}),
           },
         }
-      : {}),
+      : {};
+
+  const where: Prisma.TransactionWhereInput = {
+    ...(typeFilter ? { type: typeFilter } : {}),
+    ...dateWhere,
   };
 
   const [transactions, txCount, totals] = await Promise.all([
@@ -40,9 +44,11 @@ export default async function TransactionsPage({
       take: TX_PER_PAGE,
     }),
     prisma.transaction.count({ where }),
+    // بطاقات الملخص تحترم فترة التاريخ (لكن ليس تبويب النوع، فهي تعرض الإيراد والمصروف والصافي معاً)
     prisma.transaction.groupBy({
       by: ["type", "currency"],
       _sum: { amount: true },
+      where: dateWhere,
     }),
   ]);
 

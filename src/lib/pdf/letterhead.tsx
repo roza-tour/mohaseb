@@ -174,7 +174,7 @@ export function LetterheadPage({
           ) : null}
         </View>
         <View style={styles.nameBox}>
-          <Text style={[styles.agencyName, { color }]}>{settings?.agencyName ?? "ROZATOUR"}</Text>
+          <Text style={[styles.agencyName, { color }]}>{settings?.agencyName?.trim() || "ROZATOUR"}</Text>
           {settings?.agencyTagline ? (
             <Text style={[styles.agencyTagline, { color }]}>{settings.agencyTagline}</Text>
           ) : null}

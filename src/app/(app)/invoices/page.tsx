@@ -60,9 +60,9 @@ export default async function InvoicesPage({
             </thead>
             <tbody>
               {invoices.map((inv) => {
-                const items = (inv.items as InvoiceItem[]) ?? [];
+                const items = Array.isArray(inv.items) ? (inv.items as InvoiceItem[]) : [];
                 const totalAmount =
-                  items.reduce((s, it) => s + it.qty * it.unitPrice, 0) - inv.discount;
+                  items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0) - inv.discount;
                 return (
                   <tr key={inv.id}>
                     <Td className="font-mono text-xs">{inv.invoiceNumber}</Td>

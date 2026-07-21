@@ -15,8 +15,10 @@ export default async function ClosingDetailedPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const from = params.from && typeof params.from === "string" ? new Date(params.from) : startOfYear();
-  const to = params.to && typeof params.to === "string" ? new Date(`${params.to}T23:59:59`) : endOfYear();
+  const fromRaw = params.from && typeof params.from === "string" ? new Date(params.from) : startOfYear();
+  const toRaw = params.to && typeof params.to === "string" ? new Date(`${params.to}T23:59:59`) : endOfYear();
+  const from = isNaN(fromRaw.getTime()) ? startOfYear() : fromRaw;
+  const to = isNaN(toRaw.getTime()) ? endOfYear() : toRaw;
 
   const programs = await prisma.tourProgram.findMany({
     include: {
@@ -58,11 +60,12 @@ export default async function ClosingDetailedPage({
             t.otherBookings.reduce((a, b) => a + b.cost, 0),
           0
         );
+        // القيود تُنسب للبرنامج (كل رحلاته) وتُطابَق بالعملة — حتى لا يسقط مصروف بعملة مختلفة عن الرحلة
         const txIncome = linkedTransactions
-          .filter((tx) => tx.tripId && tripIds.includes(tx.tripId) && tx.type === "INCOME" && tx.currency === currency)
+          .filter((tx) => tx.tripId && pTripIds.has(tx.tripId) && tx.type === "INCOME" && tx.currency === currency)
           .reduce((s, tx) => s + tx.amount, 0);
         const txExpense = linkedTransactions
-          .filter((tx) => tx.tripId && tripIds.includes(tx.tripId) && tx.type === "EXPENSE" && tx.currency === currency)
+          .filter((tx) => tx.tripId && pTripIds.has(tx.tripId) && tx.type === "EXPENSE" && tx.currency === currency)
           .reduce((s, tx) => s + tx.amount, 0);
 
         const revenue = tripAgreedRevenue + txIncome;

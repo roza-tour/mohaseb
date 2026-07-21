@@ -22,8 +22,10 @@ export default async function ClosingSummaryPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const from = params.from && typeof params.from === "string" ? new Date(params.from) : startOfYear();
-  const to = params.to && typeof params.to === "string" ? new Date(`${params.to}T23:59:59`) : endOfYear();
+  const fromRaw = params.from && typeof params.from === "string" ? new Date(params.from) : startOfYear();
+  const toRaw = params.to && typeof params.to === "string" ? new Date(`${params.to}T23:59:59`) : endOfYear();
+  const from = isNaN(fromRaw.getTime()) ? startOfYear() : fromRaw;
+  const to = isNaN(toRaw.getTime()) ? endOfYear() : toRaw;
 
   const [trips, transactions] = await Promise.all([
     prisma.trip.findMany({

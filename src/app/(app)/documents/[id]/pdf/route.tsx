@@ -170,7 +170,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="document-${doc.docNumber.replace("/", "-")}.pdf"`,
+      "Content-Disposition": `inline; filename="document-${doc.docNumber.replace(/[^0-9A-Za-z]/g, "-")}.pdf"`,
     },
   });
 }

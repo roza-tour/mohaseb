@@ -22,10 +22,16 @@ const settingsSchema = z.object({
   reminderDaysAhead: z.coerce.number().int().min(0).default(7),
 });
 
+const LOGO_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const LOGO_MAX = 5 * 1024 * 1024; // 5MB
+
 async function saveUpload(file: File, prefix: string): Promise<string | undefined> {
   if (!file || file.size === 0) return undefined;
-  if (!file.type.startsWith("image/")) {
-    throw new Error("الملف المرفوع يجب أن يكون صورة");
+  if (!LOGO_TYPES.includes(file.type)) {
+    throw new Error("يُسمح فقط بصور PNG أو JPG أو WEBP");
+  }
+  if (file.size > LOGO_MAX) {
+    throw new Error("حجم الصورة يتجاوز 5 ميغابايت");
   }
   const raw = Buffer.from(await file.arrayBuffer());
 
@@ -48,6 +54,7 @@ async function saveUpload(file: File, prefix: string): Promise<string | undefine
 }
 
 export async function updateSettings(formData: FormData) {
+  if (!(await auth())?.user?.email) throw new Error("يجب تسجيل الدخول");
   const data = settingsSchema.parse({
     agencyName: formData.get("agencyName"),
     agencyTagline: formData.get("agencyTagline"),

@@ -1,12 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 // حفظ البرامج المحددة من معاينة الاستيراد — الحقول مفهرسة inc_0 / name_0 / ...
 export async function importPrograms(formData: FormData) {
+  if (!(await auth())?.user?.email) redirect("/login");
   let saved = 0;
   let skipped = 0;
 

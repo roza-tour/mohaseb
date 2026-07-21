@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { pickLang, dirStyles, type Lang } from "@/lib/pdf/docLang";
+import { nameOr } from "@/lib/format";
 import type { InvoiceItem } from "../../actions";
 
 function formatDate(date: Date) {
@@ -85,8 +86,8 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = invoice.showStamp ? loadPublicImage(settings?.stampPath) : null;
 
-  const items = (invoice.items as InvoiceItem[]) ?? [];
-  const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+  const items = Array.isArray(invoice.items) ? (invoice.items as InvoiceItem[]) : [];
+  const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
   const grandTotal = subtotal - invoice.discount;
 
   const doc = (
@@ -100,12 +101,12 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
         <View style={styles.partyRow}>
           <View style={styles.partyBox}>
             <Text style={styles.partyLabel}>{t.billTo}</Text>
-            <MixedText text={invoice.customer?.name ?? "—"} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+            <MixedText text={nameOr(invoice.customer?.name)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
           </View>
           {invoice.trip ? (
             <View style={styles.partyBox}>
               <Text style={styles.partyLabel}>{t.forTrip}</Text>
-              <MixedText text={invoice.trip.program.name} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+              <MixedText text={nameOr(invoice.trip.program.name)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
             </View>
           ) : null}
         </View>
@@ -177,7 +178,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="invoice-${invoice.invoiceNumber.replace("/", "-")}-${lang}.pdf"`,
+      "Content-Disposition": `inline; filename="invoice-${invoice.invoiceNumber.replace(/[^0-9A-Za-z]/g, "-")}-${lang}.pdf"`,
     },
   });
 }

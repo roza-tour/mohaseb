@@ -1,11 +1,16 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Textarea, Select, Button, LinkButton } from "@/components/ui";
-import { formatDate } from "@/lib/format";
+import { PageHeader, Card, Field, Input, Textarea, Select, Button, LinkButton, ErrorBanner } from "@/components/ui";
+import { formatDate, nameOr } from "@/lib/format";
 import { createTransaction } from "../actions";
 
 const CURRENCIES = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];
 
-export default async function NewTransactionPage() {
+export default async function NewTransactionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
   const trips = await prisma.trip.findMany({
     include: { program: true, customer: true },
     orderBy: { startDate: "desc" },
@@ -16,6 +21,8 @@ export default async function NewTransactionPage() {
   return (
     <div>
       <PageHeader title="قيد محاسبي جديد" description="إضافة إيراد أو مصروف جديد" />
+
+      <ErrorBanner message={sp.error} />
 
       <Card className="p-5 max-w-2xl">
         <form action={createTransaction} className="space-y-4">
@@ -54,7 +61,7 @@ export default async function NewTransactionPage() {
                 <option value="">بدون ارتباط برحلة</option>
                 {trips.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.program.name} — {t.customer.name} — {formatDate(t.startDate)}
+                    {nameOr(t.program.name)} — {nameOr(t.customer.name)} — {formatDate(t.startDate)}
                   </option>
                 ))}
               </Select>

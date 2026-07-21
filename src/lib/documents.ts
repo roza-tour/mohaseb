@@ -30,8 +30,8 @@ export function fillTemplate(
 ): string {
   const customer = ctx.customer ?? ctx.trip?.customer ?? null;
   const replacements: Record<string, string> = {
-    "[CLIENT]": customer?.name ?? "[CLIENT]",
-    "[PROGRAM]": ctx.trip?.program.name ?? "[PROGRAM]",
+    "[CLIENT]": customer?.name?.trim() || "[CLIENT]",
+    "[PROGRAM]": ctx.trip?.program.name?.trim() || "[PROGRAM]",
     "[START_DATE]": ctx.trip ? fmt(ctx.trip.startDate) : "[START_DATE]",
     "[END_DATE]": ctx.trip ? fmt(ctx.trip.endDate) : "[END_DATE]",
     "[DURATION]": ctx.trip ? String(ctx.trip.program.durationDays) : "[DURATION]",
