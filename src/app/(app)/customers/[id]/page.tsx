@@ -4,11 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   PageHeader,
   Card,
-  Field,
-  Input,
-  Textarea,
   LinkButton,
-  Button,
   Table,
   Th,
   Td,
@@ -20,6 +16,7 @@ import { formatDate, formatCurrency } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
 import { TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "../../trips/statusLabels";
 import { updateCustomer, deleteCustomer } from "../actions";
+import { CustomerForm } from "../CustomerForm";
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -187,30 +184,24 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
 
       {/* تعديل البيانات */}
       <Card className="p-5 max-w-2xl">
-        <h2 className="font-bold text-slate-800 mb-4">تعديل بيانات العميل</h2>
-        <form action={updateCustomer.bind(null, id)} className="space-y-4">
-          <Field label="الاسم">
-            <Input name="name" defaultValue={customer.name} />
-          </Field>
-          <Field label="رقم الهاتف">
-            <Input name="phone" defaultValue={customer.phone ?? ""} />
-          </Field>
-          <Field label="البريد الإلكتروني">
-            <Input name="email" type="email" defaultValue={customer.email ?? ""} />
-          </Field>
-          <Field label="ملاحظات">
-            <Textarea name="notes" rows={3} defaultValue={customer.notes ?? ""} />
-          </Field>
-
-          <div className="flex items-center gap-3 pt-2">
-            <Button type="submit">حفظ التعديلات</Button>
-            <LinkButton href="/customers" variant="secondary">
-              رجوع
-            </LinkButton>
-            <div className="flex-1" />
-            <DeleteButton action={deleteCustomer.bind(null, id)} />
-          </div>
-        </form>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-800">تعديل بيانات العميل</h2>
+          <DeleteButton action={deleteCustomer.bind(null, id)} />
+        </div>
+        <CustomerForm
+          action={updateCustomer.bind(null, id)}
+          submitLabel="حفظ التعديلات"
+          initial={{
+            name: customer.name,
+            phone: customer.phone ?? "",
+            email: customer.email ?? "",
+            passport: customer.passport ?? "",
+            companions: Array.isArray(customer.companions)
+              ? (customer.companions as { name: string; passport: string }[])
+              : [],
+            notes: customer.notes ?? "",
+          }}
+        />
       </Card>
     </div>
   );

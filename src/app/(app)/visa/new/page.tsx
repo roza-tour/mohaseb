@@ -81,6 +81,21 @@ export default async function NewVisaPage({
             />
           </Field>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="رسم الخدمة لكل مسافر (يُسجَّل كإيراد تلقائياً)">
+              <Input type="number" name="feePerPerson" min={0} step="0.01" defaultValue={40} />
+            </Field>
+            <Field label="عملة الرسم">
+              <Select name="feeCurrency" defaultValue="USD">
+                {["USD", "EUR", "DZD", "TND", "MAD", "SAR"].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+
           <Field label="ملاحظات داخلية (لا تظهر في الملفات)">
             <Input name="notes" />
           </Field>

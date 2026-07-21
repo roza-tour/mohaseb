@@ -42,6 +42,9 @@ model Customer {
   name      String
   phone     String?
   email     String?
+  passport  String?  // رقم جواز السفر (اختياري — يُستعمل في الدعوات)
+  // المرافقون (عائلة/أطفال) بدل تسجيلهم كعملاء مستقلين: [{ name, passport }]
+  companions Json?
   notes     String? @db.Text
   createdAt DateTime @default(now())
   trips     Trip[]
@@ -102,6 +105,7 @@ model TourProgram {
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   trips               Trip[]
+  invitations         Invitation[]
 }
 
 // ---------- الرحلة الفعلية (تنفيذ برنامج لعميل بتاريخ محدد) ----------
@@ -184,6 +188,11 @@ model Transaction {
   id          String   @id @default(cuid())
   trip        Trip?    @relation(fields: [tripId], references: [id])
   tripId      String?
+  // ربط اختياري بمستحقات الخدمات (رسوم الدعوة / رسوم فيزا الصحراء) لحذفها تلقائياً معها
+  invitation       Invitation?      @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  invitationId     String?
+  visaApplication  VisaApplication? @relation(fields: [visaApplicationId], references: [id], onDelete: Cascade)
+  visaApplicationId String?
   type        String   // INCOME | EXPENSE
   category    String
   amount      Float
@@ -299,8 +308,33 @@ model VisaApplication {
   departureDate DateTime
   programDetail String  @db.Text // تفاصيل البرنامج يوم بيوم (يُملأ في ملف الوورد)
   notes        String?  @db.Text
+  // رسم الخدمة لكل مسافر (يُسجَّل كإيراد تلقائياً عند الإنشاء)
+  feePerPerson Float    @default(40)
+  feeCurrency  String   @default("USD")
   createdAt    DateTime @default(now())
   travelers    VisaTraveler[]
+  transactions Transaction[]
+}
+
+// الدعوات (مستند مدفوع مستقل): طلب موافقة على فيزا موجَّه لقنصلية لعدة أشخاص
+model Invitation {
+  id            String   @id @default(cuid())
+  refNumber     String   // 2026/0001
+  language      String   @default("fr") // ar | fr | en
+  consulate     String   @default("")
+  // المقدّم الأساسي + المرافقون: [{ name, passport }] وأولهم المقدّم الأساسي
+  people        Json
+  program       TourProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  programId     String?
+  itinerary     String?  @db.Text // مخطط الرحلة (يُنسخ من البرنامج أو يُحرَّر)
+  arrivalDate   DateTime?
+  departureDate DateTime?
+  fee           Float    @default(20) // رسم الدعوة (يُسجَّل كإيراد تلقائياً)
+  feeCurrency   String   @default("USD")
+  notes         String?  @db.Text
+  docDate       DateTime @default(now())
+  createdAt     DateTime @default(now())
+  transactions  Transaction[]
 }
 
 model VisaTraveler {

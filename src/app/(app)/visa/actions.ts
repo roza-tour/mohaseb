@@ -17,6 +17,8 @@ const appSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v : null)),
+  feePerPerson: z.coerce.number().min(0).default(40),
+  feeCurrency: z.string().min(1).default("USD"),
 });
 
 function orEmpty(v: FormDataEntryValue | null): string {
@@ -39,6 +41,8 @@ export async function createVisaApplication(formData: FormData) {
     departureDate: formData.get("departureDate") || undefined,
     programDetail: formData.get("programDetail"),
     notes: formData.get("notes") ?? undefined,
+    feePerPerson: formData.get("feePerPerson") || undefined,
+    feeCurrency: formData.get("feeCurrency") || undefined,
   });
   if (!parsed.success) redirect(withError("/visa/new", firstErrorMessage(parsed.error)));
   if (parsed.data.departureDate < parsed.data.arrivalDate) {
@@ -105,6 +109,23 @@ export async function createVisaApplication(formData: FormData) {
     },
   });
 
+  // قيد إيراد تلقائي: مستحق خدمة الفيزا = الرسم لكل فرد × عدد المسافرين
+  const total = parsed.data.feePerPerson * travelers.length;
+  if (total > 0) {
+    await prisma.transaction.create({
+      data: {
+        type: "INCOME",
+        category: "خدمة فيزا صحراوية",
+        amount: total,
+        currency: parsed.data.feeCurrency,
+        date: new Date(),
+        description: `رسوم فيزا ${created.refNumber} (${travelers.length} مسافر)`,
+        visaApplicationId: created.id,
+      },
+    });
+  }
+
+  revalidatePath("/accounting/transactions");
   redirect(`/visa?created=${created.id}`);
 }
 
