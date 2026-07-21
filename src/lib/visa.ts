@@ -24,9 +24,66 @@ const HDR_YELLOW = "FFFFFF99"; // تعبئة رؤوس المجموعات وال�
 const ATV_PEACH = "FFFFCC99"; // تعبئة خانات بيانات الوكالة (خوخي)
 
 // ---------- Excel: Liste des demandeurs de visas ----------
-// نُعيد بناء نموذج «قائمة طالبي الفيزا» بنفس تخطيط مديرية السياحة بالضبط:
-// شعار الدولة أعلى المنتصف، عناوين خضراء، رؤوس صفراء، خانات الوكالة خوخية، وعرض أعمدة مطابق.
+// نقطة الدخول: إن وُجد النموذج الرسمي الأصلي (xlsx) نملأه كما هو مع الحفاظ على
+// شكله وشعاره وألوانه بالكامل؛ وإلا نُعيد بناء النموذج بأقرب شكل ممكن.
 export async function buildVisaExcel(app: App, settings: Settings | null): Promise<Buffer> {
+  const templatePath = path.join(process.cwd(), "templates", "assets", "visa-list-template.xlsx");
+  if (fs.existsSync(templatePath)) {
+    try {
+      return await fillVisaExcelTemplate(templatePath, app, settings);
+    } catch {
+      // لو تعذّر ملء النموذج الأصلي لأي سبب نرجع للبناء الاحتياطي بدل تعطيل التصدير
+    }
+  }
+  return buildVisaExcelFromScratch(app, settings);
+}
+
+// ملء النموذج الرسمي الأصلي: نكتب القيم فقط في مواضعها ونترك كل التنسيق والشعار كما هو.
+async function fillVisaExcelTemplate(
+  templatePath: string,
+  app: App,
+  settings: Settings | null
+): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(templatePath);
+  const ws = wb.worksheets[0];
+
+  // عنوان الولاية أعلى النموذج (نحافظ على صياغة المديرية الرسمية)
+  ws.getCell("B7").value = `Direction du Tourisme et de l'Artisanat de la Wilaya de ${app.wilaya ?? ""}`;
+
+  // بيانات الوكالة (القيم مدمجة D:E)
+  ws.getCell("D12").value = settings?.agencyName ?? "";
+  ws.getCell("D13").value = settings?.agencyAddress ?? "";
+  ws.getCell("D14").value = settings?.agencyRC ?? "";
+
+  // صفوف المسافرين تبدأ من الصف 19 (نكتب القيم فقط؛ الإطارات والخطوط موجودة في النموذج)
+  app.travelers.forEach((t, i) => {
+    const r = 19 + i;
+    const set = (col: string, v: string | number) => {
+      ws.getCell(`${col}${r}`).value = v;
+    };
+    set("B", i + 1);
+    set("C", t.nom);
+    set("D", t.prenom);
+    set("E", fmtFr(t.dateNaissance));
+    set("F", t.lieuNaissance);
+    set("G", t.lieuResidence);
+    set("H", t.typePasseport);
+    set("I", t.numeroPasseport);
+    set("J", fmtFr(t.dateDelivrance));
+    set("K", fmtFr(t.dateExpiration));
+    set("L", t.nationalite);
+    set("M", t.visaAnterieur ? "Oui" : "Non");
+    set("N", fmtFr(t.visaEmission));
+    set("O", fmtFr(t.visaExpirationA));
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
+
+// النسخة الاحتياطية: بناء النموذج من الصفر بأقرب شكل للنموذج الرسمي.
+async function buildVisaExcelFromScratch(app: App, settings: Settings | null): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Feuil1", {
     pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } },
