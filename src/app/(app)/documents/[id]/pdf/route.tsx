@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { Document as PdfDocument, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document as PdfDocument, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
@@ -130,7 +130,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
   const pdf = (
     <PdfDocument>
-      <LetterheadPage settings={settings}>
+      <LetterheadPage settings={settings} stamp={stampBuffer}>
         <View style={staticStyles.metaRow}>
           <Text style={staticStyles.metaText}>الرقم: {doc.docNumber}</Text>
           <Text style={staticStyles.metaText}>التاريخ: {formatDate(doc.docDate)}</Text>
@@ -145,18 +145,6 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
         />
 
         {body}
-
-        {doc.showStamp ? (
-          <View style={staticStyles.signRow} wrap={false}>
-            <View style={staticStyles.signBox}>
-              <Text style={staticStyles.signLabel}>ختم الوكالة</Text>
-              {stampBuffer ? (
-                // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
-                <Image src={stampBuffer} style={staticStyles.stampImage} />
-              ) : null}
-            </View>
-          </View>
-        ) : null}
       </LetterheadPage>
     </PdfDocument>
   );

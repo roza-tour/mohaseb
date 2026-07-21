@@ -77,6 +77,15 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 95,
   },
+  // ختم الوكالة مستقل أعلى يمين الورقة (يشغل مساحة العمود الفارغ يمين الترويسة)
+  stampTopRight: {
+    position: "absolute",
+    top: 24,
+    right: 40,
+    width: 82,
+    height: 82,
+    objectFit: "contain",
+  },
   footer: {
     position: "absolute",
     bottom: 24,
@@ -157,9 +166,12 @@ function Footer({ settings }: { settings: Settings | null }) {
 export function LetterheadPage({
   settings,
   children,
+  stamp,
 }: {
   settings: Settings | null;
   children: React.ReactNode;
+  // ختم الوكالة كصورة مستقلة (بدون مربع أو تسمية) أعلى يمين الورقة عند تمريره
+  stamp?: Buffer | null;
 }) {
   const logoBuffer = loadPublicImage(settings?.logoPath);
   const color = settings?.letterheadColor || DEFAULT_COLOR;
@@ -181,6 +193,11 @@ export function LetterheadPage({
         </View>
         <View style={styles.headerSpacer} />
       </View>
+
+      {stamp ? (
+        // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
+        <Image src={stamp} style={styles.stampTopRight} />
+      ) : null}
 
       {children}
 

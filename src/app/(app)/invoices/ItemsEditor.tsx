@@ -1,7 +1,7 @@
 "use client";
 
 // محرر بنود الفاتورة: أسطر ديناميكية (بيان، كمية، سعر وحدة) مع إجمالي مباشر
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Row = { description: string; qty: string; unitPrice: string };
 
@@ -9,6 +9,17 @@ const emptyRow: Row = { description: "", qty: "1", unitPrice: "" };
 
 export function ItemsEditor({ currency }: { currency: string }) {
   const [rows, setRows] = useState<Row[]>([{ ...emptyRow }]);
+
+  // العملة الظاهرة في الإجمالي تتبع قائمة اختيار العملة في النموذج مباشرةً
+  // (القيمة الابتدائية تطابق أصلاً العملة الافتراضية، فنكتفي بالاشتراك في التغيير)
+  const [cur, setCur] = useState(currency);
+  useEffect(() => {
+    const el = document.querySelector('select[name="currency"]') as HTMLSelectElement | null;
+    if (!el) return;
+    const onChange = () => setCur(el.value || currency);
+    el.addEventListener("change", onChange);
+    return () => el.removeEventListener("change", onChange);
+  }, [currency]);
 
   const update = (i: number, key: keyof Row, value: string) => {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)));
@@ -82,7 +93,7 @@ export function ItemsEditor({ currency }: { currency: string }) {
         <p className="text-sm text-slate-600">
           مجموع البنود:{" "}
           <span className="font-bold text-slate-800">
-            {total.toLocaleString("en-US", { minimumFractionDigits: 2 })} {currency}
+            {total.toLocaleString("en-US", { minimumFractionDigits: 2 })} {cur}
           </span>
         </p>
       </div>

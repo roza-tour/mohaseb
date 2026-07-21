@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { Document, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
@@ -129,7 +129,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const doc = (
     <Document>
-      <LetterheadPage settings={settings}>
+      <LetterheadPage settings={settings} stamp={stampBuffer}>
         <Text style={styles.title}>{t.title}</Text>
 
         <View style={styles.detailsBox}>
@@ -152,15 +152,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
             ))}
         </View>
 
-        <View style={styles.signRow} wrap={false}>
-          <View style={styles.signBox}>
-            <Text style={styles.signLabel}>{t.signStamp}</Text>
-            {stampBuffer ? (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
-              <Image src={stampBuffer} style={styles.stampImage} />
-            ) : null}
-          </View>
-        </View>
       </LetterheadPage>
     </Document>
   );

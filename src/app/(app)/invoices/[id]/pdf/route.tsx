@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { Document, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
@@ -121,7 +121,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   const doc = (
     <Document>
-      <LetterheadPage settings={settings}>
+      <LetterheadPage settings={settings} stamp={invoice.showStamp ? stampBuffer : null}>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.meta}>
           {t.invoiceNo}: {invoice.invoiceNumber}   |   {t.date}: {formatDate(invoice.docDate)}
@@ -216,17 +216,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
           </View>
         ) : null}
 
-        {invoice.showStamp ? (
-          <View style={styles.stampWrap} wrap={false}>
-            <View style={styles.stampBox}>
-              <Text style={styles.stampLabel}>{t.stamp}</Text>
-              {stampBuffer ? (
-                // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
-                <Image src={stampBuffer} style={styles.stampImage} />
-              ) : null}
-            </View>
-          </View>
-        ) : null}
       </LetterheadPage>
     </Document>
   );
