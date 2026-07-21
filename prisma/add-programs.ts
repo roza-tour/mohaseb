@@ -1,7 +1,28 @@
 // إضافة برامج سياحية جاهزة إلى قاعدة البيانات دون المساس بالبيانات الموجودة.
 // يُشغَّل مرة واحدة على السيرفر:  npx tsx prisma/add-programs.ts
 // آمن للتكرار: يتخطى أي برنامج موجود بنفس الاسم.
+import fs from "fs";
+import path from "path";
 import { PrismaClient } from "@prisma/client";
+
+// تحميل متغيّرات .env يدوياً (السكربت لا يحمّلها تلقائياً كما يفعل التطبيق)
+function loadEnv() {
+  if (process.env.DATABASE_URL) return;
+  const envPath = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*([\w.]+)\s*=\s*(.*)\s*$/);
+    if (!m) continue;
+    const key = m[1];
+    if (process.env[key]) continue;
+    let val = m[2].trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    process.env[key] = val;
+  }
+}
+loadEnv();
 
 const prisma = new PrismaClient();
 
