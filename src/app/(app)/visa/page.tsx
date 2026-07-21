@@ -85,10 +85,7 @@ export default async function VisaPage({
                         📊 قائمة Excel
                       </Link>
                       <Link href={`/visa/${a.id}/word`} className="text-sky-700 text-sm hover:underline">
-                        📄 برنامج Word
-                      </Link>
-                      <Link href={`/visa/${a.id}/pdf`} target="_blank" className="text-rose-700 text-sm hover:underline">
-                        📑 برنامج PDF مختوم
+                        📄 برنامج Word (مختوم)
                       </Link>
                     </div>
                   </Td>

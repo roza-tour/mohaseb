@@ -190,8 +190,81 @@ export async function buildVisaExcel(app: App, settings: Settings | null): Promi
   return Buffer.from(buf);
 }
 
+// أبعاد صورة PNG من ترويسة IHDR (العرض عند الإزاحة 16، الارتفاع عند 20)
+function pngSize(buf: Buffer): { w: number; h: number } {
+  try {
+    if (buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47) {
+      return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+    }
+  } catch {
+    /* تجاهل */
+  }
+  return { w: 1, h: 1 };
+}
+
+// إدراج ختم الوكالة كصورة مضمّنة في أسفل ملف البرنامج (بدون وحدات إضافية)
+function injectStamp(zip: PizZip, stamp: Buffer) {
+  // 1) نضيف صورة الختم إلى وسائط المستند
+  zip.file("word/media/cachet_agency.png", stamp);
+
+  // 2) نضيف علاقة للصورة في document.xml.rels
+  const relsPath = "word/_rels/document.xml.rels";
+  const relsFile = zip.file(relsPath);
+  if (!relsFile) return;
+  let rels = relsFile.asText();
+  const relId = "rIdCachetAgency";
+  if (!rels.includes(relId)) {
+    rels = rels.replace(
+      "</Relationships>",
+      `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/cachet_agency.png"/></Relationships>`
+    );
+    zip.file(relsPath, rels);
+  }
+
+  // 3) نتأكد أن نوع محتوى png معرّف
+  const ctPath = "[Content_Types].xml";
+  const ctFile = zip.file(ctPath);
+  if (ctFile) {
+    let ct = ctFile.asText();
+    if (!/Extension="png"/i.test(ct)) {
+      ct = ct.replace("</Types>", '<Default Extension="png" ContentType="image/png"/></Types>');
+      zip.file(ctPath, ct);
+    }
+  }
+
+  // 4) نُدرج فقرة تحتوي على الختم (محاذاة لليمين) قبل خصائص المقطع النهائية
+  const docPath = "word/document.xml";
+  const docFile = zip.file(docPath);
+  if (!docFile) return;
+  let xml = docFile.asText();
+  const { w, h } = pngSize(stamp);
+  const maxEmu = 1152000; // ~3.05 سم كحد أقصى
+  const scale = maxEmu / Math.max(w, h);
+  const cx = Math.round(w * scale);
+  const cy = Math.round(h * scale);
+  const drawing =
+    `<w:p><w:pPr><w:spacing w:before="200" w:after="0"/><w:jc w:val="right"/></w:pPr>` +
+    `<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>` +
+    `<wp:inline distT="0" distB="0" distL="0" distR="0">` +
+    `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/>` +
+    `<wp:docPr id="777" name="Cachet"/>` +
+    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:nvPicPr><pic:cNvPr id="777" name="Cachet"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<pic:blipFill><a:blip r:embed="rIdCachetAgency"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
+    `</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+  const idx = xml.lastIndexOf("<w:sectPr");
+  if (idx !== -1) {
+    xml = xml.slice(0, idx) + drawing + xml.slice(idx);
+    zip.file(docPath, xml);
+  }
+}
+
 // ---------- Word: Programme détaillé ----------
-export function buildVisaWord(app: App): Buffer {
+export function buildVisaWord(app: App, stamp?: Buffer | null): Buffer {
   const templatePath = path.join(process.cwd(), "templates", "programme-template.docx");
   const zip = new PizZip(fs.readFileSync(templatePath));
   const doc = new Docxtemplater(zip, {
@@ -215,5 +288,13 @@ export function buildVisaWord(app: App): Buffer {
     PROGRAMME: app.programDetail,
   });
 
-  return doc.getZip().generate({ type: "nodebuffer" });
+  const outZip = doc.getZip();
+  if (stamp && stamp.length) {
+    try {
+      injectStamp(outZip, stamp);
+    } catch {
+      // لو تعذّر إدراج الختم لأي سبب نُصدر الملف بدونه بدل تعطيله
+    }
+  }
+  return outZip.generate({ type: "nodebuffer" });
 }
