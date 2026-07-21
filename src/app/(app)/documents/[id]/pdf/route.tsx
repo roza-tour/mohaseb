@@ -138,8 +138,8 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
           {p === 0 ? (
             <>
               <View style={staticStyles.metaRow}>
-                <Text style={staticStyles.metaText}>الرقم: {doc.docNumber}</Text>
-                <Text style={staticStyles.metaText}>التاريخ: {formatDate(doc.docDate)}</Text>
+                <Text style={staticStyles.metaText}>N° {doc.docNumber}</Text>
+                <Text style={staticStyles.metaText}>{formatDate(doc.docDate)}</Text>
               </View>
               <MixedText
                 text={doc.title}

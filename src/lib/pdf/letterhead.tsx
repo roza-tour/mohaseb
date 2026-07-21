@@ -135,23 +135,29 @@ const styles = StyleSheet.create({
   },
 });
 
-function FooterLineRTL({ label, value }: { label: string; value: string }) {
-  // التسمية في أقصى اليمين والقيمة تمتد لليسار وتلتف داخل عمودها،
-  // كما في ورق الشركة الرسمي (محرك PDF لا يدعم خوارزمية bidi كاملة،
-  // لذا نفصل التسمية عن القيمة في عنصرين داخل صف معكوس)
-  return (
-    <View style={{ flexDirection: "row-reverse", marginBottom: 2 }}>
-      <Text style={styles.footerLabel}>{label} : </Text>
-      <MixedText text={value} style={styles.footerText} size={8} containerStyle={{ flex: 1 }} />
-    </View>
-  );
-}
-
-function FooterLineLTR({ label, value }: { label: string; value: string }) {
+// سطر تذييل موحّد: التسمية على اليسار ثم القيمة بعدها مباشرةً.
+// dir="ltr" للحقول اللاتينية (هاتف/بريد/موقع) حتى لا تنعكس الأرقام،
+// و dir="auto" للعنوان العربي حتى يظهر باتجاهه الصحيح.
+function FooterLine({
+  label,
+  value,
+  dir = "ltr",
+}: {
+  label: string;
+  value: string;
+  dir?: "ltr" | "auto";
+}) {
   return (
     <View style={{ flexDirection: "row", marginBottom: 2 }}>
       <Text style={styles.footerLabel}>{label} : </Text>
-      <Text style={[styles.footerText, { flex: 1, textAlign: "left" }]}>{value}</Text>
+      <MixedText
+        text={value}
+        style={styles.footerText}
+        size={8}
+        align="left"
+        baseDir={dir}
+        containerStyle={{ flex: 1 }}
+      />
     </View>
   );
 }
@@ -168,12 +174,12 @@ function Footer({ settings }: { settings: Settings | null }) {
       <View style={[styles.footerBar, { backgroundColor: color }]} />
       <View style={styles.footerCols}>
         <View style={styles.footerColRight}>
-          {address ? <FooterLineRTL label="Adresse" value={address} /> : null}
-          {email ? <FooterLineLTR label="E-Mail" value={email} /> : null}
+          {address ? <FooterLine label="Adresse" value={address} dir="auto" /> : null}
+          {email ? <FooterLine label="E-Mail" value={email} /> : null}
         </View>
         <View style={styles.footerColLeft}>
-          {phone ? <FooterLineLTR label="Tel" value={phone} /> : null}
-          {website ? <FooterLineLTR label="Web" value={website} /> : null}
+          {phone ? <FooterLine label="Tel" value={phone} /> : null}
+          {website ? <FooterLine label="Web" value={website} /> : null}
         </View>
       </View>
     </View>
