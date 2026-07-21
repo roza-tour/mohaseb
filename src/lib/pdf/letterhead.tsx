@@ -77,13 +77,13 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 95,
   },
-  // ختم الوكالة مستقل أعلى يمين الورقة (يشغل مساحة العمود الفارغ يمين الترويسة)
+  // ختم الوكالة مستقل أعلى يمين الورقة بحجم طبيعي (لا يبدو مزيفاً)
   stampTopRight: {
     position: "absolute",
-    top: 24,
-    right: 40,
-    width: 82,
-    height: 82,
+    top: 20,
+    right: 34,
+    width: 122,
+    height: 122,
     objectFit: "contain",
   },
   footer: {

@@ -48,6 +48,32 @@ async function fillVisaExcelTemplate(
   await wb.xlsx.readFile(templatePath);
   const ws = wb.worksheets[0];
 
+  // إخفاء خطوط الشبكة حتى تبقى الورقة نظيفة كالنموذج الرسمي (تظهر فقط حدود الجدول)
+  ws.views = [{ showGridLines: false }];
+
+  // إعادة ضبط ألوان النموذج الرسمي كما في الأصل الحكومي (الصورة):
+  // العناوين برتقالية، خانات بيانات الوكالة وردية، ورؤوس الجدول خوخية فاتحة.
+  const OFF_ORANGE = "FFE36C0A"; // نص العناوين
+  const OFF_PINK = "FFD9A9A9"; // خانات قيم الوكالة
+  const OFF_PEACH = "FFFCE4D6"; // رؤوس المجموعات والأعمدة
+  const setFont = (addr: string, argb: string) => {
+    const c = ws.getCell(addr);
+    c.font = { ...(c.font ?? {}), color: { argb } };
+  };
+  const setFill = (addr: string, argb: string) => {
+    ws.getCell(addr).fill = { type: "pattern", pattern: "solid", fgColor: { argb } };
+  };
+  // عناوين برتقالية
+  ["B7", "F9"].forEach((a) => setFont(a, OFF_ORANGE));
+  // قيم بيانات الوكالة وردية (D:E مدمجة)
+  ["D12", "E12", "D13", "E13", "D14", "E14"].forEach((a) => setFill(a, OFF_PINK));
+  // رؤوس المجموعات (صف 17) ورؤوس الأعمدة (صف 18) خوخية فاتحة
+  const H = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"];
+  H.forEach((col) => {
+    setFill(`${col}17`, OFF_PEACH);
+    setFill(`${col}18`, OFF_PEACH);
+  });
+
   // عنوان الولاية أعلى النموذج (نحافظ على صياغة المديرية الرسمية)
   ws.getCell("B7").value = `Direction du Tourisme et de l'Artisanat de la Wilaya de ${app.wilaya ?? ""}`;
 
@@ -289,33 +315,40 @@ function injectStamp(zip: PizZip, stamp: Buffer) {
     }
   }
 
-  // 4) نُدرج فقرة تحتوي على الختم (محاذاة لليمين) قبل خصائص المقطع النهائية
+  // 4) الختم كصورة عائمة أعلى يمين الصفحة فوق النصوص (لا يزيح تخطيط المستند)
   const docPath = "word/document.xml";
   const docFile = zip.file(docPath);
   if (!docFile) return;
   let xml = docFile.asText();
   const { w, h } = pngSize(stamp);
-  const maxEmu = 1152000; // ~3.05 سم كحد أقصى
+  const maxEmu = 1260000; // ~3.3 سم كحد أقصى (حجم طبيعي للختم)
   const scale = maxEmu / Math.max(w, h);
   const cx = Math.round(w * scale);
   const cy = Math.round(h * scale);
-  const drawing =
-    `<w:p><w:pPr><w:spacing w:before="200" w:after="0"/><w:jc w:val="right"/></w:pPr>` +
+  const A = "http://schemas.openxmlformats.org/drawingml/2006/main";
+  const PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+  // مرساة عائمة: يمين الهامش، أعلى الهامش، أمام النص (behindDoc=0) بلا التفاف
+  const run =
     `<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>` +
-    `<wp:inline distT="0" distB="0" distL="0" distR="0">` +
-    `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/>` +
-    `<wp:docPr id="777" name="Cachet"/>` +
-    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
-    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
-    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
-    `<pic:nvPicPr><pic:cNvPr id="777" name="Cachet"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251680000" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">` +
+    `<wp:simplePos x="0" y="0"/>` +
+    `<wp:positionH relativeFrom="margin"><wp:align>right</wp:align></wp:positionH>` +
+    `<wp:positionV relativeFrom="margin"><wp:posOffset>0</wp:posOffset></wp:positionV>` +
+    `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>` +
+    `<wp:docPr id="778" name="CachetTop"/>` +
+    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="${A}" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
+    `<a:graphic xmlns:a="${A}"><a:graphicData uri="${PIC}">` +
+    `<pic:pic xmlns:pic="${PIC}">` +
+    `<pic:nvPicPr><pic:cNvPr id="778" name="CachetTop"/><pic:cNvPicPr/></pic:nvPicPr>` +
     `<pic:blipFill><a:blip r:embed="rIdCachetAgency"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
     `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
-    `</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
-  const idx = xml.lastIndexOf("<w:sectPr");
-  if (idx !== -1) {
-    xml = xml.slice(0, idx) + drawing + xml.slice(idx);
+    `</pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;
+  // ندرج المرساة داخل أول فقرة في الجسم (قبل أول </w:p>) حتى لا نضيف سطراً جديداً
+  const bodyIdx = xml.indexOf("<w:body>");
+  const firstPClose = bodyIdx !== -1 ? xml.indexOf("</w:p>", bodyIdx) : -1;
+  if (firstPClose !== -1) {
+    xml = xml.slice(0, firstPClose) + run + xml.slice(firstPClose);
     zip.file(docPath, xml);
   }
 }
