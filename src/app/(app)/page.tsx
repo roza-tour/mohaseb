@@ -6,23 +6,21 @@ import Link from "next/link";
 import { MonthlyChart, type MonthPoint } from "@/components/MonthlyChart";
 
 export default async function DashboardPage() {
-  const [customersCount, activeTrips, upcoming, monthTransactions, settings, unpaidTrips] = await Promise.all([
-    prisma.customer.count(),
-    prisma.trip.count({ where: { status: { in: ["PLANNED", "CONFIRMED", "IN_PROGRESS"] } } }),
-    getUpcomingTrips(),
-    prisma.transaction.findMany({
-      where: {
-        date: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-      },
-    }),
-    prisma.settings.findUnique({ where: { id: 1 } }),
-    prisma.trip.findMany({
-      where: { status: { notIn: ["CANCELLED"] } },
-      include: { payments: true },
-    }),
-  ]);
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const [customersCount, activeTrips, upcoming, monthTransactions, settings, unpaidTrips, invitationsMonth, visasMonth] =
+    await Promise.all([
+      prisma.customer.count(),
+      prisma.trip.count({ where: { status: { in: ["PLANNED", "CONFIRMED", "IN_PROGRESS"] } } }),
+      getUpcomingTrips(),
+      prisma.transaction.findMany({ where: { date: { gte: monthStart } } }),
+      prisma.settings.findUnique({ where: { id: 1 } }),
+      prisma.trip.findMany({
+        where: { status: { notIn: ["CANCELLED"] } },
+        include: { payments: true },
+      }),
+      prisma.invitation.count({ where: { docDate: { gte: monthStart } } }),
+      prisma.visaApplication.count({ where: { createdAt: { gte: monthStart } } }),
+    ]);
 
   // بيانات رسم آخر ستة أشهر (بالعملة الافتراضية فقط)
   const sixMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
@@ -75,6 +73,16 @@ export default async function DashboardPage() {
   const incomeText = perCurrencyText(monthIncomeByCurrency);
   const expenseText = perCurrencyText(monthExpenseByCurrency);
 
+  // إيراد الخدمات (الدعوات + الفيزا) هذا الشهر، مفصولاً حسب العملة
+  const SERVICE_CATS = ["خدمة دعوة", "خدمة فيزا صحراوية"];
+  const serviceRevByCurrency = new Map<string, number>();
+  for (const t of monthTransactions) {
+    if (t.type === "INCOME" && SERVICE_CATS.includes(t.category)) {
+      serviceRevByCurrency.set(t.currency, (serviceRevByCurrency.get(t.currency) ?? 0) + t.amount);
+    }
+  }
+  const serviceRevText = perCurrencyText(serviceRevByCurrency);
+
   const stats = [
     { label: "عدد العملاء", value: customersCount, href: "/customers" },
     { label: "رحلات نشطة", value: activeTrips, href: "/trips" },
@@ -97,6 +105,30 @@ export default async function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      <Card className="p-5 mb-6">
+        <h2 className="font-bold text-slate-800 mb-4">💼 إيرادات الخدمات هذا الشهر (الدعوات والفيزا)</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link href="/invitations">
+            <div className="rounded-lg border border-slate-200 p-4 hover:shadow-md transition">
+              <p className="text-xs text-slate-500 mb-1">✉️ دعوات صدرت هذا الشهر</p>
+              <p className="text-2xl font-bold text-slate-800">{invitationsMonth}</p>
+            </div>
+          </Link>
+          <Link href="/visa">
+            <div className="rounded-lg border border-slate-200 p-4 hover:shadow-md transition">
+              <p className="text-xs text-slate-500 mb-1">🛂 ملفات فيزا هذا الشهر</p>
+              <p className="text-2xl font-bold text-slate-800">{visasMonth}</p>
+            </div>
+          </Link>
+          <Link href="/accounting/transactions">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 hover:shadow-md transition">
+              <p className="text-xs text-emerald-700 mb-1">💵 إجمالي إيراد الخدمات</p>
+              <p className="text-lg font-bold text-emerald-700">{serviceRevText}</p>
+            </div>
+          </Link>
+        </div>
+      </Card>
 
       <Card className="p-5 mb-6">
         <h2 className="font-bold text-slate-800 mb-3">📈 الإيرادات والمصروفات — آخر ستة أشهر (من القيود المحاسبية)</h2>
