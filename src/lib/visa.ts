@@ -106,7 +106,8 @@ async function fillVisaExcelTemplate(
     set("J", fmtFr(t.dateDelivrance));
     set("K", fmtFr(t.dateExpiration));
     set("L", t.nationalite);
-    set("M", t.visaAnterieur ? "Oui" : "Non");
+    // خانات «الفيزا السابقة» تبقى فارغة إن لم توجد فيزا سابقة (لا نكتب Non)
+    set("M", t.visaAnterieur ? "Oui" : "");
     set("N", fmtFr(t.visaEmission));
     set("O", fmtFr(t.visaExpirationA));
   });
@@ -263,7 +264,7 @@ async function buildVisaExcelFromScratch(app: App, settings: Settings | null): P
       J: fmtFr(t.dateDelivrance),
       K: fmtFr(t.dateExpiration),
       L: t.nationalite,
-      M: t.visaAnterieur ? "Oui" : "Non",
+      M: t.visaAnterieur ? "Oui" : "",
       N: fmtFr(t.visaEmission),
       O: fmtFr(t.visaExpirationA),
     };
