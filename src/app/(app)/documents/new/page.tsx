@@ -95,9 +95,14 @@ export default async function NewDocumentPage({
             </Field>
           </div>
 
-          <Field label="اسم القنصلية / الجهة الموجَّه إليها (للدعوة — اختياري)">
-            <Input name="consulate" placeholder="مثال: Consulat Général de France à Alger" />
-          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="اسم القنصلية / الجهة الموجَّه إليها (للدعوة — اختياري)">
+              <Input name="consulate" placeholder="مثال: Consulat Général de France à Alger" />
+            </Field>
+            <Field label="رقم جواز سفر المسافر (للدعوة — اختياري)">
+              <Input name="passport" placeholder="مثال: GI937083" />
+            </Field>
+          </div>
 
           <Field label="نص المستند">
             <Textarea

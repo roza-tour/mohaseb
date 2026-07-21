@@ -122,11 +122,11 @@ const TEMPLATES: Tpl[] = [
     body: [
       "À l'attention de [CONSULATE]",
       "",
-      "Objet : Lettre d'invitation touristique",
+      "Objet : Demande d'approbation de visa – Lettre d'invitation touristique",
       "",
       "Madame, Monsieur,",
       "",
-      "Par la présente, l'agence [AGENCY] a l'honneur d'inviter M./Mme [CLIENT] à effectuer un voyage touristique en Algérie dans le cadre du programme « [PROGRAM] ».",
+      "Par la présente, l'agence [AGENCY] a l'honneur de solliciter l'approbation du visa au profit de M./Mme [CLIENT], titulaire du passeport n° [PASSPORT], pour effectuer un voyage touristique en Algérie dans le cadre du programme « [PROGRAM] ».",
       "",
       "Le séjour est prévu du [START_DATE] au [END_DATE], pour un groupe de [PAX] personne(s).",
       "",
@@ -138,6 +138,12 @@ const TEMPLATES: Tpl[] = [
       "",
       "Fait le [TODAY]",
       "[AGENCY]",
+      "",
+      "---PAGE---",
+      "",
+      "# Programme du voyage — مخطط الرحلة",
+      "",
+      "[ITINERARY]",
     ].join("\n"),
   },
 ];
@@ -146,12 +152,15 @@ async function main() {
   let added = 0;
   let skipped = 0;
 
-  // قوالب المستندات
+  // قوالب المستندات — نحدّث القالب الموجود إلى أحدث نسخة (مثل نسخة الدعوة بصفحتين)
   for (const t of TEMPLATES) {
     const exists = await prisma.documentTemplate.findFirst({ where: { name: t.name } });
     if (exists) {
-      skipped++;
-      console.log(`↷ قالب موجود بالفعل: ${t.name}`);
+      await prisma.documentTemplate.update({
+        where: { id: exists.id },
+        data: { title: t.title, body: t.body },
+      });
+      console.log(`↺ حُدِّث قالب: ${t.name}`);
       continue;
     }
     await prisma.documentTemplate.create({

@@ -5,7 +5,7 @@ import { Document as PdfDocument, Text, View, StyleSheet, renderToBuffer } from 
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
-import { parseBodyLines, parseDocStyle } from "@/lib/documents";
+import { parseBodyLines, parseDocStyle, PAGE_BREAK } from "@/lib/documents";
 
 function formatDate(date: Date) {
   const day = String(date.getUTCDate()).padStart(2, "0");
@@ -62,7 +62,6 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const stampBuffer = doc.showStamp ? loadPublicImage(settings?.stampPath) : null;
 
   const style = parseDocStyle(doc.style);
-  const lines = parseBodyLines(doc.body);
   // "يمين" = محاذاة طبيعية حسب اتجاه كل فقرة (يمين للعربية، يسار للإنجليزية)
   const align = style.align === "center" ? ("center" as const) : ("auto" as const);
 
@@ -84,7 +83,11 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
     fontWeight: "bold" as const,
   };
 
-  const body = (
+  // يمكن أن يتكوّن المستند من أكثر من صفحة عبر فاصل الصفحات ---PAGE---
+  // (مثال: الدعوة = صفحة طلب الموافقة + صفحة مخطط الرحلة)، وكل صفحة تُختم.
+  const pageTexts = doc.body.split(new RegExp(`^\\s*${PAGE_BREAK}\\s*$`, "m"));
+
+  const renderBody = (bodyText: string) => (
     <View
       style={
         style.bodyBorder
@@ -92,7 +95,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
           : {}
       }
     >
-      {lines.map((line, i) => {
+      {parseBodyLines(bodyText).map((line, i) => {
         if (line.kind === "divider") {
           return (
             <View
@@ -130,22 +133,26 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
   const pdf = (
     <PdfDocument>
-      <LetterheadPage settings={settings} stamp={stampBuffer}>
-        <View style={staticStyles.metaRow}>
-          <Text style={staticStyles.metaText}>الرقم: {doc.docNumber}</Text>
-          <Text style={staticStyles.metaText}>التاريخ: {formatDate(doc.docDate)}</Text>
-        </View>
-
-        <MixedText
-          text={doc.title}
-          style={{ fontSize: 18, fontWeight: "bold", color: style.textColor }}
-          size={18}
-          align="center"
-          containerStyle={{ marginBottom: 18 }}
-        />
-
-        {body}
-      </LetterheadPage>
+      {pageTexts.map((pageText, p) => (
+        <LetterheadPage key={p} settings={settings} stamp={stampBuffer}>
+          {p === 0 ? (
+            <>
+              <View style={staticStyles.metaRow}>
+                <Text style={staticStyles.metaText}>الرقم: {doc.docNumber}</Text>
+                <Text style={staticStyles.metaText}>التاريخ: {formatDate(doc.docDate)}</Text>
+              </View>
+              <MixedText
+                text={doc.title}
+                style={{ fontSize: 18, fontWeight: "bold", color: style.textColor }}
+                size={18}
+                align="center"
+                containerStyle={{ marginBottom: 18 }}
+              />
+            </>
+          ) : null}
+          {renderBody(pageText)}
+        </LetterheadPage>
+      ))}
     </PdfDocument>
   );
 

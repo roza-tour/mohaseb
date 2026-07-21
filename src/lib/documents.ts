@@ -10,9 +10,14 @@ export const TEMPLATE_VARIABLES: { token: string; label: string }[] = [
   { token: "[DURATION]", label: "مدة البرنامج بالأيام" },
   { token: "[PAX]", label: "عدد الأشخاص" },
   { token: "[CONSULATE]", label: "اسم القنصلية (للدعوة)" },
+  { token: "[PASSPORT]", label: "رقم جواز السفر (للدعوة)" },
+  { token: "[ITINERARY]", label: "تفاصيل مخطط الرحلة (من البرنامج)" },
   { token: "[TODAY]", label: "تاريخ اليوم" },
   { token: "[AGENCY]", label: "اسم الوكالة" },
 ];
+
+// فاصل صفحات داخل نص المستند: سطر مستقل بهذه العلامة يبدأ صفحة جديدة في الـ PDF
+export const PAGE_BREAK = "---PAGE---";
 
 function fmt(date: Date) {
   // تواريخ الرحلة تُخزَّن عند منتصف ليل UTC — نقرأها بتوقيت UTC حتى لا ينزاح اليوم
@@ -28,6 +33,7 @@ export function fillTemplate(
     customer?: Customer | null;
     settings?: Settings | null;
     consulate?: string | null;
+    passport?: string | null;
   }
 ): string {
   const customer = ctx.customer ?? ctx.trip?.customer ?? null;
@@ -38,8 +44,11 @@ export function fillTemplate(
     "[END_DATE]": ctx.trip ? fmt(ctx.trip.endDate) : "[END_DATE]",
     "[DURATION]": ctx.trip ? String(ctx.trip.program.durationDays) : "[DURATION]",
     "[PAX]": ctx.trip ? String(ctx.trip.numPax) : "[PAX]",
-    // اسم القنصلية يُملأ من حقل مستقل عند الإصدار؛ يبقى كما هو إن لم يُدخَل
+    // اسم القنصلية ورقم الجواز يُملآن من حقلين مستقلين عند الإصدار
     "[CONSULATE]": ctx.consulate?.trim() || "[CONSULATE]",
+    "[PASSPORT]": ctx.passport?.trim() || "[PASSPORT]",
+    // مخطط الرحلة يُملأ من تفاصيل برنامج الرحلة المرتبطة
+    "[ITINERARY]": ctx.trip?.program.itinerary?.trim() || "[ITINERARY]",
     "[TODAY]": fmt(new Date()),
     "[AGENCY]": ctx.settings?.agencyName ?? "[AGENCY]",
   };
