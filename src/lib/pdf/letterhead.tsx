@@ -204,11 +204,24 @@ export function LetterheadPage({
           ) : null}
         </View>
         <View style={styles.nameBox}>
-          <Text style={[styles.agencyName, { color }, displayFont ? { fontFamily: displayFont } : {}]}>
+          <Text
+            style={[
+              styles.agencyName,
+              { color },
+              // خط Algerian بحروف كبيرة فقط، فنحوّل النص إلى Uppercase عند تفعيله
+              displayFont ? { fontFamily: displayFont, textTransform: "uppercase" } : {},
+            ]}
+          >
             {settings?.agencyName?.trim() || "ROZATOUR"}
           </Text>
           {settings?.agencyTagline ? (
-            <Text style={[styles.agencyTagline, { color }, displayFont ? { fontFamily: displayFont } : {}]}>
+            <Text
+              style={[
+                styles.agencyTagline,
+                { color },
+                displayFont ? { fontFamily: displayFont, textTransform: "uppercase" } : {},
+              ]}
+            >
               {settings.agencyTagline}
             </Text>
           ) : null}
