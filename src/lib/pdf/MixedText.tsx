@@ -68,15 +68,18 @@ export function MixedText({
   style,
   size = 11.5,
   align = "auto",
+  baseDir = "auto",
   containerStyle,
 }: {
   text: string;
   style?: Style | Style[];
   size?: number; // حجم الخط — تُشتق منه المسافة الموحدة بين الكلمات
   align?: "auto" | "right" | "left" | "center";
+  // إجبار اتجاه الفقرة الأساسي (مفيد للمستندات الفرنسية حتى تبقى الأرقام والهواتف من اليسار)
+  baseDir?: "auto" | "ltr" | "rtl";
   containerStyle?: Style;
 }) {
-  const base = detectBaseDir(text);
+  const base = baseDir === "auto" ? detectBaseDir(text) : baseDir;
   const segments = segment(text, base);
   const textStyles = Array.isArray(style) ? style : style ? [style] : [];
 

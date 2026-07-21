@@ -133,7 +133,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
           {rows.map(([label, value], i) => (
             <View key={label} style={[styles.detailRow, ...(i === rows.length - 1 ? [{ borderBottom: "none" }] : [])]}>
               <Text style={styles.detailLabel}>{label}</Text>
-              <MixedText text={String(value)} size={11} align={dirStyles(lang).align} containerStyle={{ flex: 1 }} />
+              <MixedText text={String(value)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} containerStyle={{ flex: 1 }} />
             </View>
           ))}
         </View>
@@ -145,7 +145,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
             .map((line) => line.trim())
             .filter(Boolean)
             .map((line, i) => (
-              <MixedText key={i} text={line} size={11} align={dirStyles(lang).align} containerStyle={{ marginBottom: 4 }} />
+              <MixedText key={i} text={line} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} containerStyle={{ marginBottom: 4 }} />
             ))}
         </View>
 

@@ -17,6 +17,7 @@ import {
   ErrorBanner,
 } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "../statusLabels";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/payments";
@@ -229,13 +230,7 @@ export default async function TripDetailPage({
                   <Td>{PAYMENT_METHOD_LABELS[p.method] ?? p.method}</Td>
                   <Td>{p.reference ?? "-"}</Td>
                   <Td>
-                    <Link
-                      href={`/payments/${p.id}/pdf`}
-                      target="_blank"
-                      className="text-sky-600 text-sm hover:underline"
-                    >
-                      سند القبض PDF
-                    </Link>
+                    <PdfLangLinks base={`/payments/${p.id}/pdf`} label="سند القبض" />
                   </Td>
                   <Td>
                     <DeleteButton action={deletePayment.bind(null, id, p.id)} />
@@ -582,9 +577,7 @@ export default async function TripDetailPage({
                   <Td>{ASSIGNEE_TYPE_LABELS[to.assigneeType] ?? to.assigneeType}</Td>
                   <Td>{formatDate(to.taskDate)}</Td>
                   <Td>
-                    <Link href={`/task-orders/${to.id}/pdf`} target="_blank" className="text-xs text-sky-600 hover:underline">
-                      عرض PDF
-                    </Link>
+                    <PdfLangLinks base={`/task-orders/${to.id}/pdf`} label="أمر التكليف" />
                   </Td>
                 </tr>
               ))}

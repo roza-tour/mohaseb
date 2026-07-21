@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { deleteInvoice, type InvoiceItem } from "./actions";
@@ -72,13 +73,7 @@ export default async function InvoicesPage({
                       {formatCurrency(totalAmount, inv.currency)}
                     </Td>
                     <Td>
-                      <Link
-                        href={`/invoices/${inv.id}/pdf`}
-                        target="_blank"
-                        className="text-sky-600 text-sm hover:underline"
-                      >
-                        عرض / طباعة PDF
-                      </Link>
+                      <PdfLangLinks base={`/invoices/${inv.id}/pdf`} label="الفاتورة" />
                     </Td>
                     <Td>
                       <DeleteButton action={deleteInvoice.bind(null, inv.id)} />

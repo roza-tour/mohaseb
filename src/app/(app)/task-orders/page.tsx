@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { formatDate } from "@/lib/format";
 import { deleteTaskOrder } from "./actions";
 
@@ -48,13 +49,7 @@ export default async function TaskOrdersPage() {
                   </Td>
                   <Td>{formatDate(to.taskDate)}</Td>
                   <Td>
-                    <Link
-                      href={`/task-orders/${to.id}/pdf`}
-                      target="_blank"
-                      className="text-sky-600 text-sm hover:underline"
-                    >
-                      عرض / طباعة PDF
-                    </Link>
+                    <PdfLangLinks base={`/task-orders/${to.id}/pdf`} label="أمر التكليف" />
                   </Td>
                   <Td>
                     <DeleteButton action={deleteTaskOrder.bind(null, to.id)} />
