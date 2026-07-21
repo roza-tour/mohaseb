@@ -7,10 +7,10 @@ export type MonthPoint = {
 
 export function MonthlyChart({ data, currency }: { data: MonthPoint[]; currency: string }) {
   const W = 640;
-  const H = 220;
+  const H = 210;
   const PAD_X = 8;
   const PAD_BOTTOM = 26;
-  const PAD_TOP = 18;
+  const PAD_TOP = 12;
   const chartH = H - PAD_BOTTOM - PAD_TOP;
 
   const max = Math.max(1, ...data.flatMap((d) => [d.income, d.expense]));
@@ -21,7 +21,19 @@ export function MonthlyChart({ data, currency }: { data: MonthPoint[]; currency:
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}م` : n >= 1000 ? `${(n / 1000).toFixed(0)}ك` : String(Math.round(n));
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="إيرادات ومصروفات آخر ستة أشهر">
+    <div>
+      {/* مفتاح الألوان (HTML حتى يظهر النص العربي باتجاهه الصحيح بدون تداخل) */}
+      <div className="flex items-center gap-6 mb-3 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-2">
+          <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, backgroundColor: "#059669" }} />
+          الإيرادات ({currency})
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, backgroundColor: "#dc2626" }} />
+          المصروفات
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ direction: "ltr" }} role="img" aria-label="إيرادات ومصروفات آخر ستة أشهر">
       {/* خطوط إرشادية */}
       {[0.25, 0.5, 0.75, 1].map((f) => (
         <line
@@ -74,13 +86,7 @@ export function MonthlyChart({ data, currency }: { data: MonthPoint[]; currency:
         );
       })}
 
-      {/* مفتاح الألوان */}
-      <g fontSize={10} fill="#475569">
-        <rect x={PAD_X} y={2} width={10} height={10} rx={2} fill="#059669" />
-        <text x={PAD_X + 14} y={11}>الإيرادات ({currency})</text>
-        <rect x={PAD_X + 110} y={2} width={10} height={10} rx={2} fill="#dc2626" />
-        <text x={PAD_X + 124} y={11}>المصروفات</text>
-      </g>
-    </svg>
+      </svg>
+    </div>
   );
 }
