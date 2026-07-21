@@ -34,7 +34,7 @@ export default async function EditTripPage({
       <Card className="p-5">
         <form action={updateTrip.bind(null, id)} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="العميل">
+            <Field label="العميل" required>
               {customers.length === 0 ? (
                 <p className="text-xs text-slate-500">
                   لا يوجد عملاء بعد.{" "}

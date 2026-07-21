@@ -250,11 +250,11 @@ export default async function TripDetailPage({
           action={createPayment.bind(null, id)}
           className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end"
         >
-          <Field label="المبلغ">
+          <Field label="المبلغ" required>
             <Input type="number" name="amount" step="0.01" min={0.01} required />
           </Field>
           <Field label="تاريخ الدفعة">
-            <Input type="date" name="paidAt" required defaultValue={formatDateForInput(new Date())} />
+            <Input type="date" name="paidAt" defaultValue={formatDateForInput(new Date())} />
           </Field>
           <Field label="طريقة الدفع">
             <Select name="method" defaultValue="CASH">
@@ -329,7 +329,7 @@ export default async function TripDetailPage({
             action={createHotelBooking.bind(null, id)}
             className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 items-end"
           >
-            <Field label="الفندق">
+            <Field label="الفندق" required>
               <Select name="hotelId" required defaultValue="">
                 <option value="" disabled>
                   اختر
@@ -342,10 +342,10 @@ export default async function TripDetailPage({
               </Select>
             </Field>
             <Field label="تسجيل الوصول">
-              <Input type="date" name="checkIn" required />
+              <Input type="date" name="checkIn" />
             </Field>
             <Field label="تسجيل المغادرة">
-              <Input type="date" name="checkOut" required />
+              <Input type="date" name="checkOut" />
             </Field>
             <Field label="نوع الغرفة">
               <Input type="text" name="roomType" />
@@ -410,7 +410,7 @@ export default async function TripDetailPage({
           action={createFlightBooking.bind(null, id)}
           className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 items-end"
         >
-          <Field label="شركة الطيران">
+          <Field label="شركة الطيران" required>
             <Input type="text" name="airline" required />
           </Field>
           <Field label="رقم الرحلة">
@@ -423,7 +423,7 @@ export default async function TripDetailPage({
             <Input type="text" name="arrivalAirport" />
           </Field>
           <Field label="تاريخ المغادرة">
-            <Input type="date" name="departureDate" required />
+            <Input type="date" name="departureDate" />
           </Field>
           <Field label="تاريخ الوصول">
             <Input type="date" name="arrivalDate" />
@@ -478,7 +478,7 @@ export default async function TripDetailPage({
           action={createOtherBooking.bind(null, id)}
           className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end"
         >
-          <Field label="النوع">
+          <Field label="النوع" required>
             <Input type="text" name="type" required placeholder="مثال: تأمين سفر" />
           </Field>
           <Field label="الوصف">

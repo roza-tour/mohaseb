@@ -20,11 +20,11 @@ export default async function NewOpeningBalanceItemPage({
         <form action={createOpeningBalanceItem} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="السنة المالية">
-              <Input type="number" name="fiscalYear" defaultValue={safeYear} required />
+              <Input type="number" name="fiscalYear" defaultValue={safeYear} />
             </Field>
 
             <Field label="نوع البند">
-              <Select name="itemType" defaultValue="ASSET" required>
+              <Select name="itemType" defaultValue="ASSET">
                 <option value="ASSET">أصل</option>
                 <option value="LIABILITY">التزام</option>
                 <option value="EQUITY">حقوق ملكية</option>
@@ -32,11 +32,11 @@ export default async function NewOpeningBalanceItemPage({
             </Field>
 
             <Field label="اسم البند">
-              <Input name="itemName" required />
+              <Input name="itemName" />
             </Field>
 
             <Field label="المبلغ">
-              <Input type="number" name="amount" step="0.01" required />
+              <Input type="number" name="amount" step="0.01" />
             </Field>
           </div>
 

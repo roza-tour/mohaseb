@@ -9,7 +9,7 @@ export default function NewDriverPage() {
       <Card className="p-5 max-w-2xl">
         <form action={createDriver} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required />
+            <Input name="name" />
           </Field>
           <Field label="بيانات المركبة">
             <Input name="vehicleInfo" placeholder="نوع السيارة ورقم اللوحة" />

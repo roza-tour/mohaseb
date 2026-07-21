@@ -6,13 +6,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 const programSchema = z.object({
-  name: z.string().min(1, "الاسم مطلوب"),
+  name: z.string().optional().default(""),
   description: z
     .string()
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v : null)),
-  durationDays: z.coerce.number().int().min(1, "يجب أن تكون مدة البرنامج يوماً واحداً على الأقل"),
-  standardPrice: z.coerce.number().min(0, "يجب أن يكون السعر صفراً أو أكثر"),
+  durationDays: z.coerce.number().int().min(1).default(1),
+  standardPrice: z.coerce.number().min(0).default(0),
   estHotelCostPerNight: z.coerce.number().min(0).default(0),
   estTransportCost: z.coerce.number().min(0).default(0),
   estGuideFee: z.coerce.number().min(0).default(0),

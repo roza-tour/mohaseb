@@ -17,7 +17,7 @@ const invoiceSchema = z.object({
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v : null)),
   showStamp: z.boolean(),
-  docDate: z.coerce.date({ message: "تاريخ الفاتورة مطلوب" }),
+  docDate: z.coerce.date().optional(),
 });
 
 export type InvoiceItem = { description: string; qty: number; unitPrice: number };
@@ -58,7 +58,9 @@ export async function createInvoice(formData: FormData) {
     redirect(withError("/invoices/new", "الخصم لا يمكن أن يتجاوز مجموع البنود"));
   }
 
-  const year = parsed.data.docDate.getFullYear();
+  // تاريخ الفاتورة اختياري — إن تُرك فارغاً نضع تاريخ اليوم
+  const docDate = parsed.data.docDate ?? new Date();
+  const year = docDate.getFullYear();
   const countThisYear = await prisma.invoice.count({
     where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
   });
@@ -72,7 +74,7 @@ export async function createInvoice(formData: FormData) {
       discount: parsed.data.discount,
       notes: parsed.data.notes,
       showStamp: parsed.data.showStamp,
-      docDate: parsed.data.docDate,
+      docDate,
       items,
     },
   });

@@ -42,7 +42,7 @@ export function ProgramDatesFields({
 
   return (
     <>
-      <Field label="البرنامج السياحي">
+      <Field label="البرنامج السياحي" required>
         <Select
           name="programId"
           required
@@ -64,7 +64,7 @@ export function ProgramDatesFields({
         </Select>
       </Field>
 
-      <Field label="تاريخ البداية">
+      <Field label="تاريخ البداية" required>
         <Input
           type="date"
           name="startDate"
@@ -81,7 +81,6 @@ export function ProgramDatesFields({
         <Input
           type="date"
           name="endDate"
-          required
           value={endDate}
           onChange={(e) => {
             setEndDate(e.target.value);

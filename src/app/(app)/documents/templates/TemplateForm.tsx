@@ -14,17 +14,16 @@ export function TemplateForm({
     <form action={action} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="اسم القالب (يظهر في قائمة الاختيار)">
-          <Input name="name" required defaultValue={template?.name} placeholder="مثال: دعوة سياحية" />
+          <Input name="name" defaultValue={template?.name} placeholder="مثال: دعوة سياحية" />
         </Field>
         <Field label="عنوان المستند (يظهر بخط كبير في الـ PDF)">
-          <Input name="title" required defaultValue={template?.title} placeholder="مثال: دعوة سياحية" />
+          <Input name="title" defaultValue={template?.title} placeholder="مثال: دعوة سياحية" />
         </Field>
       </div>
 
       <Field label="نص القالب">
         <Textarea
           name="body"
-          required
           rows={14}
           defaultValue={template?.body}
           placeholder={"نشهد نحن وكالة [AGENCY] أن السيد/ة [CLIENT] ...\n\nكل سطر فارغ يبدأ فقرة جديدة في الـ PDF"}

@@ -29,7 +29,7 @@ export default async function SettingsPage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="اسم الوكالة (يظهر بخط كبير في ترويسة المستندات)">
-              <Input name="agencyName" required defaultValue={settings?.agencyName ?? "ROZATOUR"} />
+              <Input name="agencyName" defaultValue={settings?.agencyName ?? "ROZATOUR"} />
             </Field>
             <Field label="السطر الفرعي تحت الاسم (اختياري)">
               <Input

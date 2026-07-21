@@ -9,7 +9,7 @@ export default function NewGuidePage() {
       <Card className="p-5 max-w-2xl">
         <form action={createGuide} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required />
+            <Input name="name" />
           </Field>
           <Field label="اللغات">
             <Input name="languages" placeholder="مثال: عربي، إنجليزي" />

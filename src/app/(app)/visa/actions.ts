@@ -8,11 +8,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const appSchema = z.object({
-  wilaya: z.string().min(1, "اكتب اسم الولاية الموجه إليها الملف"),
+  wilaya: z.string().optional().default(""),
   wilayasConcernees: z.string().optional().default(""),
   arrivalDate: z.coerce.date({ message: "تاريخ الوصول مطلوب" }),
   departureDate: z.coerce.date({ message: "تاريخ المغادرة مطلوب" }),
-  programDetail: z.string().min(1, "اكتب تفاصيل البرنامج (تُملأ في ملف الوورد)"),
+  programDetail: z.string().optional().default(""),
   notes: z
     .string()
     .optional()
@@ -59,23 +59,40 @@ export async function createVisaApplication(formData: FormData) {
 
   const travelers = [];
   for (let i = 0; i < noms.length; i++) {
-    const nom = noms[i]?.trim();
-    const numero = numeros[i]?.trim();
-    if (!nom && !numero) continue; // صف فارغ
-    if (!nom || !numero) {
-      redirect(withError("/visa/new", `المسافر رقم ${i + 1}: اللقب ورقم الجواز مطلوبان`));
+    const nom = noms[i]?.trim() ?? "";
+    const prenom = prenoms[i]?.trim() ?? "";
+    const numero = numeros[i]?.trim() ?? "";
+    const lieuNaissance = lieuxN[i]?.trim() ?? "";
+    const lieuResidence = residences[i]?.trim() ?? "";
+    const nationalite = nationalites[i]?.trim() ?? "";
+    const dateNaissance = orDate(naissances[i]);
+    const dateDelivrance = orDate(delivrances[i]);
+    const dateExpiration = orDate(expirations[i]);
+    // نتجاهل الصف الفارغ تماماً — كل الحقول اختيارية
+    if (
+      !nom &&
+      !prenom &&
+      !numero &&
+      !lieuNaissance &&
+      !lieuResidence &&
+      !nationalite &&
+      !dateNaissance &&
+      !dateDelivrance &&
+      !dateExpiration
+    ) {
+      continue;
     }
     travelers.push({
       nom,
-      prenom: prenoms[i]?.trim() ?? "",
-      dateNaissance: orDate(naissances[i]),
-      lieuNaissance: lieuxN[i]?.trim() ?? "",
-      lieuResidence: residences[i]?.trim() ?? "",
+      prenom,
+      dateNaissance,
+      lieuNaissance,
+      lieuResidence,
       typePasseport: types[i]?.trim() || "Passeport ordinaire",
       numeroPasseport: numero,
-      dateDelivrance: orDate(delivrances[i]),
-      dateExpiration: orDate(expirations[i]),
-      nationalite: nationalites[i]?.trim() ?? "",
+      dateDelivrance,
+      dateExpiration,
+      nationalite,
       visaAnterieur: visaAnts[i] === "on" || visaAnts[i] === "true",
     });
   }

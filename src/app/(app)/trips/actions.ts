@@ -22,7 +22,7 @@ const tripSchema = z.object({
   programId: z.string().min(1, "البرنامج مطلوب"),
   customerId: z.string().min(1, "العميل مطلوب"),
   startDate: z.coerce.date({ message: "تاريخ البداية مطلوب" }),
-  endDate: z.coerce.date({ message: "تاريخ النهاية مطلوب" }),
+  endDate: z.coerce.date().optional(),
   numPax: z.coerce.number().int().min(1).default(1),
   agreedPrice: z.coerce.number().min(0).default(0),
   currency: z.string().min(1).default("DZD"),
@@ -34,7 +34,9 @@ const tripSchema = z.object({
 });
 
 // يتحقق من البيانات ويعيد إما البيانات الصالحة أو رسالة خطأ عربية
-function parseTripForm(formData: FormData): { data: z.infer<typeof tripSchema> } | { error: string } {
+function parseTripForm(
+  formData: FormData
+): { data: z.infer<typeof tripSchema> & { endDate: Date } } | { error: string } {
   const parsed = tripSchema.safeParse({
     programId: formData.get("programId"),
     customerId: formData.get("customerId"),
@@ -47,10 +49,13 @@ function parseTripForm(formData: FormData): { data: z.infer<typeof tripSchema> }
     notes: formData.get("notes"),
   });
   if (!parsed.success) return { error: firstErrorMessage(parsed.error) };
-  if (parsed.data.endDate < parsed.data.startDate) {
+  // تاريخ النهاية اختياري — إن تُرك فارغاً نجعله يساوي تاريخ البداية
+  const endDate = parsed.data.endDate ?? parsed.data.startDate;
+  // فحص ترتيب التاريخين يُجرى فقط عند إدخال تاريخ نهاية
+  if (parsed.data.endDate && parsed.data.endDate < parsed.data.startDate) {
     return { error: "تاريخ نهاية الرحلة لا يمكن أن يسبق تاريخ بدايتها" };
   }
-  return { data: parsed.data };
+  return { data: { ...parsed.data, endDate } };
 }
 
 export async function createTrip(formData: FormData) {
@@ -90,8 +95,8 @@ export async function updateTripStatus(id: string, formData: FormData) {
 
 const hotelBookingSchema = z.object({
   hotelId: z.string().min(1, "الفندق مطلوب"),
-  checkIn: z.coerce.date({ message: "تاريخ الوصول مطلوب" }),
-  checkOut: z.coerce.date({ message: "تاريخ المغادرة مطلوب" }),
+  checkIn: z.coerce.date().optional(),
+  checkOut: z.coerce.date().optional(),
   roomType: z.string().optional().nullable(),
   numRooms: z.coerce.number().int().min(1).default(1),
   cost: z.coerce.number().min(0).default(0),
@@ -109,10 +114,14 @@ export async function createHotelBooking(tripId: string, formData: FormData) {
     confirmationNumber: orNull(formData.get("confirmationNumber")),
   });
   if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
-  if (parsed.data.checkOut < parsed.data.checkIn) {
+  // فحص ترتيب التاريخين يُجرى فقط عند إدخال التاريخين معاً
+  if (parsed.data.checkIn && parsed.data.checkOut && parsed.data.checkOut < parsed.data.checkIn) {
     redirect(withError(`/trips/${tripId}`, "تاريخ مغادرة الفندق لا يمكن أن يسبق تاريخ الوصول"));
   }
-  await prisma.hotelBooking.create({ data: { ...parsed.data, tripId } });
+  // التاريخان اختياريان — إن تُركا فارغين نضع تاريخ اليوم (الحقلان غير قابلين للفراغ في قاعدة البيانات)
+  const checkIn = parsed.data.checkIn ?? new Date();
+  const checkOut = parsed.data.checkOut ?? checkIn;
+  await prisma.hotelBooking.create({ data: { ...parsed.data, checkIn, checkOut, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
 
@@ -128,7 +137,7 @@ const flightBookingSchema = z.object({
   flightNumber: z.string().optional().nullable(),
   departureAirport: z.string().optional().nullable(),
   arrivalAirport: z.string().optional().nullable(),
-  departureDate: z.coerce.date({ message: "تاريخ المغادرة مطلوب" }),
+  departureDate: z.coerce.date().optional(),
   arrivalDate: z.coerce.date().optional().nullable(),
   cost: z.coerce.number().min(0).default(0),
   pnr: z.string().optional().nullable(),
@@ -146,7 +155,9 @@ export async function createFlightBooking(tripId: string, formData: FormData) {
     pnr: orNull(formData.get("pnr")),
   });
   if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
-  await prisma.flightBooking.create({ data: { ...parsed.data, tripId } });
+  // تاريخ المغادرة اختياري — إن تُرك فارغاً نضع تاريخ اليوم (الحقل غير قابل للفراغ في قاعدة البيانات)
+  const departureDate = parsed.data.departureDate ?? new Date();
+  await prisma.flightBooking.create({ data: { ...parsed.data, departureDate, tripId } });
   revalidatePath(`/trips/${tripId}`);
 }
 

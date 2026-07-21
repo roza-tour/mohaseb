@@ -16,7 +16,7 @@ export default async function EditGuidePage({ params }: { params: Promise<{ id: 
       <Card className="p-5 max-w-2xl">
         <form action={updateGuide.bind(null, id)} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required defaultValue={guide.name} />
+            <Input name="name" defaultValue={guide.name} />
           </Field>
           <Field label="اللغات">
             <Input name="languages" placeholder="مثال: عربي، إنجليزي" defaultValue={guide.languages ?? ""} />

@@ -10,7 +10,7 @@ import { cleanupLogoStamp } from "@/lib/imageCleanup";
 import { revalidatePath } from "next/cache";
 
 const settingsSchema = z.object({
-  agencyName: z.string().min(1),
+  agencyName: z.string().optional().default(""),
   agencyTagline: z.string().optional().default(""),
   agencyAddress: z.string().optional().default(""),
   agencyPhone: z.string().optional().default(""),

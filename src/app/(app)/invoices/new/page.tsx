@@ -56,7 +56,7 @@ export default async function NewInvoicePage({
               </Select>
             </Field>
             <Field label="تاريخ الفاتورة">
-              <Input type="date" name="docDate" required defaultValue={formatDateForInput(new Date())} />
+              <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
             </Field>
             <Field label="العملة">
               <Select name="currency" defaultValue={defaultCurrency}>

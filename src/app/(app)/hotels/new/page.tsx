@@ -9,7 +9,7 @@ export default function NewHotelPage() {
       <Card className="p-5 max-w-2xl">
         <form action={createHotel} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required />
+            <Input name="name" />
           </Field>
           <Field label="المدينة">
             <Input name="city" />

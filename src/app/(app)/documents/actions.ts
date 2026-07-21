@@ -8,8 +8,8 @@ import { redirect } from "next/navigation";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 
 const documentSchema = z.object({
-  title: z.string().min(1),
-  body: z.string().min(1),
+  title: z.string().optional().default(""),
+  body: z.string().optional().default(""),
   tripId: z.string().optional(),
   customerId: z.string().optional(),
   docDate: z.coerce.date(),
@@ -62,9 +62,9 @@ export async function deleteDocument(id: string) {
 // ---------- القوالب ----------
 
 const templateSchema = z.object({
-  name: z.string().min(1),
-  title: z.string().min(1),
-  body: z.string().min(1),
+  name: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  body: z.string().optional().default(""),
 });
 
 export async function createTemplate(formData: FormData) {

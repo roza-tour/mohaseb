@@ -17,7 +17,7 @@ function orNull(value: FormDataEntryValue | null) {
 
 const transactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"], { message: "نوع القيد مطلوب" }),
-  category: z.string().trim().min(1, "التصنيف مطلوب"),
+  category: z.string().trim().optional().default(""),
   amount: z.coerce.number({ message: "المبلغ مطلوب" }).gt(0, "المبلغ يجب أن يكون أكبر من صفر"),
   currency: z.string().min(1).default("DZD"),
   date: z.coerce.date({ message: "التاريخ مطلوب" }),

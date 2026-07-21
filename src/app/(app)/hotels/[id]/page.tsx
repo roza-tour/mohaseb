@@ -16,7 +16,7 @@ export default async function EditHotelPage({ params }: { params: Promise<{ id: 
       <Card className="p-5 max-w-2xl">
         <form action={updateHotel.bind(null, id)} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required defaultValue={hotel.name} />
+            <Input name="name" defaultValue={hotel.name} />
           </Field>
           <Field label="المدينة">
             <Input name="city" defaultValue={hotel.city ?? ""} />

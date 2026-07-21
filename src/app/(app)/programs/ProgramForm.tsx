@@ -14,7 +14,7 @@ export function ProgramForm({
     <form action={action} className="space-y-6">
       <Card className="p-5 space-y-4">
         <Field label="اسم البرنامج">
-          <Input name="name" required defaultValue={program?.name} />
+          <Input name="name" defaultValue={program?.name} />
         </Field>
 
         <Field label="الوصف">
@@ -27,7 +27,6 @@ export function ProgramForm({
               type="number"
               name="durationDays"
               min={1}
-              required
               defaultValue={program?.durationDays ?? 1}
             />
           </Field>
@@ -49,7 +48,6 @@ export function ProgramForm({
             name="standardPrice"
             step="0.01"
             min={0}
-            required
             defaultValue={program?.standardPrice}
           />
         </Field>

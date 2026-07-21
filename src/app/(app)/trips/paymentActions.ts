@@ -18,7 +18,7 @@ const paymentSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v : null)),
-  paidAt: z.coerce.date({ message: "تاريخ الدفعة مطلوب" }),
+  paidAt: z.coerce.date().optional(),
 });
 
 export async function createPayment(tripId: string, formData: FormData) {
@@ -31,7 +31,9 @@ export async function createPayment(tripId: string, formData: FormData) {
   });
   if (!parsed.success) redirect(withError(`/trips/${tripId}`, firstErrorMessage(parsed.error)));
 
-  const year = parsed.data.paidAt.getFullYear();
+  // تاريخ الدفعة اختياري — إن تُرك فارغاً نضع تاريخ اليوم
+  const paidAt = parsed.data.paidAt ?? new Date();
+  const year = paidAt.getFullYear();
   const countThisYear = await prisma.payment.count({
     where: {
       paidAt: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
@@ -41,6 +43,7 @@ export async function createPayment(tripId: string, formData: FormData) {
   await prisma.payment.create({
     data: {
       ...parsed.data,
+      paidAt,
       tripId,
       receiptNumber: buildDocNumber(year, countThisYear),
     },

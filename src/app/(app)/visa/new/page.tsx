@@ -59,15 +59,15 @@ export default async function NewVisaPage({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="الولاية الموجه إليها الملف (Wilaya de...)">
-              <Input name="wilaya" required dir="ltr" placeholder="Tamanrasset" />
+              <Input name="wilaya" dir="ltr" placeholder="Tamanrasset" />
             </Field>
             <Field label="الولايات المعنية بالبرنامج (Wilayas concernées)">
               <Input name="wilayasConcernees" dir="ltr" placeholder="Tamanrasset, Djanet, Illizi" />
             </Field>
-            <Field label="تاريخ الوصول">
+            <Field label="تاريخ الوصول" required>
               <Input type="date" name="arrivalDate" required defaultValue={prefillArrival} />
             </Field>
-            <Field label="تاريخ المغادرة">
+            <Field label="تاريخ المغادرة" required>
               <Input type="date" name="departureDate" required defaultValue={prefillDeparture} />
             </Field>
           </div>
@@ -75,7 +75,6 @@ export default async function NewVisaPage({
           <Field label="تفاصيل البرنامج يوماً بيوم (تُملأ في ملف الوورد الرسمي — يفضل بالفرنسية)">
             <Textarea
               name="programDetail"
-              required
               rows={8}
               defaultValue={prefillProgram}
               placeholder={"Jour 1 : Arrivée à l'aéroport de Tamanrasset, accueil et transfert à l'hôtel...\nJour 2 : ..."}

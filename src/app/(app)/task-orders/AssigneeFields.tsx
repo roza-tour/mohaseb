@@ -36,7 +36,7 @@ export function AssigneeFields({ guides, drivers }: { guides: Option[]; drivers:
       </Field>
 
       {assigneeType === "GUIDE" ? (
-        <Field label="المرشد السياحي">
+        <Field label="المرشد السياحي" required>
           <Select name="guideId" required>
             <option value="">اختر المرشد...</option>
             {guides.map((g) => (
@@ -47,7 +47,7 @@ export function AssigneeFields({ guides, drivers }: { guides: Option[]; drivers:
           </Select>
         </Field>
       ) : (
-        <Field label="السائق">
+        <Field label="السائق" required>
           <Select name="driverId" required>
             <option value="">اختر السائق...</option>
             {drivers.map((d) => (

@@ -3,9 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-
-const nameSchema = z.string().trim().min(1, "الاسم مطلوب");
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -17,7 +14,8 @@ function orNull(value: string) {
 }
 
 function buildHotelData(formData: FormData) {
-  const name = nameSchema.parse(str(formData, "name"));
+  // الاسم اختياري — يُحفظ فارغاً إن لم يُدخل
+  const name = str(formData, "name");
   return {
     name,
     city: orNull(str(formData, "city")),

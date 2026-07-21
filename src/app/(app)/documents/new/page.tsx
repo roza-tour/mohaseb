@@ -76,7 +76,7 @@ export default async function NewDocumentPage({
           <input type="hidden" name="tripId" value={tripId} />
 
           <Field label="عنوان المستند (يظهر بخط كبير في الـ PDF)">
-            <Input name="title" required defaultValue={prefilledTitle} placeholder="مثال: دعوة سياحية" />
+            <Input name="title" defaultValue={prefilledTitle} placeholder="مثال: دعوة سياحية" />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -91,14 +91,13 @@ export default async function NewDocumentPage({
               </Select>
             </Field>
             <Field label="تاريخ المستند">
-              <Input type="date" name="docDate" required defaultValue={formatDateForInput(new Date())} />
+              <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
             </Field>
           </div>
 
           <Field label="نص المستند">
             <Textarea
               name="body"
-              required
               rows={14}
               defaultValue={prefilledBody}
               placeholder="اكتب نص المستند هنا... كل سطر فارغ يبدأ فقرة جديدة في الـ PDF"

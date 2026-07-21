@@ -16,7 +16,7 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
       <Card className="p-5 max-w-2xl">
         <form action={updateDriver.bind(null, id)} className="space-y-4">
           <Field label="الاسم">
-            <Input name="name" required defaultValue={driver.name} />
+            <Input name="name" defaultValue={driver.name} />
           </Field>
           <Field label="بيانات المركبة">
             <Input name="vehicleInfo" placeholder="نوع السيارة ورقم اللوحة" defaultValue={driver.vehicleInfo ?? ""} />

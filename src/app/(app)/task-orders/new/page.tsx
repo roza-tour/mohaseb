@@ -36,7 +36,7 @@ export default async function NewTaskOrderPage({
 
       <Card className="p-5 max-w-2xl">
         <form action={createTaskOrder} className="space-y-4">
-          <Field label="الرحلة">
+          <Field label="الرحلة" required>
             <Select name="tripId" required defaultValue={tripId}>
               <option value="">اختر الرحلة...</option>
               {trips.map((t) => (
@@ -49,7 +49,7 @@ export default async function NewTaskOrderPage({
 
           <AssigneeFields guides={guides} drivers={drivers} />
 
-          <Field label="تاريخ المهمة">
+          <Field label="تاريخ المهمة" required>
             <Input type="date" name="taskDate" required />
           </Field>
 
