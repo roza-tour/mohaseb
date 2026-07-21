@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --schema=\"$INIT_CWD/prisma/schema.prisma\" || exit 0",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts"
   },
