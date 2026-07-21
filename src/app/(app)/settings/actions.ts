@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { cleanupLogoStamp } from "@/lib/imageCleanup";
 import { revalidatePath } from "next/cache";
 
 const settingsSchema = z.object({
@@ -26,11 +27,23 @@ async function saveUpload(file: File, prefix: string): Promise<string | undefine
   if (!file.type.startsWith("image/")) {
     throw new Error("الملف المرفوع يجب أن يكون صورة");
   }
-  const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+  const raw = Buffer.from(await file.arrayBuffer());
+
+  // الشعار والختم: نفرّغ الخلفية البيضاء تلقائياً (تصبح شفافة) ونحفظها PNG
+  let out: Uint8Array = raw;
+  let ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+  try {
+    out = await cleanupLogoStamp(raw);
+    ext = "png";
+  } catch {
+    // لو فشلت المعالجة لأي سبب نحفظ الصورة الأصلية كما هي
+    out = raw;
+  }
+
   const filename = `${prefix}-${Date.now()}.${ext}`;
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
   await fs.promises.mkdir(uploadsDir, { recursive: true });
-  await fs.promises.writeFile(path.join(uploadsDir, filename), Buffer.from(await file.arrayBuffer()));
+  await fs.promises.writeFile(path.join(uploadsDir, filename), out);
   return `/uploads/${filename}`;
 }
 
