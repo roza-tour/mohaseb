@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
+import { waLink } from "@/lib/whatsapp";
 import { deleteInvoice, type InvoiceItem } from "./actions";
 
 export default async function InvoicesPage({
@@ -21,7 +22,7 @@ export default async function InvoicesPage({
       }
     : {};
 
-  const [invoices, total] = await Promise.all([
+  const [invoices, total, settings] = await Promise.all([
     prisma.invoice.findMany({
       where,
       include: { customer: true, trip: { include: { program: true } } },
@@ -30,7 +31,9 @@ export default async function InvoicesPage({
       take: PER_PAGE,
     }),
     prisma.invoice.count({ where }),
+    prisma.settings.findUnique({ where: { id: 1 } }),
   ]);
+  const agencyName = settings?.agencyName?.trim() || "روزا تور";
 
   return (
     <div>
@@ -56,6 +59,7 @@ export default async function InvoicesPage({
                 <Th>الإجمالي</Th>
                 <Th></Th>
                 <Th></Th>
+                <Th></Th>
               </tr>
             </thead>
             <tbody>
@@ -74,6 +78,19 @@ export default async function InvoicesPage({
                     </Td>
                     <Td>
                       <PdfLangLinks base={`/invoices/${inv.id}/pdf`} label="الفاتورة" langs={["ar", "fr", "en"]} />
+                    </Td>
+                    <Td>
+                      {(() => {
+                        const wa = waLink(
+                          inv.customer?.phone,
+                          `مرحباً ${inv.customer?.name ?? ""}، مرفق فاتورتكم رقم ${inv.invoiceNumber} من ${agencyName}. شكراً لتعاملكم معنا.`
+                        );
+                        return wa ? (
+                          <a href={wa} target="_blank" rel="noreferrer" className="text-green-600 text-sm hover:underline whitespace-nowrap">
+                            📲 واتساب
+                          </a>
+                        ) : null;
+                      })()}
                     </Td>
                     <Td>
                       <DeleteButton action={deleteInvoice.bind(null, inv.id)} />
