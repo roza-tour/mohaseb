@@ -113,7 +113,7 @@ export default async function NewDocumentPage({
 
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" name="showStamp" defaultChecked />
-            إظهار خانتي الختم والتوقيع أسفل المستند
+            إظهار خانة ختم الوكالة أسفل المستند
           </label>
 
           <div className="flex items-center gap-2">

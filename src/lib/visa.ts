@@ -18,36 +18,70 @@ export function fmtFr(date: Date | null | undefined): string {
 
 type App = VisaApplication & { travelers: VisaTraveler[] };
 
+// ألوان النموذج الرسمي المستخرجة من ملف المديرية الأصلي (.xls)
+const TITLE_GREEN = "FF339966"; // نص العناوين (أخضر)
+const HDR_YELLOW = "FFFFFF99"; // تعبئة رؤوس المجموعات والأعمدة (أصفر فاتح)
+const ATV_PEACH = "FFFFCC99"; // تعبئة خانات بيانات الوكالة (خوخي)
+
 // ---------- Excel: Liste des demandeurs de visas ----------
+// نُعيد بناء نموذج «قائمة طالبي الفيزا» بنفس تخطيط مديرية السياحة بالضبط:
+// شعار الدولة أعلى المنتصف، عناوين خضراء، رؤوس صفراء، خانات الوكالة خوخية، وعرض أعمدة مطابق.
 export async function buildVisaExcel(app: App, settings: Settings | null): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Feuil1", {
-    pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } },
   });
 
-  // عرض الأعمدة
+  // عرض الأعمدة — نفس قيم النموذج الأصلي (عرض الحرف)
   const widths: Record<string, number> = {
-    A: 3, B: 9, C: 16, D: 16, E: 14, F: 16, G: 16, H: 15, I: 16, J: 14, K: 14, L: 13, M: 12, N: 14, O: 14,
+    A: 4.86, B: 8, C: 14.14, D: 13.71, E: 16.71, F: 20, G: 18.29, H: 20.86,
+    I: 10, J: 10, K: 12.71, L: 15, M: 14.86, N: 13.86, O: 13,
   };
   for (const [col, w] of Object.entries(widths)) ws.getColumn(col).width = w;
 
+  // ارتفاع الصفوف — مطابق للنموذج الأصلي (نقاط)
+  const rowHeights: Record<number, number> = {
+    1: 15, 2: 15, 3: 15, 4: 15.75, 5: 15, 6: 63.75, 7: 20.25, 9: 20.25,
+    12: 27.75, 13: 27.75, 14: 28.5, 17: 18.75, 18: 30,
+  };
+  for (const [r, h] of Object.entries(rowHeights)) ws.getRow(Number(r)).height = h;
+
   const thin = { style: "thin" as const };
   const boxBorder = { top: thin, left: thin, bottom: thin, right: thin };
+  const fill = (argb: string) =>
+    ({ type: "pattern" as const, pattern: "solid" as const, fgColor: { argb } });
 
-  // الترويسة الرسمية
+  // شعار الدولة (وزارة السياحة والصناعة التقليدية) في المساحة المدمجة أعلى النموذج B1:O6
+  ws.mergeCells("B1:O6");
+  try {
+    const emblemPath = path.join(process.cwd(), "templates", "assets", "visa-emblem.jpg");
+    const imgId = wb.addImage({ buffer: fs.readFileSync(emblemPath) as unknown as ExcelJS.Buffer, extension: "jpeg" });
+    // مربّع ~140px موسّط داخل مساحة الترويسة العريضة B1:O6
+    // (بداية العمود H تقع تقريباً عند منتصف النطاق B..O فيصبح الشعار موسّطاً)
+    ws.addImage(imgId, {
+      tl: { col: 7, row: 1 },
+      ext: { width: 140, height: 140 },
+      editAs: "oneCell",
+    });
+  } catch {
+    // إن تعذّر تحميل الشعار لأي سبب نُكمل بدونه بدل تعطيل الملف كله
+  }
+
+  // العنوان الأول: مديرية السياحة والصناعة التقليدية للولاية
   ws.mergeCells("B7:O7");
   const head = ws.getCell("B7");
-  head.value = `Direction du Tourisme et de l'Artisanat de la Wilaya de ${app.wilaya}`;
-  head.font = { name: "Times New Roman", size: 13, bold: true, underline: true };
-  head.alignment = { horizontal: "center" };
+  head.value = `Direction du Tourisme et de l'Artisanat de la Wilaya de ${app.wilaya ?? ""}`;
+  head.font = { name: "Times New Roman", size: 16, bold: true, color: { argb: TITLE_GREEN } };
+  head.alignment = { horizontal: "center", vertical: "middle" };
 
-  ws.mergeCells("B9:O9");
-  const title = ws.getCell("B9");
+  // العنوان الثاني: قائمة طالبي فيزا التسوية (مدمج F9:K9 كما في الأصل)
+  ws.mergeCells("F9:K9");
+  const title = ws.getCell("F9");
   title.value = "Listes des demandeurs de visas de régularisation";
-  title.font = { name: "Times New Roman", size: 14, bold: true };
-  title.alignment = { horizontal: "center" };
+  title.font = { name: "Times New Roman", size: 16, bold: true, color: { argb: TITLE_GREEN } };
+  title.alignment = { horizontal: "center", vertical: "middle" };
 
-  // بيانات الوكالة
+  // بيانات الوكالة (خانات خوخية مؤطّرة) — القيمة مدمجة D:E
   const agencyRows: [string, string][] = [
     ["ATV", settings?.agencyName ?? ""],
     ["Siège social", settings?.agencyAddress ?? ""],
@@ -57,17 +91,21 @@ export async function buildVisaExcel(app: App, settings: Settings | null): Promi
     const row = 12 + i;
     const lc = ws.getCell(`C${row}`);
     lc.value = label;
-    lc.font = { name: "Times New Roman", size: 11, bold: true };
+    lc.font = { name: "Times New Roman", size: 12, bold: true };
+    lc.alignment = { horizontal: "center", vertical: "middle" };
+    lc.fill = fill(ATV_PEACH);
     lc.border = boxBorder;
-    ws.mergeCells(`D${row}:G${row}`);
+    ws.mergeCells(`D${row}:E${row}`);
     const vc = ws.getCell(`D${row}`);
     vc.value = value;
-    vc.font = { name: "Times New Roman", size: 11 };
+    vc.font = { name: "Times New Roman", size: 12 };
+    vc.alignment = { horizontal: "center", vertical: "middle" };
+    vc.fill = fill(ATV_PEACH);
     vc.border = boxBorder;
+    ws.getCell(`E${row}`).border = boxBorder;
   });
 
-  // رؤوس المجموعات
-  const groupFill = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFDDEBF7" } };
+  // رؤوس المجموعات (صف 17): Etat Civil / Passeport / Visa antérieur — تعبئة صفراء
   ws.mergeCells("C17:G17");
   ws.mergeCells("H17:L17");
   ws.mergeCells("M17:O17");
@@ -78,14 +116,21 @@ export async function buildVisaExcel(app: App, settings: Settings | null): Promi
   ] as const) {
     const c = ws.getCell(cell);
     c.value = label;
-    c.font = { name: "Times New Roman", size: 11, bold: true };
-    c.alignment = { horizontal: "center" };
-    c.fill = groupFill;
+    c.font = { name: "Times New Roman", size: 14, bold: true };
+    c.alignment = { horizontal: "center", vertical: "middle" };
+    c.fill = fill(HDR_YELLOW);
     c.border = boxBorder;
   }
-  ws.getCell("B17").border = boxBorder;
+  // خلية B17 (فوق «N° d'ordre») صفراء مؤطّرة كما في الأصل
+  const b17 = ws.getCell("B17");
+  b17.fill = fill(HDR_YELLOW);
+  b17.border = boxBorder;
+  // إطار بقية خلايا صف المجموعات المدمجة
+  for (const col of ["D", "E", "F", "G", "I", "J", "K", "L", "N", "O"]) {
+    ws.getCell(`${col}17`).border = boxBorder;
+  }
 
-  // رأس الجدول
+  // رأس الجدول (صف 18) — نصوص مطابقة للنموذج الأصلي حرفياً (بما فيها أخطاؤه الإملائية)
   const headers: [string, string][] = [
     ["B", "N° d'ordre"],
     ["C", "Nom"],
@@ -96,8 +141,8 @@ export async function buildVisaExcel(app: App, settings: Settings | null): Promi
     ["H", "type de passeport"],
     ["I", "numéro de Passeport"],
     ["J", "Date de délivrence"],
-    ["K", "Date d'expiration"],
-    ["L", "Nationalité"],
+    ["K", "Date d'expiration "],
+    ["L", "Nationalié"],
     ["M", "Visa attribué"],
     ["N", "Date d'émission"],
     ["O", "Date d'expiration"],
@@ -105,16 +150,17 @@ export async function buildVisaExcel(app: App, settings: Settings | null): Promi
   for (const [col, label] of headers) {
     const c = ws.getCell(`${col}18`);
     c.value = label;
-    c.font = { name: "Times New Roman", size: 10, bold: true };
+    c.font = { name: "Times New Roman", size: 11, bold: true };
     c.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-    c.fill = groupFill;
+    c.fill = fill(HDR_YELLOW);
     c.border = boxBorder;
   }
-  ws.getRow(18).height = 30;
 
-  // صفوف المسافرين
+  // صفوف المسافرين — مؤطّرة ومرقّمة تسلسلياً
+  const cols = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"];
   app.travelers.forEach((t, i) => {
     const row = 19 + i;
+    ws.getRow(row).height = 15;
     const values: Record<string, string | number> = {
       B: i + 1,
       C: t.nom,
@@ -131,10 +177,10 @@ export async function buildVisaExcel(app: App, settings: Settings | null): Promi
       N: fmtFr(t.visaEmission),
       O: fmtFr(t.visaExpirationA),
     };
-    for (const [col, v] of Object.entries(values)) {
+    for (const col of cols) {
       const c = ws.getCell(`${col}${row}`);
-      c.value = v;
-      c.font = { name: "Times New Roman", size: 10 };
+      c.value = values[col] ?? "";
+      c.font = { name: "Times New Roman", size: 11 };
       c.alignment = { horizontal: "center", vertical: "middle" };
       c.border = boxBorder;
     }

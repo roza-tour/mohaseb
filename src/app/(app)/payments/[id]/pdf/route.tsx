@@ -57,8 +57,8 @@ function makeStyles(lang: Lang) {
     summaryBox: { flex: 1, border: "1px solid #e2e8f0", borderRadius: 4, padding: 8, alignItems: "center" },
     summaryLabel: { fontSize: 9, color: "#475569", marginBottom: 3, textAlign: "center" },
     summaryValue: { fontSize: 12, fontWeight: "bold" },
-    signRow: { flexDirection: d.row, gap: 16, marginTop: 16 },
-    signBox: { flex: 1, border: "1px solid #cbd5e1", borderRadius: 4, padding: 10, minHeight: 96, alignItems: "center" },
+    signRow: { marginTop: 16, alignItems: d.rtl ? "flex-start" : "flex-end" },
+    signBox: { width: 180, border: "1px solid #cbd5e1", borderRadius: 4, padding: 10, minHeight: 96, alignItems: "center" },
     signLabel: { fontWeight: "bold", marginBottom: 8, textAlign: "center", fontSize: 10 },
     stampImage: { width: 80, height: 80, objectFit: "contain" },
   });
@@ -66,7 +66,9 @@ function makeStyles(lang: Lang) {
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const lang = pickLang(req.url, "ar");
+  // سند القبض يُصدر بالعربية أو الفرنسية فقط؛ طلب الإنجليزية يُخدَم بالفرنسية
+  const picked = pickLang(req.url, "ar");
+  const lang: "ar" | "fr" = picked === "en" ? "fr" : picked;
   const t = T[lang];
   const styles = makeStyles(lang);
 
@@ -158,9 +160,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
         </View>
 
         <View style={styles.signRow} wrap={false}>
-          <View style={styles.signBox}>
-            <Text style={styles.signLabel}>{t.signReceiver}</Text>
-          </View>
           <View style={styles.signBox}>
             <Text style={styles.signLabel}>{t.stamp}</Text>
             {stampBuffer ? (

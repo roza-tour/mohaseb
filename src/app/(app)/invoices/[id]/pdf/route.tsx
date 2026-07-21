@@ -19,6 +19,11 @@ function money(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function tripDays(start: Date, end: Date) {
+  const ms = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(ms / 86400000) + 1);
+}
+
 registerArabicFonts();
 
 const T = {
@@ -26,18 +31,31 @@ const T = {
     title: "فاتورة", invoiceNo: "رقم الفاتورة", date: "التاريخ", billTo: "الفاتورة إلى",
     forTrip: "عن الرحلة", desc: "البيان", qty: "الكمية", unitPrice: "سعر الوحدة", total: "الإجمالي",
     subtotal: "مجموع البنود", discount: "الخصم", grandTotal: "الإجمالي المستحق",
-    signature: "التوقيع", stamp: "ختم الوكالة",
+    stamp: "ختم الوكالة",
+    tripDetails: "تفاصيل الرحلة", period: "الفترة", duration: "المدة", days: "أيام",
+    pax: "عدد المسافرين", program: "البرنامج", notesLabel: "ملاحظات",
   },
   fr: {
     title: "Facture", invoiceNo: "N° de facture", date: "Date", billTo: "Facturé à",
     forTrip: "Voyage", desc: "Désignation", qty: "Qté", unitPrice: "Prix unitaire", total: "Total",
     subtotal: "Sous-total", discount: "Remise", grandTotal: "Total à payer",
-    signature: "Signature", stamp: "Cachet de l'agence",
+    stamp: "Cachet de l'agence",
+    tripDetails: "Détails du voyage", period: "Période", duration: "Durée", days: "jours",
+    pax: "Voyageurs", program: "Programme", notesLabel: "Remarques",
+  },
+  en: {
+    title: "Invoice", invoiceNo: "Invoice No.", date: "Date", billTo: "Bill To",
+    forTrip: "Trip", desc: "Description", qty: "Qty", unitPrice: "Unit Price", total: "Total",
+    subtotal: "Subtotal", discount: "Discount", grandTotal: "Amount Due",
+    stamp: "Agency Stamp",
+    tripDetails: "Trip Details", period: "Period", duration: "Duration", days: "days",
+    pax: "Travelers", program: "Program", notesLabel: "Notes",
   },
 } as const;
 
 function makeStyles(lang: Lang) {
   const d = dirStyles(lang);
+  const rtl = d.rtl;
   return StyleSheet.create({
     title: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 6 },
     meta: { fontSize: 10, color: "#475569", textAlign: "center", marginBottom: 16 },
@@ -62,10 +80,18 @@ function makeStyles(lang: Lang) {
     grandTotal: { backgroundColor: "#f1f5f9", borderRadius: 4, marginTop: 2 },
     totalLabel: { fontSize: 10.5, color: "#334155" },
     totalValue: { fontSize: 10.5, fontWeight: "bold" },
-    signRow: { flexDirection: d.row, gap: 16, marginTop: 24 },
-    signBox: { flex: 1, border: "1px solid #cbd5e1", borderRadius: 4, padding: 10, minHeight: 90, alignItems: "center" },
-    signLabel: { fontWeight: "bold", marginBottom: 8, textAlign: "center", fontSize: 10 },
-    stampImage: { width: 75, height: 75, objectFit: "contain" },
+    detailsBox: { border: "1px solid #e2e8f0", borderRadius: 4, padding: 10, marginBottom: 14 },
+    detailsTitle: { fontSize: 10, fontWeight: "bold", color: "#334155", marginBottom: 6, textAlign: d.align },
+    detailsGrid: { flexDirection: d.row, flexWrap: "wrap", gap: 4 },
+    detailItem: { fontSize: 9.5, color: "#475569", width: "50%", textAlign: d.align, marginBottom: 2 },
+    programText: { marginTop: 6 },
+    stampWrap: { marginTop: 28, alignItems: rtl ? "flex-start" : "flex-end" },
+    stampBox: {
+      border: "1px solid #cbd5e1", borderRadius: 4, padding: 10, minHeight: 95, width: 170,
+      alignItems: "center",
+    },
+    stampLabel: { fontWeight: "bold", marginBottom: 8, textAlign: "center", fontSize: 10 },
+    stampImage: { width: 78, height: 78, objectFit: "contain" },
   });
 }
 
@@ -90,6 +116,9 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
   const grandTotal = subtotal - invoice.discount;
 
+  // تفاصيل البرنامج: نفضّل النص اليومي (itinerary) وإلا الوصف العام
+  const programText = (invoice.trip?.program.itinerary || invoice.trip?.program.description || "").trim();
+
   const doc = (
     <Document>
       <LetterheadPage settings={settings}>
@@ -110,6 +139,33 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
             </View>
           ) : null}
         </View>
+
+        {invoice.trip ? (
+          <View style={styles.detailsBox}>
+            <Text style={styles.detailsTitle}>{t.tripDetails}</Text>
+            <View style={styles.detailsGrid}>
+              <Text style={styles.detailItem}>
+                {t.period}: {formatDate(invoice.trip.startDate)} — {formatDate(invoice.trip.endDate)}
+              </Text>
+              <Text style={styles.detailItem}>
+                {t.duration}: {tripDays(invoice.trip.startDate, invoice.trip.endDate)} {t.days}
+              </Text>
+              <Text style={styles.detailItem}>
+                {t.pax}: {invoice.trip.numPax}
+              </Text>
+            </View>
+            {programText ? (
+              <MixedText
+                text={programText}
+                size={9.5}
+                align={dirStyles(lang).align}
+                baseDir={lang === "fr" ? "ltr" : "auto"}
+                containerStyle={styles.programText}
+                style={{ fontSize: 9.5, color: "#475569" }}
+              />
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.tableHeader}>
           <Text style={[styles.th, styles.colNum]}>#</Text>
@@ -153,15 +209,17 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
           </View>
         </View>
 
-        {invoice.notes ? <MixedText text={invoice.notes} size={9.5} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} containerStyle={{ marginTop: 14 }} style={{ fontSize: 9.5, color: "#475569" }} /> : null}
+        {invoice.notes ? (
+          <View style={{ marginTop: 14 }}>
+            <Text style={styles.detailsTitle}>{t.notesLabel}</Text>
+            <MixedText text={invoice.notes} size={9.5} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontSize: 9.5, color: "#475569" }} />
+          </View>
+        ) : null}
 
         {invoice.showStamp ? (
-          <View style={styles.signRow} wrap={false}>
-            <View style={styles.signBox}>
-              <Text style={styles.signLabel}>{t.signature}</Text>
-            </View>
-            <View style={styles.signBox}>
-              <Text style={styles.signLabel}>{t.stamp}</Text>
+          <View style={styles.stampWrap} wrap={false}>
+            <View style={styles.stampBox}>
+              <Text style={styles.stampLabel}>{t.stamp}</Text>
               {stampBuffer ? (
                 // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
                 <Image src={stampBuffer} style={styles.stampImage} />

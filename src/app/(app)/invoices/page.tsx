@@ -73,7 +73,7 @@ export default async function InvoicesPage({
                       {formatCurrency(totalAmount, inv.currency)}
                     </Td>
                     <Td>
-                      <PdfLangLinks base={`/invoices/${inv.id}/pdf`} label="الفاتورة" />
+                      <PdfLangLinks base={`/invoices/${inv.id}/pdf`} label="الفاتورة" langs={["ar", "fr", "en"]} />
                     </Td>
                     <Td>
                       <DeleteButton action={deleteInvoice.bind(null, inv.id)} />

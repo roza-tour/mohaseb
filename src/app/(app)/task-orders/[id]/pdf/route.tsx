@@ -76,9 +76,9 @@ function makeStyles(lang: Lang) {
       marginBottom: 16,
       textAlign: d.align,
     },
-    signRow: { flexDirection: d.row, gap: 16, marginTop: 20 },
+    signRow: { marginTop: 20, alignItems: d.rtl ? "flex-start" : "flex-end" },
     signBox: {
-      flex: 1,
+      width: 180,
       border: "1px solid #cbd5e1",
       borderRadius: 4,
       padding: 10,
@@ -92,7 +92,9 @@ function makeStyles(lang: Lang) {
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const lang = pickLang(req.url, "ar");
+  // أمر التكليف يُصدر بالعربية أو الفرنسية فقط؛ طلب الإنجليزية يُخدَم بالفرنسية
+  const picked = pickLang(req.url, "ar");
+  const lang: "ar" | "fr" = picked === "en" ? "fr" : picked;
   const t = T[lang];
   const styles = makeStyles(lang);
 
@@ -151,9 +153,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
         </View>
 
         <View style={styles.signRow} wrap={false}>
-          <View style={styles.signBox}>
-            <Text style={styles.signLabel}>{t.signAssignee}</Text>
-          </View>
           <View style={styles.signBox}>
             <Text style={styles.signLabel}>{t.signStamp}</Text>
             {stampBuffer ? (

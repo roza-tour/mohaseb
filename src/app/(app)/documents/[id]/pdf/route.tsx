@@ -26,12 +26,11 @@ const staticStyles = StyleSheet.create({
     color: "#475569",
   },
   signRow: {
-    flexDirection: "row-reverse",
-    gap: 16,
     marginTop: 28,
+    alignItems: "flex-start",
   },
   signBox: {
-    flex: 1,
+    width: 180,
     border: "1px solid #cbd5e1",
     borderRadius: 4,
     padding: 10,
@@ -149,9 +148,6 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
         {doc.showStamp ? (
           <View style={staticStyles.signRow} wrap={false}>
-            <View style={staticStyles.signBox}>
-              <Text style={staticStyles.signLabel}>التوقيع</Text>
-            </View>
             <View style={staticStyles.signBox}>
               <Text style={staticStyles.signLabel}>ختم الوكالة</Text>
               {stampBuffer ? (
