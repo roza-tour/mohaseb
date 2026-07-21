@@ -79,14 +79,19 @@ export function Field({
   label,
   children,
   error,
+  required,
 }: {
   label: string;
   children: React.ReactNode;
   error?: string;
+  required?: boolean;
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-slate-700 mb-1">
+        {label}
+        {required && <span className="text-red-500" title="حقل مطلوب"> *</span>}
+      </label>
       {children}
       {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
