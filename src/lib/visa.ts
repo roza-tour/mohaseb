@@ -106,10 +106,10 @@ async function fillVisaExcelTemplate(
     set("J", fmtFr(t.dateDelivrance));
     set("K", fmtFr(t.dateExpiration));
     set("L", t.nationalite);
-    // خانات «الفيزا السابقة» تبقى فارغة إن لم توجد فيزا سابقة (لا نكتب Non)
-    set("M", t.visaAnterieur ? "Oui" : "");
-    set("N", fmtFr(t.visaEmission));
-    set("O", fmtFr(t.visaExpirationA));
+    // الفيزا المطلوبة: النوع سياحي + تاريخ الوصول (إصدار) وتاريخ المغادرة (انتهاء)
+    set("M", "Tourisme");
+    set("N", fmtFr(app.arrivalDate));
+    set("O", fmtFr(app.departureDate));
   });
 
   const buf = await wb.xlsx.writeBuffer();
@@ -264,9 +264,9 @@ async function buildVisaExcelFromScratch(app: App, settings: Settings | null): P
       J: fmtFr(t.dateDelivrance),
       K: fmtFr(t.dateExpiration),
       L: t.nationalite,
-      M: t.visaAnterieur ? "Oui" : "",
-      N: fmtFr(t.visaEmission),
-      O: fmtFr(t.visaExpirationA),
+      M: "Tourisme",
+      N: fmtFr(app.arrivalDate),
+      O: fmtFr(app.departureDate),
     };
     for (const col of cols) {
       const c = ws.getCell(`${col}${row}`);
