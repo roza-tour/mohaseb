@@ -95,6 +95,37 @@ export async function createInvitation(formData: FormData) {
   redirect(`/invitations/${created.id}/pdf`);
 }
 
+// إرسال الدعوة (PDF) بالبريد إلى عنوان يُدخَل يدوياً (الدعوة لا تُخزّن بريداً)
+export async function emailInvitation(id: string, formData: FormData) {
+  const to = (formData.get("email") as string)?.trim() || "";
+  if (!to) redirect(withError("/invitations", "أدخل بريداً إلكترونياً للإرسال"));
+
+  const { isEmailConfigured, sendDocumentEmail } = await import("@/lib/email");
+  if (!isEmailConfigured()) redirect(withError("/invitations", "خدمة البريد غير مُفعّلة على الخادم"));
+
+  const { renderInvitationPdf } = await import("./[id]/pdf/render");
+  const result = await renderInvitationPdf(id);
+  if (!result) redirect(withError("/invitations", "الدعوة غير موجودة"));
+
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const agencyName = settings?.agencyName?.trim() || "روزا تور";
+  const safeRef = result.refNumber.replace(/[^0-9A-Za-z]/g, "-");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#0f172a" dir="auto">
+    <p>مرفق مستند الدعوة رقم <b>${result.refNumber}</b> من ${agencyName}.</p>
+  </div>`;
+  const sent = await sendDocumentEmail({
+    to,
+    subject: `دعوة ${result.refNumber} — ${agencyName}`,
+    html,
+    filename: `invitation-${safeRef}.pdf`,
+    pdf: result.buffer,
+  });
+  if (!sent.ok) redirect(withError("/invitations", `تعذّر الإرسال: ${sent.error ?? ""}`));
+
+  await logActivity("email", "Invitation", `إرسال دعوة ${result.refNumber} إلى ${to}`);
+  redirect(`/invitations?sent=${encodeURIComponent(`تم إرسال الدعوة ${result.refNumber} إلى ${to}`)}`);
+}
+
 export async function deleteInvitation(id: string) {
   // حذف الدعوة يحذف قيد الإيراد المرتبط تلقائياً (onDelete: Cascade)
   await prisma.invitation.delete({ where: { id } });

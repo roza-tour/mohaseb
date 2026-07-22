@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
+import { EmailDocButton } from "@/components/EmailDocButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
-import { deleteInvoice, toggleInvoicePaid, duplicateInvoice, type InvoiceItem } from "./actions";
+import { deleteInvoice, toggleInvoicePaid, duplicateInvoice, emailInvoice, type InvoiceItem } from "./actions";
 
 export default async function InvoicesPage({
   searchParams,
@@ -15,6 +16,7 @@ export default async function InvoicesPage({
 }) {
   const sp = await searchParams;
   const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const sent = typeof sp.sent === "string" ? sp.sent : undefined;
   const page = parsePage(sp.page);
   const where = q
     ? {
@@ -48,6 +50,8 @@ export default async function InvoicesPage({
         }
       />
 
+      <SuccessBanner message={sent} />
+
       <SearchBox q={q} basePath="/invoices" placeholder="بحث برقم الفاتورة أو اسم العميل..." />
 
       <Card>
@@ -63,6 +67,7 @@ export default async function InvoicesPage({
                 <Th>التاريخ</Th>
                 <Th>الإجمالي</Th>
                 <Th>الحالة</Th>
+                <Th></Th>
                 <Th></Th>
                 <Th></Th>
                 <Th></Th>
@@ -110,6 +115,13 @@ export default async function InvoicesPage({
                           </a>
                         ) : null;
                       })()}
+                    </Td>
+                    <Td>
+                      <EmailDocButton
+                        action={emailInvoice.bind(null, inv.id)}
+                        defaultEmail={inv.customer?.email}
+                        requireInput={!inv.customer?.email}
+                      />
                     </Td>
                     <Td>
                       <DeleteButton action={deleteInvoice.bind(null, inv.id)} />

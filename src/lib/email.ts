@@ -44,6 +44,32 @@ export async function sendBulkEmail(
   }
 }
 
+// إرسال مستند (PDF) كمرفق إلى مستلم واحد
+export async function sendDocumentEmail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+  filename: string;
+  pdf: Buffer;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!isEmailConfigured()) return { ok: false, error: "SMTP غير مُعدّ" };
+  const to = opts.to.trim();
+  if (!to) return { ok: false, error: "لا يوجد بريد للمستلم" };
+  try {
+    const t = transport();
+    await t.sendMail({
+      from: fromAddress(),
+      to,
+      subject: opts.subject,
+      html: opts.html,
+      attachments: [{ filename: opts.filename, content: opts.pdf, contentType: "application/pdf" }],
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 // قالب HTML بسيط بهوية الوكالة للعرض
 export function offerEmailHtml(opts: {
   agencyName: string;

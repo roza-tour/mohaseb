@@ -84,6 +84,43 @@ export async function createInvoice(formData: FormData) {
   redirect(`/invoices/${created.id}/pdf`);
 }
 
+// إرسال الفاتورة (PDF) بالبريد إلى العميل مباشرةً
+export async function emailInvoice(id: string, formData: FormData) {
+  const lang = (["ar", "fr", "en"].includes(String(formData.get("lang"))) ? formData.get("lang") : "ar") as
+    | "ar"
+    | "fr"
+    | "en";
+  const { isEmailConfigured, sendDocumentEmail } = await import("@/lib/email");
+  if (!isEmailConfigured()) redirect(withError("/invoices", "خدمة البريد غير مُفعّلة على الخادم"));
+
+  const { renderInvoicePdf } = await import("./[id]/pdf/render");
+  const result = await renderInvoicePdf(id, lang);
+  if (!result) redirect(withError("/invoices", "الفاتورة غير موجودة"));
+
+  const to = (formData.get("email") as string)?.trim() || result.email || "";
+  if (!to) redirect(withError("/invoices", "لا يوجد بريد إلكتروني لهذا العميل"));
+
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const agencyName = settings?.agencyName?.trim() || "روزا تور";
+  const safeRef = result.invoiceNumber.replace(/[^0-9A-Za-z]/g, "-");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#0f172a" dir="auto">
+    <p>مرحباً ${result.customerName ?? ""},</p>
+    <p>مرفق فاتورتكم رقم <b>${result.invoiceNumber}</b> من ${agencyName}.</p>
+    <p>شكراً لتعاملكم معنا.</p>
+  </div>`;
+  const sent = await sendDocumentEmail({
+    to,
+    subject: `فاتورة ${result.invoiceNumber} — ${agencyName}`,
+    html,
+    filename: `invoice-${safeRef}.pdf`,
+    pdf: result.buffer,
+  });
+  if (!sent.ok) redirect(withError("/invoices", `تعذّر الإرسال: ${sent.error ?? ""}`));
+
+  await logActivity("email", "Invoice", `إرسال فاتورة ${result.invoiceNumber} إلى ${to}`);
+  redirect(`/invoices?sent=${encodeURIComponent(`تم إرسال الفاتورة ${result.invoiceNumber} إلى ${to}`)}`);
+}
+
 export async function deleteInvoice(id: string) {
   await prisma.invoice.delete({ where: { id } });
   await logActivity("delete", "Invoice", `حذف فاتورة`);

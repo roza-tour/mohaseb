@@ -9,3 +9,8 @@ export function genToken(): string {
 export function appUrl(): string {
   return (process.env.APP_URL || "https://mohaseb.rozatour-booking.com").replace(/\/$/, "");
 }
+
+// رابط التحقق العام من مستند (يُشفَّر داخل QR ويُفتح بلا تسجيل دخول)
+export function verifyUrl(kind: "invoice" | "invitation", token: string): string {
+  return `${appUrl()}/verify/${kind}/${token}`;
+}

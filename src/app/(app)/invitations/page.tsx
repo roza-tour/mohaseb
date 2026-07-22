@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
+import { EmailDocButton } from "@/components/EmailDocButton";
 import { SearchBox } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
-import { deleteInvitation, toggleInvitationPaid, duplicateInvitation } from "./actions";
+import { deleteInvitation, toggleInvitationPaid, duplicateInvitation, emailInvitation } from "./actions";
 
 const LANG_LABEL: Record<string, string> = { ar: "عربي", fr: "Français", en: "English" };
 
@@ -15,6 +16,7 @@ export default async function InvitationsPage({
 }) {
   const sp = await searchParams;
   const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
+  const sent = typeof sp.sent === "string" ? sp.sent : undefined;
   const invitations = await prisma.invitation.findMany({
     where: q ? { OR: [{ refNumber: { contains: q } }, { consulate: { contains: q } }] } : {},
     include: { program: true },
@@ -28,6 +30,8 @@ export default async function InvitationsPage({
         description="دعوات موجَّهة للقنصليات (خدمة مدفوعة) — تصدر PDF مختوماً بورقتين ويُسجَّل رسمها كإيراد تلقائياً"
         action={<LinkButton href="/invitations/new">+ دعوة جديدة</LinkButton>}
       />
+
+      <SuccessBanner message={sent} />
 
       <SearchBox q={q} basePath="/invitations" placeholder="بحث برقم الدعوة أو القنصلية..." />
 
@@ -45,6 +49,7 @@ export default async function InvitationsPage({
                 <Th>الرسم</Th>
                 <Th>الحالة</Th>
                 <Th>التاريخ</Th>
+                <Th></Th>
                 <Th></Th>
                 <Th></Th>
                 <Th></Th>
@@ -79,6 +84,9 @@ export default async function InvitationsPage({
                       <form action={duplicateInvitation.bind(null, inv.id)}>
                         <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
                       </form>
+                    </Td>
+                    <Td>
+                      <EmailDocButton action={emailInvitation.bind(null, inv.id)} requireInput />
                     </Td>
                     <Td>
                       <DeleteButton action={deleteInvitation.bind(null, inv.id)} />
