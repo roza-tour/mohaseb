@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { ExportButton } from "@/components/ExportButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
@@ -40,7 +40,12 @@ export default async function InvoicesPage({
       <PageHeader
         title="الفواتير"
         description="فواتير رسمية ببنود ومبالغ على ورق الشركة، مرقمة تسلسلياً"
-        action={<LinkButton href="/invoices/new">+ فاتورة جديدة</LinkButton>}
+        action={
+          <div className="flex items-center gap-2">
+            <ExportButton href="/invoices/export" />
+            <LinkButton href="/invoices/new">+ فاتورة جديدة</LinkButton>
+          </div>
+        }
       />
 
       <SearchBox q={q} basePath="/invoices" placeholder="بحث برقم الفاتورة أو اسم العميل..." />

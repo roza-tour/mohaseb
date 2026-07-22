@@ -22,6 +22,22 @@ export default async function DashboardPage() {
       prisma.visaApplication.count({ where: { createdAt: { gte: monthStart } } }),
     ]);
 
+  // أكثر البرامج طلباً (حسب عدد الرحلات)
+  const topProgramsRaw = await prisma.trip.groupBy({
+    by: ["programId"],
+    _count: { programId: true },
+    orderBy: { _count: { programId: "desc" } },
+    take: 5,
+  });
+  const topProgramNames = await prisma.tourProgram.findMany({
+    where: { id: { in: topProgramsRaw.map((t) => t.programId) } },
+    select: { id: true, name: true },
+  });
+  const topPrograms = topProgramsRaw.map((t) => ({
+    name: topProgramNames.find((p) => p.id === t.programId)?.name ?? "—",
+    count: t._count.programId,
+  }));
+
   // بيانات رسم آخر ستة أشهر (بالعملة الافتراضية فقط)
   const sixMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
   const chartTxs = await prisma.transaction.findMany({
@@ -130,10 +146,27 @@ export default async function DashboardPage() {
         </div>
       </Card>
 
-      <Card className="p-5 mb-6">
-        <h2 className="font-bold text-slate-800 mb-3">📈 الإيرادات والمصروفات — آخر ستة أشهر (من القيود المحاسبية)</h2>
-        <MonthlyChart data={chartData} currency={currency} />
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="p-5 lg:col-span-2">
+          <h2 className="font-bold text-slate-800 mb-3">📈 الإيرادات والمصروفات — آخر ستة أشهر (من القيود المحاسبية)</h2>
+          <MonthlyChart data={chartData} currency={currency} />
+        </Card>
+        <Card className="p-5">
+          <h2 className="font-bold text-slate-800 mb-3">🏆 أكثر البرامج طلباً</h2>
+          {topPrograms.length === 0 ? (
+            <EmptyState message="لا توجد رحلات بعد" />
+          ) : (
+            <div className="space-y-2">
+              {topPrograms.map((p, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-700 truncate ml-2">{i + 1}. {p.name}</span>
+                  <Badge color="sky">{p.count} رحلة</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
 
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">

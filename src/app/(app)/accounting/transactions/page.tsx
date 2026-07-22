@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { ExportButton } from "@/components/ExportButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { deleteTransaction } from "./actions";
@@ -82,7 +83,12 @@ export default async function TransactionsPage({
       <PageHeader
         title="القيود المحاسبية"
         description="سجل الإيرادات والمصروفات"
-        action={<LinkButton href="/accounting/transactions/new">+ قيد جديد</LinkButton>}
+        action={
+          <div className="flex items-center gap-2">
+            <ExportButton href="/accounting/transactions/export" />
+            <LinkButton href="/accounting/transactions/new">+ قيد جديد</LinkButton>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

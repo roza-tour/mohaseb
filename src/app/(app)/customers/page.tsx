@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { ExportButton } from "@/components/ExportButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteCustomer } from "./actions";
@@ -29,7 +30,12 @@ export default async function CustomersPage({
       <PageHeader
         title="العملاء"
         description="قاعدة بيانات عملاء الوكالة وأرقام هواتفهم وبريدهم الإلكتروني"
-        action={<LinkButton href="/customers/new">+ إضافة عميل</LinkButton>}
+        action={
+          <div className="flex items-center gap-2">
+            <ExportButton href="/customers/export" />
+            <LinkButton href="/customers/new">+ إضافة عميل</LinkButton>
+          </div>
+        }
       />
 
       <SearchBox q={q} basePath="/customers" placeholder="بحث بالاسم أو الهاتف أو البريد..." />
