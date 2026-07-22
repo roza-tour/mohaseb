@@ -5,7 +5,7 @@
 import { useRef, useState } from "react";
 import { scanPassport as ocrPassport } from "@/lib/passportScan";
 
-type Traveler = {
+export type Traveler = {
   nom: string;
   prenom: string;
   naissance: string;
@@ -40,11 +40,36 @@ const PASSPORT_TYPES = [
   "Passeport de service",
 ];
 
-export function TravelersEditor() {
-  const [rows, setRows] = useState<Traveler[]>([{ ...empty }]);
+export function TravelersEditor({ initial }: { initial?: Array<Partial<Traveler>> }) {
+  const seed: Traveler[] =
+    initial && initial.length > 0 ? initial.map((r) => ({ ...empty, ...r })) : [{ ...empty }];
+  const [rows, setRows] = useState<Traveler[]>(seed);
   const [scanning, setScanning] = useState<number | null>(null);
   const [scanMsg, setScanMsg] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // استيراد جماعي: كل سطر مسافر — الأعمدة مفصولة بفاصلة/فاصلة منقوطة/جدولة
+  // بالترتيب: اللقب، الاسم، رقم الجواز، الجنسية
+  const importBulk = () => {
+    const parsed: Traveler[] = bulkText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const cols = line.split(/[\t,;]+/).map((c) => c.trim());
+        return { ...empty, nom: cols[0] ?? "", prenom: cols[1] ?? "", numero: cols[2] ?? "", nationalite: cols[3] ?? "" };
+      });
+    if (parsed.length === 0) return;
+    // نستبدل الصف الفارغ الأول إن كان فارغاً تماماً
+    setRows((prev) => {
+      const base = prev.length === 1 && !prev[0].nom && !prev[0].prenom && !prev[0].numero ? [] : prev;
+      return [...base, ...parsed];
+    });
+    setBulkText("");
+    setBulkOpen(false);
+  };
 
   const update = (i: number, patch: Partial<Traveler>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -180,13 +205,46 @@ export function TravelersEditor() {
         </div>
       ))}
 
-      <button
-        type="button"
-        onClick={() => setRows((prev) => [...prev, { ...empty }])}
-        className="text-sm text-sky-600 hover:underline"
-      >
-        + إضافة مسافر
-      </button>
+      <div className="flex items-center gap-4 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setRows((prev) => [...prev, { ...empty }])}
+          className="text-sm text-sky-600 hover:underline"
+        >
+          + إضافة مسافر
+        </button>
+        <button
+          type="button"
+          onClick={() => setBulkOpen((v) => !v)}
+          className="text-sm text-slate-600 hover:underline"
+        >
+          📋 استيراد جماعي (لصق قائمة)
+        </button>
+      </div>
+
+      {bulkOpen && (
+        <div className="rounded-xl border border-slate-200 p-4 space-y-2 bg-slate-50">
+          <p className="text-xs text-slate-600">
+            الصق قائمة المسافرين — كل سطر مسافر، والأعمدة مفصولة بفاصلة أو فاصلة منقوطة أو Tab بالترتيب:
+            <span className="font-medium"> اللقب، الاسم، رقم الجواز، الجنسية</span>. (يمكن ترك الأعمدة الأخيرة فارغة)
+          </p>
+          <textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            rows={5}
+            dir="ltr"
+            placeholder={"Rossi, Marco, YA1234567, Italie\nBianchi, Laura, YB7654321, Italie"}
+            className={inputCls + " font-mono"}
+          />
+          <button
+            type="button"
+            onClick={importBulk}
+            className="text-sm rounded-lg bg-slate-700 text-white px-3 py-1.5 hover:bg-slate-800"
+          >
+            إضافة المسافرين
+          </button>
+        </div>
+      )}
     </div>
   );
 }

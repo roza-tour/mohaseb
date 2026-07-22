@@ -4,6 +4,7 @@ import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { formatDate, formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { MonthlyChart, type MonthPoint } from "@/components/MonthlyChart";
+import { SendReminderButton } from "@/components/SendReminderButton";
 
 export default async function DashboardPage() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -169,11 +170,14 @@ export default async function DashboardPage() {
       </div>
 
       <Card className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-bold text-slate-800">🔔 رحلات قادمة قريباً</h2>
-          <Link href="/trips" className="text-sm text-sky-600 hover:underline">
-            عرض كل الرحلات
-          </Link>
+          <div className="flex items-center gap-3">
+            <SendReminderButton />
+            <Link href="/trips" className="text-sm text-sky-600 hover:underline">
+              عرض كل الرحلات
+            </Link>
+          </div>
         </div>
         {upcoming.length === 0 ? (
           <EmptyState message="لا توجد رحلات خلال الفترة القادمة" />
