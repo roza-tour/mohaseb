@@ -283,6 +283,8 @@ model Invoice {
   discount      Float     @default(0)
   notes         String?   @db.Text
   showStamp     Boolean   @default(true)
+  paid          Boolean   @default(false) // حالة الدفع
+  publicToken   String?   @unique // رمز رابط عام لمشاركة/التحقق من الفاتورة
   docDate       DateTime  @default(now())
   createdAt     DateTime  @default(now())
 }
@@ -331,10 +333,24 @@ model Invitation {
   departureDate DateTime?
   fee           Float    @default(20) // رسم الدعوة (يُسجَّل كإيراد تلقائياً)
   feeCurrency   String   @default("USD")
+  paid          Boolean  @default(false) // حالة تحصيل الرسم
+  publicToken   String?  @unique // رمز رابط عام لمشاركة/التحقق من الدعوة
   notes         String?  @db.Text
   docDate       DateTime @default(now())
   createdAt     DateTime @default(now())
   transactions  Transaction[]
+}
+
+// سجل النشاط: من فعل ماذا ومتى
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userEmail String   @default("")
+  action    String   // create | delete | send | update | pay ...
+  entity    String   // Invoice | Invitation | Customer | Trip | Offer ...
+  summary   String   @default("") // وصف مختصر
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // عروض الولاء المُرسَلة بالبريد للعملاء

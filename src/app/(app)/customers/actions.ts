@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -41,7 +42,8 @@ function buildCustomerData(formData: FormData) {
 
 export async function createCustomer(formData: FormData) {
   const data = buildCustomerData(formData);
-  await prisma.customer.create({ data });
+  const c = await prisma.customer.create({ data });
+  await logActivity("create", "Customer", c.name);
   revalidatePath("/customers");
   redirect("/customers");
 }

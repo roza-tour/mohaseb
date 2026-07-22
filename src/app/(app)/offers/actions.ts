@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { sendBulkEmail, offerEmailHtml, isEmailConfigured } from "@/lib/email";
+import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -67,6 +68,7 @@ export async function sendOffer(id: string) {
     where: { id },
     data: { lastSentAt: new Date(), sentCount: { increment: res.ok } },
   });
+  await logActivity("send", "Offer", `${offer.subject} → ${res.ok} مستلم`);
   revalidatePath("/offers");
   redirect(`/offers?sent=${res.ok}`);
 }

@@ -4,7 +4,7 @@ import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
-import { deleteInvitation } from "./actions";
+import { deleteInvitation, toggleInvitationPaid, duplicateInvitation } from "./actions";
 
 const LANG_LABEL: Record<string, string> = { ar: "عربي", fr: "Français", en: "English" };
 
@@ -43,7 +43,9 @@ export default async function InvitationsPage({
                 <Th>الأشخاص</Th>
                 <Th>اللغة</Th>
                 <Th>الرسم</Th>
+                <Th>الحالة</Th>
                 <Th>التاريخ</Th>
+                <Th></Th>
                 <Th></Th>
                 <Th></Th>
               </tr>
@@ -60,11 +62,23 @@ export default async function InvitationsPage({
                     </Td>
                     <Td>{LANG_LABEL[inv.language] ?? inv.language}</Td>
                     <Td className="font-medium text-slate-800">{formatCurrency(inv.fee, inv.feeCurrency)}</Td>
+                    <Td>
+                      <form action={toggleInvitationPaid.bind(null, inv.id)}>
+                        <button type="submit" title="اضغط لتغيير الحالة">
+                          {inv.paid ? <Badge color="green">محصّلة</Badge> : <Badge color="amber">غير محصّلة</Badge>}
+                        </button>
+                      </form>
+                    </Td>
                     <Td>{formatDate(inv.docDate)}</Td>
                     <Td>
                       <Link href={`/invitations/${inv.id}/pdf`} target="_blank" className="text-rose-700 text-sm hover:underline">
                         📑 PDF مختوم
                       </Link>
+                    </Td>
+                    <Td>
+                      <form action={duplicateInvitation.bind(null, inv.id)}>
+                        <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
+                      </form>
                     </Td>
                     <Td>
                       <DeleteButton action={deleteInvitation.bind(null, inv.id)} />

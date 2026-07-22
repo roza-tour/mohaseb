@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
-import { deleteInvoice, type InvoiceItem } from "./actions";
+import { deleteInvoice, toggleInvoicePaid, duplicateInvoice, type InvoiceItem } from "./actions";
 
 export default async function InvoicesPage({
   searchParams,
@@ -57,6 +57,8 @@ export default async function InvoicesPage({
                 <Th>الرحلة</Th>
                 <Th>التاريخ</Th>
                 <Th>الإجمالي</Th>
+                <Th>الحالة</Th>
+                <Th></Th>
                 <Th></Th>
                 <Th></Th>
                 <Th></Th>
@@ -77,7 +79,19 @@ export default async function InvoicesPage({
                       {formatCurrency(totalAmount, inv.currency)}
                     </Td>
                     <Td>
+                      <form action={toggleInvoicePaid.bind(null, inv.id)}>
+                        <button type="submit" title="اضغط لتغيير الحالة">
+                          {inv.paid ? <Badge color="green">مدفوعة</Badge> : <Badge color="amber">غير مدفوعة</Badge>}
+                        </button>
+                      </form>
+                    </Td>
+                    <Td>
                       <PdfLangLinks base={`/invoices/${inv.id}/pdf`} label="الفاتورة" langs={["ar", "fr", "en"]} />
+                    </Td>
+                    <Td>
+                      <form action={duplicateInvoice.bind(null, inv.id)}>
+                        <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
+                      </form>
                     </Td>
                     <Td>
                       {(() => {

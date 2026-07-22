@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { buildDocNumber } from "@/lib/documents";
+import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -88,6 +89,7 @@ export async function createInvitation(formData: FormData) {
     });
   }
 
+  await logActivity("create", "Invitation", `دعوة ${created.refNumber}`);
   revalidatePath("/invitations");
   revalidatePath("/accounting/transactions");
   redirect(`/invitations/${created.id}/pdf`);
@@ -96,6 +98,58 @@ export async function createInvitation(formData: FormData) {
 export async function deleteInvitation(id: string) {
   // حذف الدعوة يحذف قيد الإيراد المرتبط تلقائياً (onDelete: Cascade)
   await prisma.invitation.delete({ where: { id } });
+  await logActivity("delete", "Invitation", "حذف دعوة");
   revalidatePath("/invitations");
   revalidatePath("/accounting/transactions");
+}
+
+export async function toggleInvitationPaid(id: string) {
+  const inv = await prisma.invitation.findUnique({ where: { id }, select: { paid: true, refNumber: true } });
+  if (!inv) return;
+  await prisma.invitation.update({ where: { id }, data: { paid: !inv.paid } });
+  await logActivity("pay", "Invitation", `${inv.refNumber} → ${!inv.paid ? "محصّلة" : "غير محصّلة"}`);
+  revalidatePath("/invitations");
+}
+
+// تكرار دعوة (نسخة جديدة برقم جديد) — تُسجَّل رسماً جديداً كإيراد
+export async function duplicateInvitation(id: string) {
+  const src = await prisma.invitation.findUnique({ where: { id } });
+  if (!src) redirect("/invitations");
+  const docDate = new Date();
+  const year = docDate.getFullYear();
+  const count = await prisma.invitation.count({
+    where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
+  });
+  const created = await prisma.invitation.create({
+    data: {
+      refNumber: buildDocNumber(year, count),
+      language: src.language,
+      consulate: src.consulate,
+      people: src.people ?? [],
+      programId: src.programId,
+      itinerary: src.itinerary,
+      arrivalDate: src.arrivalDate,
+      departureDate: src.departureDate,
+      fee: src.fee,
+      feeCurrency: src.feeCurrency,
+      notes: src.notes,
+      docDate,
+    },
+  });
+  if (src.fee > 0) {
+    await prisma.transaction.create({
+      data: {
+        type: "INCOME",
+        category: "خدمة دعوة",
+        amount: src.fee,
+        currency: src.feeCurrency,
+        date: docDate,
+        description: `رسم دعوة ${created.refNumber}`,
+        invitationId: created.id,
+      },
+    });
+  }
+  await logActivity("duplicate", "Invitation", `نسخة من ${src.refNumber} → ${created.refNumber}`);
+  revalidatePath("/accounting/transactions");
+  redirect(`/invitations/${created.id}/pdf`);
 }

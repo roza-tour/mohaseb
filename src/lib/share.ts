@@ -1,0 +1,11 @@
+// أدوات الروابط العامة للمستندات (مشاركة/تحقق عبر QR)
+import crypto from "crypto";
+
+export function genToken(): string {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+// عنوان التطبيق العام (للروابط المطلقة داخل QR والبريد)
+export function appUrl(): string {
+  return (process.env.APP_URL || "https://mohaseb.rozatour-booking.com").replace(/\/$/, "");
+}

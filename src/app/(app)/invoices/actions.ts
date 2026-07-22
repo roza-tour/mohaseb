@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { buildDocNumber } from "@/lib/documents";
+import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -79,10 +80,46 @@ export async function createInvoice(formData: FormData) {
     },
   });
 
+  await logActivity("create", "Invoice", `فاتورة ${created.invoiceNumber}`);
   redirect(`/invoices/${created.id}/pdf`);
 }
 
 export async function deleteInvoice(id: string) {
   await prisma.invoice.delete({ where: { id } });
+  await logActivity("delete", "Invoice", `حذف فاتورة`);
   revalidatePath("/invoices");
+}
+
+export async function toggleInvoicePaid(id: string) {
+  const inv = await prisma.invoice.findUnique({ where: { id }, select: { paid: true, invoiceNumber: true } });
+  if (!inv) return;
+  await prisma.invoice.update({ where: { id }, data: { paid: !inv.paid } });
+  await logActivity("pay", "Invoice", `${inv.invoiceNumber} → ${!inv.paid ? "مدفوعة" : "غير مدفوعة"}`);
+  revalidatePath("/invoices");
+}
+
+// تكرار فاتورة (نسخة جديدة برقم جديد) لعميل متكرر
+export async function duplicateInvoice(id: string) {
+  const src = await prisma.invoice.findUnique({ where: { id } });
+  if (!src) redirect("/invoices");
+  const docDate = new Date();
+  const year = docDate.getFullYear();
+  const count = await prisma.invoice.count({
+    where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
+  });
+  const created = await prisma.invoice.create({
+    data: {
+      invoiceNumber: buildDocNumber(year, count),
+      tripId: src.tripId,
+      customerId: src.customerId,
+      currency: src.currency,
+      discount: src.discount,
+      notes: src.notes,
+      showStamp: src.showStamp,
+      items: src.items ?? [],
+      docDate,
+    },
+  });
+  await logActivity("duplicate", "Invoice", `نسخة من ${src.invoiceNumber} → ${created.invoiceNumber}`);
+  redirect(`/invoices/${created.id}/pdf`);
 }

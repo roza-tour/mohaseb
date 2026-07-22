@@ -4,7 +4,7 @@ import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate } from "@/lib/format";
-import { deleteVisaApplication } from "./actions";
+import { deleteVisaApplication, duplicateVisaApplication } from "./actions";
 
 export default async function VisaPage({
   searchParams,
@@ -87,6 +87,9 @@ export default async function VisaPage({
                       <Link href={`/visa/${a.id}/word`} className="text-sky-700 text-sm hover:underline">
                         📄 برنامج Word (مختوم)
                       </Link>
+                      <form action={duplicateVisaApplication.bind(null, a.id)}>
+                        <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
+                      </form>
                     </div>
                   </Td>
                   <Td>

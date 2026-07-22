@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { buildDocNumber } from "@/lib/documents";
+import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -131,5 +132,45 @@ export async function createVisaApplication(formData: FormData) {
 
 export async function deleteVisaApplication(id: string) {
   await prisma.visaApplication.delete({ where: { id } });
+  await logActivity("delete", "Visa", "حذف طلب فيزا");
   revalidatePath("/visa");
+}
+
+// تكرار طلب فيزا بكل مسافريه (رقم جديد) — يُسجَّل رسم جديد كإيراد
+export async function duplicateVisaApplication(id: string) {
+  const src = await prisma.visaApplication.findUnique({ where: { id }, include: { travelers: true } });
+  if (!src) redirect("/visa");
+  const year = new Date().getFullYear();
+  const count = await prisma.visaApplication.count({ where: { createdAt: { gte: new Date(year, 0, 1) } } });
+  const created = await prisma.visaApplication.create({
+    data: {
+      refNumber: buildDocNumber(year, count),
+      wilaya: src.wilaya,
+      wilayasConcernees: src.wilayasConcernees,
+      arrivalDate: src.arrivalDate,
+      departureDate: src.departureDate,
+      programDetail: src.programDetail,
+      notes: src.notes,
+      feePerPerson: src.feePerPerson,
+      feeCurrency: src.feeCurrency,
+      travelers: {
+        create: src.travelers.map((t) => ({
+          nom: t.nom, prenom: t.prenom, dateNaissance: t.dateNaissance,
+          lieuNaissance: t.lieuNaissance, lieuResidence: t.lieuResidence, typePasseport: t.typePasseport,
+          numeroPasseport: t.numeroPasseport, dateDelivrance: t.dateDelivrance, dateExpiration: t.dateExpiration,
+          nationalite: t.nationalite, visaAnterieur: t.visaAnterieur, visaEmission: t.visaEmission, visaExpirationA: t.visaExpirationA,
+        })),
+      },
+    },
+  });
+  const total = src.feePerPerson * src.travelers.length;
+  if (total > 0) {
+    await prisma.transaction.create({
+      data: { type: "INCOME", category: "خدمة فيزا صحراوية", amount: total, currency: src.feeCurrency, date: new Date(), description: `رسوم فيزا ${created.refNumber} (${src.travelers.length} مسافر)`, visaApplicationId: created.id },
+    });
+  }
+  await logActivity("duplicate", "Visa", `نسخة من ${src.refNumber} → ${created.refNumber}`);
+  revalidatePath("/visa");
+  revalidatePath("/accounting/transactions");
+  redirect("/visa?created=" + created.id);
 }
