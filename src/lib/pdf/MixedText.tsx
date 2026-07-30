@@ -22,6 +22,29 @@ function wordDir(word: string): Dir | "neutral" {
   return "neutral";
 }
 
+// الأقواس ونحوها تُعكس شكلها في السياق العربي (خوارزمية Bidi mirroring)
+const MIRROR: Record<string, string> = {
+  "(": ")", ")": "(",
+  "[": "]", "]": "[",
+  "{": "}", "}": "{",
+  "«": "»", "»": "«",
+  "<": ">", ">": "<",
+};
+
+// محرك @react-pdf لا ينفّذ Bidi داخل مقطع النص الواحد: فعلامة الترقيم الملتصقة
+// بآخر كلمة عربية تُرسم على اليمين (بداية السطر) بدل اليسار (نهايته)، والعكس
+// بالعكس. الحل: ننقل ترقيم الطرفين إلى الطرف المقابل ونعكس شكل الأقواس،
+// فتظهر في موضعها الصحيح بصرياً.
+export function fixRtlEdgePunct(seg: string): string {
+  const m = seg.match(/^([^\p{L}\p{N}]*)([\s\S]*?)([^\p{L}\p{N}]*)$/u);
+  if (!m) return seg;
+  const [, lead, core, trail] = m;
+  if (!core) return seg;
+  const flip = (s: string) =>
+    [...s].map((c) => MIRROR[c] ?? c).reverse().join("");
+  return flip(trail) + core + flip(lead);
+}
+
 export function detectBaseDir(text: string): Dir {
   let rtl = 0;
   let ltr = 0;
@@ -34,7 +57,7 @@ export function detectBaseDir(text: string): Dir {
 
 // يعيد مقاطع بالترتيب المنطقي: كلمات الاتجاه الأساسي كلمةً كلمة (لتلتف بحرية)،
 // وكل سلسلة كلمات بالاتجاه المعاكس مدموجة في مقطع واحد يحفظ ترتيبها الداخلي
-function segment(text: string, base: Dir): string[] {
+function segment(text: string, base: Dir): { text: string; isBase: boolean }[] {
   const words = text.split(/\s+/).filter(Boolean);
   const dirs: Dir[] = [];
   let prev: Dir = base;
@@ -45,11 +68,11 @@ function segment(text: string, base: Dir): string[] {
     prev = resolved;
   }
 
-  const segments: string[] = [];
+  const segments: { text: string; isBase: boolean }[] = [];
   let i = 0;
   while (i < words.length) {
     if (dirs[i] === base) {
-      segments.push(words[i]);
+      segments.push({ text: words[i], isBase: true });
       i++;
     } else {
       const run: string[] = [];
@@ -57,7 +80,7 @@ function segment(text: string, base: Dir): string[] {
         run.push(words[i]);
         i++;
       }
-      segments.push(run.join(" "));
+      segments.push({ text: run.join(" "), isBase: false });
     }
   }
   return segments;
@@ -102,7 +125,7 @@ export function MixedText({
     >
       {segments.map((seg, i) => (
         <Text key={i} style={textStyles}>
-          {seg}
+          {base === "rtl" && seg.isBase ? fixRtlEdgePunct(seg.text) : seg.text}
         </Text>
       ))}
     </View>

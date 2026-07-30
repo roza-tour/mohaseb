@@ -10,8 +10,16 @@ export type CustomerOpt = {
   companions: Person[];
 };
 
-export function PeopleEditor({ customers }: { customers: CustomerOpt[] }) {
-  const [people, setPeople] = useState<Person[]>([{ name: "", passport: "" }]);
+export function PeopleEditor({
+  customers,
+  initial,
+}: {
+  customers: CustomerOpt[];
+  initial?: Person[];
+}) {
+  const [people, setPeople] = useState<Person[]>(
+    initial && initial.length > 0 ? initial : [{ name: "", passport: "" }]
+  );
 
   const loadCustomer = (id: string) => {
     const c = customers.find((x) => x.id === id);

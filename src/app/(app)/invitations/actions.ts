@@ -95,6 +95,86 @@ export async function createInvitation(formData: FormData) {
   redirect(`/invitations/${created.id}/pdf`);
 }
 
+// تعديل دعوة صادرة (يحتفظ بالرقم المرجعي وتاريخ الإصدار)
+export async function updateInvitation(id: string, formData: FormData) {
+  if (!(await auth())?.user?.email) redirect("/login");
+
+  const existing = await prisma.invitation.findUnique({ where: { id } });
+  if (!existing) redirect("/invitations");
+
+  const back = `/invitations/${id}`;
+  const parsed = schema.safeParse({
+    language: formData.get("language") || "fr",
+    consulate: formData.get("consulate") ?? "",
+    programId: formData.get("programId") || undefined,
+    itinerary: formData.get("itinerary") ?? "",
+    arrivalDate: formData.get("arrivalDate") || undefined,
+    departureDate: formData.get("departureDate") || undefined,
+    fee: formData.get("fee") || undefined,
+    feeCurrency: formData.get("feeCurrency") || undefined,
+    notes: formData.get("notes") ?? undefined,
+  });
+  if (!parsed.success) redirect(withError(back, firstErrorMessage(parsed.error)));
+  const d = parsed.data;
+
+  const names = formData.getAll("person_name").map(String);
+  const passports = formData.getAll("person_passport").map(String);
+  const people: { name: string; passport: string }[] = [];
+  for (let i = 0; i < names.length; i++) {
+    const name = (names[i] ?? "").trim();
+    if (!name) continue;
+    people.push({ name, passport: (passports[i] ?? "").trim() });
+  }
+  if (people.length === 0) redirect(withError(back, "أضِف شخصاً واحداً على الأقل للدعوة"));
+
+  await prisma.invitation.update({
+    where: { id },
+    data: {
+      language: d.language,
+      consulate: d.consulate,
+      people,
+      programId: d.programId || null,
+      itinerary: d.itinerary.trim() || null,
+      arrivalDate: d.arrivalDate ?? null,
+      departureDate: d.departureDate ?? null,
+      fee: d.fee,
+      feeCurrency: d.feeCurrency,
+      notes: d.notes,
+    },
+  });
+
+  // مزامنة قيد الإيراد المرتبط مع الرسم الجديد
+  const linked = await prisma.transaction.findFirst({ where: { invitationId: id } });
+  if (d.fee > 0) {
+    if (linked) {
+      await prisma.transaction.update({
+        where: { id: linked.id },
+        data: { amount: d.fee, currency: d.feeCurrency },
+      });
+    } else {
+      await prisma.transaction.create({
+        data: {
+          type: "INCOME",
+          category: "خدمة دعوة",
+          amount: d.fee,
+          currency: d.feeCurrency,
+          date: existing.docDate,
+          description: `رسم دعوة ${existing.refNumber}`,
+          invitationId: id,
+        },
+      });
+    }
+  } else if (linked) {
+    // صار الرسم صفراً — نحذف القيد حتى لا يبقى إيراد وهمي
+    await prisma.transaction.delete({ where: { id: linked.id } });
+  }
+
+  await logActivity("update", "Invitation", `تعديل دعوة ${existing.refNumber}`);
+  revalidatePath("/invitations");
+  revalidatePath("/accounting/transactions");
+  redirect(`/invitations?sent=${encodeURIComponent(`تم حفظ تعديلات الدعوة ${existing.refNumber}`)}`);
+}
+
 // إرسال الدعوة (PDF) بالبريد إلى عنوان يُدخَل يدوياً (الدعوة لا تُخزّن بريداً)
 export async function emailInvitation(id: string, formData: FormData) {
   const to = (formData.get("email") as string)?.trim() || "";

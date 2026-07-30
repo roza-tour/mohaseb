@@ -1,4 +1,6 @@
 // نصوص خطاب الدعوة بثلاث لغات (عربي/فرنسي/إنجليزي) لعدة أشخاص.
+// تُعاد مُقسَّمة إلى أجزاء (مرسَل إليه، موضوع، فقرات، جدول أشخاص، توقيع)
+// حتى يستطيع مُولّد الـ PDF تنسيق كل جزء بشكله الرسمي الصحيح.
 export type InvLang = "ar" | "fr" | "en";
 export type Person = { name: string; passport: string };
 
@@ -12,108 +14,96 @@ export type InvData = {
   today: string;
 };
 
-function personLine(p: Person, lang: InvLang): string {
-  const pass = p.passport?.trim();
-  if (lang === "ar") return `- ${p.name}${pass ? ` (جواز سفر رقم ${pass})` : ""}`;
-  if (lang === "en") return `- ${p.name}${pass ? ` (passport No. ${pass})` : ""}`;
-  return `- ${p.name}${pass ? ` (passeport n° ${pass})` : ""}`;
-}
-
-// يعيد عنوان المستند + نص الصفحة الأولى + عنوان صفحة المخطط
-export function invitationBody(lang: InvLang, d: InvData): {
+export type InvBody = {
   title: string;
-  page1: string;
+  recipient: string;
+  subjectLabel: string;
+  subject: string;
+  salutation: string;
+  intro: string;
+  paras: string[];
+  closing: string;
+  doneOn: string;
+  agency: string;
+  peopleTitle: string;
+  cols: { n: string; name: string; passport: string };
   itineraryTitle: string;
-} {
+};
+
+export function invitationBody(lang: InvLang, d: InvData): InvBody {
   const many = d.people.length > 1;
-  const peopleBlock = d.people.map((p) => personLine(p, lang)).join("\n");
-  const single = d.people[0];
 
   if (lang === "ar") {
-    const who = many
-      ? `الأشخاص التالية أسماؤهم:\n${peopleBlock}`
-      : `السيد/ة ${single?.name ?? ""}${single?.passport ? `، حامل جواز السفر رقم ${single.passport}` : ""}`;
     return {
-      title: "دعوة",
-      itineraryTitle: "مخطط الرحلة",
-      page1: [
-        `إلى السيد قنصل ${d.consulate}`,
-        "",
-        "الموضوع: طلب الموافقة على تأشيرة — دعوة سياحية",
-        "",
-        "سيدي القنصل المحترم،",
-        "",
-        `يشرّف وكالة ${d.agency} أن تطلب الموافقة على منح التأشيرة السياحية إلى ${who} للقيام برحلة سياحية إلى الجزائر ضمن برنامج «${d.program}».`,
-        "",
+      title: "دعوة سياحية",
+      recipient: `إلى السيد قنصل ${d.consulate}`,
+      subjectLabel: "الموضوع",
+      subject: "طلب الموافقة على تأشيرة — دعوة سياحية",
+      salutation: "سيدي القنصل المحترم،",
+      intro: `يشرّف وكالة ${d.agency} أن تطلب الموافقة على منح التأشيرة السياحية ${
+        many ? "للأشخاص المذكورين أدناه" : "للشخص المذكور أدناه"
+      }، للقيام برحلة سياحية إلى الجزائر ضمن برنامج «${d.program}».`,
+      paras: [
         `من المقرّر أن تكون الإقامة من ${d.arrival} إلى ${d.departure}.`,
-        "",
         "تتكفّل وكالتنا بكامل البرنامج السياحي (الإقامة والنقل والمرافقة) طوال مدة الرحلة.",
-        "",
-        "وعليه، نرجو من سيادتكم التكرّم بمنح المعنيّين التأشيرة اللازمة لتحقيق هذه الرحلة.",
-        "",
-        "وتفضّلوا بقبول فائق الاحترام والتقدير.",
-        "",
-        `حُرِّر في ${d.today}`,
-        d.agency,
-      ].join("\n"),
+        `وعليه، نرجو من سيادتكم التكرّم بمنح ${many ? "المعنيّين" : "المعني"} التأشيرة اللازمة لتحقيق هذه الرحلة.`,
+      ],
+      closing: "وتفضّلوا بقبول فائق الاحترام والتقدير.",
+      doneOn: `حُرِّر في ${d.today}`,
+      agency: d.agency,
+      peopleTitle: many ? "قائمة المعنيّين بالدعوة" : "بيانات المعني بالدعوة",
+      cols: { n: "م", name: "الاسم الكامل", passport: "رقم جواز السفر" },
+      itineraryTitle: "مخطط الرحلة",
     };
   }
 
   if (lang === "en") {
-    const who = many
-      ? `the following persons:\n${peopleBlock}`
-      : `Mr./Ms. ${single?.name ?? ""}${single?.passport ? `, holder of passport No. ${single.passport}` : ""}`;
     return {
       title: "Letter of Invitation",
-      itineraryTitle: "Trip Itinerary",
-      page1: [
-        `To the Consulate of ${d.consulate}`,
-        "",
-        "Subject: Request for visa approval – Tourist letter of invitation",
-        "",
-        "Dear Sir or Madam,",
-        "",
-        `We, ${d.agency}, have the honour to request the approval of a tourist visa for ${who} to undertake a tourist trip to Algeria under the programme "${d.program}".`,
-        "",
+      recipient: `To the Consulate of ${d.consulate}`,
+      subjectLabel: "Subject",
+      subject: "Request for visa approval – Tourist letter of invitation",
+      salutation: "Dear Sir or Madam,",
+      intro: `We, ${d.agency}, have the honour to request the approval of a tourist visa for the ${
+        many ? "persons" : "person"
+      } listed below, to undertake a tourist trip to Algeria under the programme "${d.program}".`,
+      paras: [
         `The stay is scheduled from ${d.arrival} to ${d.departure}.`,
-        "",
         "Our agency guarantees the full tourist programme (accommodation, transport and guidance) throughout the entire stay.",
-        "",
-        "Accordingly, we kindly request that you grant the persons concerned the visa necessary to carry out this trip.",
-        "",
-        "Please accept the assurance of our highest consideration.",
-        "",
-        `Done on ${d.today}`,
-        d.agency,
-      ].join("\n"),
+        `Accordingly, we kindly request that you grant the ${
+          many ? "persons" : "person"
+        } concerned the visa necessary to carry out this trip.`,
+      ],
+      closing: "Please accept the assurance of our highest consideration.",
+      doneOn: `Done on ${d.today}`,
+      agency: d.agency,
+      peopleTitle: many ? "List of persons concerned" : "Person concerned",
+      cols: { n: "No.", name: "Full name", passport: "Passport No." },
+      itineraryTitle: "Trip Itinerary",
     };
   }
 
-  const who = many
-    ? `les personnes suivantes :\n${peopleBlock}`
-    : `M./Mme ${single?.name ?? ""}${single?.passport ? `, titulaire du passeport n° ${single.passport}` : ""}`;
   return {
     title: "Lettre d'invitation",
-    itineraryTitle: "Programme du voyage",
-    page1: [
-      `À l'attention du Consulat de ${d.consulate}`,
-      "",
-      "Objet : Demande d'approbation de visa – Lettre d'invitation touristique",
-      "",
-      "Madame, Monsieur,",
-      "",
-      `Par la présente, l'agence ${d.agency} a l'honneur de solliciter l'approbation du visa touristique au profit de ${who} pour effectuer un voyage touristique en Algérie dans le cadre du programme « ${d.program} ».`,
-      "",
+    recipient: `À l'attention du Consulat de ${d.consulate}`,
+    subjectLabel: "Objet",
+    subject: "Demande d'approbation de visa – Lettre d'invitation touristique",
+    salutation: "Madame, Monsieur,",
+    intro: `Par la présente, l'agence ${d.agency} a l'honneur de solliciter l'approbation du visa touristique au profit ${
+      many ? "des personnes désignées ci-dessous" : "de la personne désignée ci-dessous"
+    }, pour effectuer un voyage touristique en Algérie dans le cadre du programme « ${d.program} ».`,
+    paras: [
       `Le séjour est prévu du ${d.arrival} au ${d.departure}.`,
-      "",
       "Notre agence se porte garante de la prise en charge du programme touristique (hébergement, transport et accompagnement) pendant toute la durée du séjour.",
-      "",
-      "En conséquence, nous vous prions de bien vouloir accorder aux intéressés le visa nécessaire pour la réalisation de ce voyage.",
-      "",
-      "Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.",
-      "",
-      `Fait le ${d.today}`,
-      d.agency,
-    ].join("\n"),
+      `En conséquence, nous vous prions de bien vouloir accorder ${
+        many ? "aux intéressés" : "à l'intéressé(e)"
+      } le visa nécessaire pour la réalisation de ce voyage.`,
+    ],
+    closing: "Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.",
+    doneOn: `Fait le ${d.today}`,
+    agency: d.agency,
+    peopleTitle: many ? "Liste des personnes concernées" : "Personne concernée",
+    cols: { n: "N°", name: "Nom et prénom", passport: "N° de passeport" },
+    itineraryTitle: "Programme du voyage",
   };
 }

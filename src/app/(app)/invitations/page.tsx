@@ -53,6 +53,7 @@ export default async function InvitationsPage({
                 <Th></Th>
                 <Th></Th>
                 <Th></Th>
+                <Th></Th>
               </tr>
             </thead>
             <tbody>
@@ -78,6 +79,11 @@ export default async function InvitationsPage({
                     <Td>
                       <Link href={`/invitations/${inv.id}/pdf`} target="_blank" className="text-rose-700 text-sm hover:underline">
                         📑 PDF مختوم
+                      </Link>
+                    </Td>
+                    <Td>
+                      <Link href={`/invitations/${inv.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                        ✎ تعديل
                       </Link>
                     </Td>
                     <Td>
