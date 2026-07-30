@@ -27,6 +27,20 @@ export async function createOffer(formData: FormData) {
   redirect("/offers?created=1");
 }
 
+export async function updateOffer(id: string, formData: FormData) {
+  if (!(await auth())?.user?.email) redirect("/login");
+  const parsed = schema.safeParse({
+    subject: String(formData.get("subject") ?? "").trim(),
+    body: String(formData.get("body") ?? "").trim(),
+  });
+  if (!parsed.success) redirect(withError(`/offers/${id}`, firstErrorMessage(parsed.error)));
+
+  await prisma.offer.update({ where: { id }, data: parsed.data });
+  await logActivity("update", "Offer", `تعديل عرض ${parsed.data.subject}`);
+  revalidatePath("/offers");
+  redirect("/offers?updated=1");
+}
+
 export async function deleteOffer(id: string) {
   await prisma.offer.delete({ where: { id } });
   revalidatePath("/offers");

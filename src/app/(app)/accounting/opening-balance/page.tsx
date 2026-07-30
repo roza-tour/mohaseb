@@ -29,6 +29,7 @@ function Section({ title, items }: { title: string; items: OpeningBalance[] }) {
               <Th>المبلغ</Th>
               <Th>ملاحظات</Th>
               <Th></Th>
+              <Th></Th>
             </tr>
           </thead>
           <tbody>
@@ -38,6 +39,11 @@ function Section({ title, items }: { title: string; items: OpeningBalance[] }) {
                 <Td>{formatCurrency(item.amount)}</Td>
                 <Td>{item.notes ?? "—"}</Td>
                 <Td>
+                  <Link href={`/accounting/opening-balance/${item.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                    ✎ تعديل
+                  </Link>
+                </Td>
+                <Td>
                   <DeleteButton action={deleteOpeningBalanceItem.bind(null, item.id)} />
                 </Td>
               </tr>
@@ -45,6 +51,7 @@ function Section({ title, items }: { title: string; items: OpeningBalance[] }) {
             <tr>
               <Td className="font-bold text-slate-800">الإجمالي</Td>
               <Td className="font-bold text-slate-800">{formatCurrency(subtotal)}</Td>
+              <Td></Td>
               <Td></Td>
               <Td></Td>
             </tr>

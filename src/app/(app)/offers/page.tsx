@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Textarea, Button, EmptyState, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -29,6 +30,11 @@ export default async function OffersPage({
       {sp.created && (
         <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 text-sm">
           تم حفظ العرض. اضغط «إرسال» عندما تريد إرساله للعملاء.
+        </div>
+      )}
+      {sp.updated && (
+        <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 text-sm">
+          تم حفظ تعديلات العرض ✅
         </div>
       )}
       {sp.sent && (
@@ -85,6 +91,9 @@ export default async function OffersPage({
                       confirmMessage={`إرسال هذا العرض بالبريد إلى ${recipientCount} عميل؟`}
                     />
                   ) : null}
+                  <Link href={`/offers/${o.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                    ✎ تعديل
+                  </Link>
                   <DeleteButton action={deleteOffer.bind(null, o.id)} />
                 </div>
               </div>

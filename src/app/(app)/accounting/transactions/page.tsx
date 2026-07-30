@@ -162,6 +162,7 @@ export default async function TransactionsPage({
                 <Th>الرحلة المرتبطة</Th>
                 <Th>الوصف</Th>
                 <Th></Th>
+                <Th></Th>
               </tr>
             </thead>
             <tbody>
@@ -179,6 +180,11 @@ export default async function TransactionsPage({
                   <Td className="font-medium text-slate-800">{formatCurrency(t.amount, t.currency)}</Td>
                   <Td>{t.trip ? `${t.trip.program.name} — ${t.trip.customer.name}` : "—"}</Td>
                   <Td>{t.description ?? "—"}</Td>
+                  <Td>
+                    <Link href={`/accounting/transactions/${t.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                      ✎ تعديل
+                    </Link>
+                  </Td>
                   <Td>
                     <DeleteButton action={deleteTransaction.bind(null, t.id)} />
                   </Td>

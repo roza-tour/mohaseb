@@ -31,6 +31,21 @@ export async function createOpeningBalanceItem(formData: FormData) {
   redirect(`/accounting/opening-balance?year=${data.fiscalYear}`);
 }
 
+export async function updateOpeningBalanceItem(id: string, formData: FormData) {
+  const data = openingBalanceSchema.parse({
+    fiscalYear: formData.get("fiscalYear") || undefined,
+    itemName: formData.get("itemName"),
+    itemType: formData.get("itemType") || undefined,
+    amount: formData.get("amount") || undefined,
+    notes: formData.get("notes"),
+  });
+
+  await prisma.openingBalance.update({ where: { id }, data });
+
+  revalidatePath("/accounting/opening-balance");
+  redirect(`/accounting/opening-balance?year=${data.fiscalYear}`);
+}
+
 export async function deleteOpeningBalanceItem(id: string) {
   await prisma.openingBalance.delete({ where: { id } });
   revalidatePath("/accounting/opening-balance");
