@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Textarea, Select, Button, LinkButton, ErrorBanner } from "@/components/ui";
+import { PageHeader, Card, Field, Select, Button, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { createVisaApplication } from "../actions";
-import { TravelersEditor } from "../TravelersEditor";
+import { VisaFields } from "../VisaFields";
 
 export default async function NewVisaPage({
   searchParams,
@@ -114,70 +114,21 @@ export default async function NewVisaPage({
         </form>
       </Card>
 
-      <form action={createVisaApplication} className="space-y-6">
-        <Card className="p-5 space-y-4">
-          <h2 className="font-bold text-slate-800">بيانات الملف</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="الولاية الموجه إليها الملف (Wilaya de...)">
-              <Input name="wilaya" dir="ltr" placeholder="Tamanrasset" />
-            </Field>
-            <Field label="الولايات المعنية بالبرنامج (Wilayas concernées)">
-              <Input name="wilayasConcernees" dir="ltr" placeholder="Tamanrasset, Djanet, Illizi" />
-            </Field>
-            <Field label="تاريخ الوصول" required>
-              <Input type="date" name="arrivalDate" required defaultValue={prefillArrival} />
-            </Field>
-            <Field label="تاريخ المغادرة" required>
-              <Input type="date" name="departureDate" required defaultValue={prefillDeparture} />
-            </Field>
-          </div>
-
-          <Field label="تفاصيل البرنامج يوماً بيوم (تُملأ في ملف الوورد الرسمي — يفضل بالفرنسية)">
-            <Textarea
-              name="programDetail"
-              rows={8}
-              defaultValue={prefillProgram}
-              placeholder={"Jour 1 : Arrivée à l'aéroport de Tamanrasset, accueil et transfert à l'hôtel...\nJour 2 : ..."}
-            />
-          </Field>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="رسم الخدمة لكل مسافر (يُسجَّل كإيراد تلقائياً)">
-              <Input type="number" name="feePerPerson" min={0} step="0.01" defaultValue={40} />
-            </Field>
-            <Field label="عملة الرسم">
-              <Select name="feeCurrency" defaultValue="USD">
-                {["USD", "EUR", "DZD", "TND", "MAD", "SAR"].map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-
-          <Field label="ملاحظات داخلية (لا تظهر في الملفات)">
-            <Input name="notes" />
-          </Field>
-        </Card>
-
-        <Card className="p-5 space-y-4">
-          <h2 className="font-bold text-slate-800">المسافرون</h2>
-          <p className="text-xs text-slate-500">
-            📷 زر «مسح الجواز» يقرأ صورة الجواز (السطرين أسفل الصفحة) ويملأ الاسم واللقب ورقم الجواز والجنسية
-            وتاريخ الميلاد وتاريخ الانتهاء تلقائياً — القراءة تتم داخل متصفحك ولا تُرفع الصورة لأي مكان.
-          </p>
-          <TravelersEditor initial={initialTravelers} />
-        </Card>
-
-        <div className="flex items-center gap-2">
-          <Button type="submit">إنشاء الفيزا وتجهيز الملفين</Button>
-          <LinkButton href="/visa" variant="secondary">
-            إلغاء
-          </LinkButton>
-        </div>
-      </form>
+      <VisaFields
+        action={createVisaApplication}
+        submitLabel="إنشاء الفيزا وتجهيز الملفين"
+        initial={{
+          wilaya: "",
+          wilayasConcernees: "",
+          arrivalDate: prefillArrival,
+          departureDate: prefillDeparture,
+          programDetail: prefillProgram,
+          feePerPerson: 40,
+          feeCurrency: "USD",
+          notes: "",
+          travelers: initialTravelers,
+        }}
+      />
     </div>
   );
 }

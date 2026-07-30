@@ -66,6 +66,7 @@ export default async function DocumentsPage({
                 <Th>التاريخ</Th>
                 <Th></Th>
                 <Th></Th>
+                <Th></Th>
               </tr>
             </thead>
             <tbody>
@@ -83,6 +84,11 @@ export default async function DocumentsPage({
                       className="text-sky-600 text-sm hover:underline"
                     >
                       عرض / طباعة PDF
+                    </Link>
+                  </Td>
+                  <Td>
+                    <Link href={`/documents/${d.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                      ✎ تعديل
                     </Link>
                   </Td>
                   <Td>

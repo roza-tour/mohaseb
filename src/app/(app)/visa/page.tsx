@@ -15,6 +15,7 @@ export default async function VisaPage({
   const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
   const page = parsePage(sp.page);
   const justCreated = typeof sp.created === "string" ? sp.created : undefined;
+  const justUpdated = typeof sp.updated === "string" ? sp.updated : undefined;
 
   const where = q
     ? {
@@ -48,6 +49,12 @@ export default async function VisaPage({
       {justCreated && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           ✅ تم إنشاء الطلب — حمّل الملفين من الأزرار في الجدول أدناه
+        </div>
+      )}
+
+      {justUpdated && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          ✅ تم حفظ تعديلات الملف {justUpdated} — أعِد تنزيل الملفين ليظهر التعديل
         </div>
       )}
 
@@ -86,6 +93,9 @@ export default async function VisaPage({
                       </Link>
                       <Link href={`/visa/${a.id}/word`} className="text-sky-700 text-sm hover:underline">
                         📄 برنامج Word (مختوم)
+                      </Link>
+                      <Link href={`/visa/${a.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                        ✎ تعديل
                       </Link>
                       <form action={duplicateVisaApplication.bind(null, a.id)}>
                         <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>

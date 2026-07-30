@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
@@ -72,6 +73,7 @@ export default async function InvoicesPage({
                 <Th></Th>
                 <Th></Th>
                 <Th></Th>
+                <Th></Th>
               </tr>
             </thead>
             <tbody>
@@ -97,6 +99,11 @@ export default async function InvoicesPage({
                     </Td>
                     <Td>
                       <PdfLangLinks base={`/invoices/${inv.id}/pdf`} label="الفاتورة" langs={["ar", "fr", "en"]} />
+                    </Td>
+                    <Td>
+                      <Link href={`/invoices/${inv.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                        ✎ تعديل
+                      </Link>
                     </Td>
                     <Td>
                       <form action={duplicateInvoice.bind(null, inv.id)}>

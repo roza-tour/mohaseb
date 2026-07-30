@@ -33,6 +33,7 @@ export default async function TaskOrdersPage() {
                 <Th>تاريخ المهمة</Th>
                 <Th></Th>
                 <Th></Th>
+                <Th></Th>
               </tr>
             </thead>
             <tbody>
@@ -50,6 +51,11 @@ export default async function TaskOrdersPage() {
                   <Td>{formatDate(to.taskDate)}</Td>
                   <Td>
                     <PdfLangLinks base={`/task-orders/${to.id}/pdf`} label="أمر التكليف" />
+                  </Td>
+                  <Td>
+                    <Link href={`/task-orders/${to.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
+                      ✎ تعديل
+                    </Link>
                   </Td>
                   <Td>
                     <DeleteButton action={deleteTaskOrder.bind(null, to.id)} />

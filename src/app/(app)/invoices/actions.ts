@@ -84,6 +84,63 @@ export async function createInvoice(formData: FormData) {
   redirect(`/invoices/${created.id}/pdf`);
 }
 
+// تعديل فاتورة صادرة (يحتفظ برقمها التسلسلي)
+export async function updateInvoice(id: string, formData: FormData) {
+  const existing = await prisma.invoice.findUnique({ where: { id } });
+  if (!existing) redirect("/invoices");
+  const back = `/invoices/${id}`;
+
+  const parsed = invoiceSchema.safeParse({
+    tripId: formData.get("tripId") || undefined,
+    customerId: formData.get("customerId") || undefined,
+    currency: formData.get("currency") || undefined,
+    discount: formData.get("discount") || undefined,
+    notes: formData.get("notes") ?? undefined,
+    showStamp: formData.get("showStamp") === "on",
+    docDate: formData.get("docDate") || undefined,
+  });
+  if (!parsed.success) redirect(withError(back, firstErrorMessage(parsed.error)));
+
+  const descs = formData.getAll("itemDesc").map(String);
+  const qtys = formData.getAll("itemQty").map(Number);
+  const prices = formData.getAll("itemPrice").map(Number);
+  const items: InvoiceItem[] = [];
+  for (let i = 0; i < descs.length; i++) {
+    const description = descs[i]?.trim();
+    const qty = qtys[i];
+    const unitPrice = prices[i];
+    if (!description) continue;
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+      redirect(withError(back, "تأكد من صحة الكمية والسعر في كل بنود الفاتورة"));
+    }
+    items.push({ description, qty, unitPrice });
+  }
+  if (items.length === 0) redirect(withError(back, "أضف بنداً واحداً على الأقل للفاتورة"));
+
+  const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+  if (parsed.data.discount > subtotal) {
+    redirect(withError(back, "الخصم لا يمكن أن يتجاوز مجموع البنود"));
+  }
+
+  await prisma.invoice.update({
+    where: { id },
+    data: {
+      tripId: parsed.data.tripId || null,
+      customerId: parsed.data.customerId || null,
+      currency: parsed.data.currency,
+      discount: parsed.data.discount,
+      notes: parsed.data.notes,
+      showStamp: parsed.data.showStamp,
+      docDate: parsed.data.docDate ?? existing.docDate,
+      items,
+    },
+  });
+
+  await logActivity("update", "Invoice", `تعديل فاتورة ${existing.invoiceNumber}`);
+  revalidatePath("/invoices");
+  redirect(`/invoices?sent=${encodeURIComponent(`تم حفظ تعديلات الفاتورة ${existing.invoiceNumber}`)}`);
+}
+
 // إرسال الفاتورة (PDF) بالبريد إلى العميل مباشرةً
 export async function emailInvoice(id: string, formData: FormData) {
   const lang = (["ar", "fr", "en"].includes(String(formData.get("lang"))) ? formData.get("lang") : "ar") as

@@ -7,8 +7,8 @@ type Row = { description: string; qty: string; unitPrice: string };
 
 const emptyRow: Row = { description: "", qty: "1", unitPrice: "" };
 
-export function ItemsEditor({ currency }: { currency: string }) {
-  const [rows, setRows] = useState<Row[]>([{ ...emptyRow }]);
+export function ItemsEditor({ currency, initial }: { currency: string; initial?: Row[] }) {
+  const [rows, setRows] = useState<Row[]>(initial && initial.length > 0 ? initial : [{ ...emptyRow }]);
 
   // العملة الظاهرة في الإجمالي تتبع قائمة اختيار العملة في النموذج مباشرةً
   // (القيمة الابتدائية تطابق أصلاً العملة الافتراضية، فنكتفي بالاشتراك في التغيير)

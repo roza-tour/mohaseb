@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Select, Input, Textarea, Button, LinkButton, ErrorBanner } from "@/components/ui";
+import { PageHeader, Card, Select, Button, ErrorBanner } from "@/components/ui";
 import { formatDate, formatDateForInput } from "@/lib/format";
-import { fillTemplate, parseDocStyle, TEMPLATE_VARIABLES } from "@/lib/documents";
-import { StyleFields } from "../StyleFields";
+import { fillTemplate, parseDocStyle } from "@/lib/documents";
 import { createDocument } from "../actions";
+import { DocumentForm } from "../DocumentForm";
 
 export default async function NewDocumentPage({
   searchParams,
@@ -71,68 +71,19 @@ export default async function NewDocumentPage({
         </form>
       </Card>
 
-      <Card className="p-5 max-w-3xl">
-        <form action={createDocument} className="space-y-4">
-          <input type="hidden" name="tripId" value={tripId} />
-
-          <Field label="عنوان المستند (يظهر بخط كبير في الـ PDF)">
-            <Input name="title" defaultValue={prefilledTitle} placeholder="مثال: دعوة سياحية" />
-          </Field>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="العميل (اختياري)">
-              <Select name="customerId" defaultValue={prefilledCustomerId}>
-                <option value="">بدون عميل</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="تاريخ المستند">
-              <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="اسم القنصلية / الجهة الموجَّه إليها (للدعوة — اختياري)">
-              <Input name="consulate" placeholder="مثال: Consulat Général de France à Alger" />
-            </Field>
-            <Field label="رقم جواز سفر المسافر (للدعوة — اختياري)">
-              <Input name="passport" placeholder="مثال: GI937083" />
-            </Field>
-          </div>
-
-          <Field label="نص المستند">
-            <Textarea
-              name="body"
-              rows={14}
-              defaultValue={prefilledBody}
-              placeholder="اكتب نص المستند هنا... كل سطر فارغ يبدأ فقرة جديدة في الـ PDF"
-            />
-          </Field>
-
-          <p className="text-xs text-slate-500">
-            المتغيرات المتاحة في القوالب (تُستبدل تلقائياً عند تحميل قالب مع رحلة):{" "}
-            {TEMPLATE_VARIABLES.map((v) => `${v.token} = ${v.label}`).join("، ")}
-          </p>
-
-          <StyleFields style={prefilledStyle} />
-
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" name="showStamp" defaultChecked />
-            إظهار خانة ختم الوكالة أسفل المستند
-          </label>
-
-          <div className="flex items-center gap-2">
-            <Button type="submit">إصدار المستند (PDF)</Button>
-            <LinkButton href="/documents" variant="secondary">
-              إلغاء
-            </LinkButton>
-          </div>
-        </form>
-      </Card>
+      <DocumentForm
+        action={createDocument}
+        customers={customers}
+        tripId={tripId}
+        initial={{
+          title: prefilledTitle,
+          body: prefilledBody,
+          customerId: prefilledCustomerId,
+          docDate: formatDateForInput(new Date()),
+          showStamp: true,
+          style: prefilledStyle,
+        }}
+      />
     </div>
   );
 }
