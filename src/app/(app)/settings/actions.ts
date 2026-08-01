@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { cleanupLogoStamp } from "@/lib/imageCleanup";
+import { docStyleFromForm } from "@/lib/documents";
 import { revalidatePath } from "next/cache";
 
 const settingsSchema = z.object({
@@ -68,6 +69,9 @@ export async function updateSettings(formData: FormData) {
     reminderDaysAhead: formData.get("reminderDaysAhead"),
   });
 
+  // تنسيق المستندات العام (يسري على كل المستندات المولَّدة)
+  const docStyle = docStyleFromForm(formData);
+
   const logoFile = formData.get("logo") as File | null;
   const stampFile = formData.get("stamp") as File | null;
 
@@ -78,12 +82,14 @@ export async function updateSettings(formData: FormData) {
     where: { id: 1 },
     update: {
       ...data,
+      docStyle,
       ...(logoPath && { logoPath }),
       ...(stampPath && { stampPath }),
     },
     create: {
       id: 1,
       ...data,
+      docStyle,
       ...(logoPath && { logoPath }),
       ...(stampPath && { stampPath }),
     },

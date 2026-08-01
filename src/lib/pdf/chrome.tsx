@@ -1,39 +1,47 @@
 // عناصر التنسيق المشتركة بين المستندات الرسمية (نفس هوية الدعوة):
 // شريط المرجع والتاريخ، العنوان داخل إطار، عنوان قسم بخط سفلي، وجدول بيانات.
+// كل العناصر تأخذ لون التمييز وحجم الخط من تنسيق المستندات في الإعدادات،
+// فتغيير التنسيق يدوياً يسري على كل المستندات المولَّدة.
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { MixedText } from "./MixedText";
+import { DEFAULT_DOC_STYLE, type DocumentStyle } from "@/lib/documents";
 
-export const NAVY = "#1f3864";
+export const NAVY = DEFAULT_DOC_STYLE.accentColor;
 
 const s = StyleSheet.create({
-  refBar: {
-    borderBottom: `1px solid ${NAVY}`,
-    paddingBottom: 5,
-    marginBottom: 16,
-    justifyContent: "space-between",
-  },
+  refBar: { paddingBottom: 5, marginBottom: 16, justifyContent: "space-between" },
   refText: { fontSize: 9, color: "#475569" },
-
   titleWrap: { alignItems: "center", marginBottom: 18 },
-  titleBox: {
-    borderTop: `2px solid ${NAVY}`,
-    borderBottom: `2px solid ${NAVY}`,
-    paddingVertical: 6,
-    paddingHorizontal: 26,
-  },
-
-  sectionRule: { borderBottom: `2px solid ${NAVY}`, width: 60, marginBottom: 10 },
-
+  titleBox: { paddingVertical: 6, paddingHorizontal: 26 },
+  sectionRule: { width: 60, marginBottom: 10 },
   table: { border: "1px solid #cbd5e1", marginBottom: 16 },
   row: { borderTop: "1px solid #e2e8f0" },
-  label: { fontWeight: "bold", color: "#334155", fontSize: 10.5, padding: 7, width: 165 },
+  label: { fontWeight: "bold", color: "#334155", padding: 7, width: 165 },
   value: { flex: 1, padding: 7 },
 });
 
+// التنسيق الفعّال لمستند: ما اختاره المستخدم وإلا الافتراضي
+export function docStyle(style?: Partial<DocumentStyle> | null): DocumentStyle {
+  return { ...DEFAULT_DOC_STYLE, ...(style ?? {}) };
+}
+
+type Styled = { style?: DocumentStyle };
+
 // شريط علوي: رقم المستند على جهة البداية والتاريخ على جهة النهاية
-export function RefBar({ number, date, rtl }: { number: string; date: string; rtl: boolean }) {
+export function RefBar({
+  number,
+  date,
+  rtl,
+  style,
+}: { number: string; date: string; rtl: boolean } & Styled) {
+  const st = docStyle(style);
   return (
-    <View style={[s.refBar, { flexDirection: rtl ? "row-reverse" : "row" }]}>
+    <View
+      style={[
+        s.refBar,
+        { flexDirection: rtl ? "row-reverse" : "row", borderBottom: `1px solid ${st.accentColor}` },
+      ]}
+    >
       <MixedText
         text={number}
         size={9}
@@ -47,16 +55,30 @@ export function RefBar({ number, date, rtl }: { number: string; date: string; rt
 }
 
 // عنوان المستند داخل إطار علوي وسفلي
-export function DocTitle({ text, rtl, size = 16 }: { text: string; rtl: boolean; size?: number }) {
+export function DocTitle({
+  text,
+  rtl,
+  size,
+  style,
+}: { text: string; rtl: boolean; size?: number } & Styled) {
+  const st = docStyle(style);
+  const fontSize = size ?? st.fontSize + 4.5;
   return (
     <View style={s.titleWrap}>
-      <View style={s.titleBox}>
+      <View
+        style={[
+          s.titleBox,
+          { borderTop: `2px solid ${st.accentColor}`, borderBottom: `2px solid ${st.accentColor}` },
+        ]}
+      >
         <MixedText
           text={text}
-          size={size}
+          size={fontSize}
           align="center"
           baseDir={rtl ? "auto" : "ltr"}
-          style={{ fontWeight: "bold", color: NAVY, letterSpacing: 0.5 }}
+          // العنوان يبقى في سطر واحد: الإطار يتمدّد بعرضه بدل أن يلتف النص فوق الحدّ
+          containerStyle={{ flexWrap: "nowrap" }}
+          style={{ fontSize, fontWeight: "bold", color: st.accentColor, letterSpacing: 0.5 }}
         />
       </View>
     </View>
@@ -64,19 +86,23 @@ export function DocTitle({ text, rtl, size = 16 }: { text: string; rtl: boolean;
 }
 
 // عنوان قسم يتبعه خط قصير
-export function SectionTitle({ text, rtl }: { text: string; rtl: boolean }) {
+export function SectionTitle({ text, rtl, style }: { text: string; rtl: boolean } & Styled) {
+  const st = docStyle(style);
   const align = rtl ? ("right" as const) : ("left" as const);
+  const fontSize = st.fontSize + 0.5;
   return (
     <>
       <MixedText
         text={text}
-        size={12}
+        size={fontSize}
         align={align}
         baseDir={rtl ? "auto" : "ltr"}
         containerStyle={{ marginBottom: 3 }}
-        style={{ fontWeight: "bold", color: NAVY }}
+        style={{ fontSize, fontWeight: "bold", color: st.accentColor }}
       />
-      <View style={[s.sectionRule, { alignSelf: rtl ? "flex-end" : "flex-start" }]} />
+      <View
+        style={[s.sectionRule, { borderBottom: `2px solid ${st.accentColor}`, alignSelf: rtl ? "flex-end" : "flex-start" }]}
+      />
     </>
   );
 }
@@ -86,13 +112,16 @@ export function InfoTable({
   rows,
   rtl,
   baseDir,
+  style,
 }: {
   rows: [string, string][];
   rtl: boolean;
   baseDir: "auto" | "ltr";
-}) {
+} & Styled) {
+  const st = docStyle(style);
   const dir = rtl ? ("row-reverse" as const) : ("row" as const);
   const align = rtl ? ("right" as const) : ("left" as const);
+  const fontSize = st.fontSize - 1;
   return (
     <View style={s.table}>
       {rows.map(([label, value], i) => (
@@ -104,9 +133,15 @@ export function InfoTable({
             ...(i === 0 ? [{ borderTop: "none" }] : []),
           ]}
         >
-          <Text style={[s.label, { textAlign: align }]}>{label}</Text>
+          <Text style={[s.label, { textAlign: align, fontSize }]}>{label}</Text>
           <View style={s.value}>
-            <MixedText text={value} size={10.5} align={align} baseDir={baseDir} />
+            <MixedText
+              text={value}
+              size={fontSize}
+              align={align}
+              baseDir={baseDir}
+              style={{ fontSize, color: st.textColor }}
+            />
           </View>
         </View>
       ))}

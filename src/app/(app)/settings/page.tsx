@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Select, Button } from "@/components/ui";
 import { updateSettings, changePassword } from "./actions";
+import { StyleFields } from "../documents/StyleFields";
+import { settingsDocStyle } from "@/lib/documents";
 
 export default async function SettingsPage() {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
@@ -102,6 +104,15 @@ export default async function SettingsPage() {
             <img src={settings.stampPath} alt="ختم الوكالة" className="h-24 mb-2 object-contain" />
           )}
           <Input type="file" name="stamp" accept="image/*" />
+        </Card>
+
+        <Card className="p-5 space-y-3">
+          <h2 className="font-bold text-slate-800">تنسيق المستندات</h2>
+          <p className="text-xs text-slate-500">
+            يسري هذا التنسيق على كل المستندات المولَّدة: الفواتير، الدعوات، أوامر التكليف، سندات القبض،
+            والمستندات الصادرة. (يمكن لأي مستند حرّ أن يخالفه بتنسيق خاص به من صفحته.)
+          </p>
+          <StyleFields style={settingsDocStyle(settings)} />
         </Card>
 
         <Button type="submit">حفظ الإعدادات</Button>

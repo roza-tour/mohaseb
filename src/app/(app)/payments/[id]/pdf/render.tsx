@@ -1,7 +1,8 @@
 import { Document, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
-import { RefBar, DocTitle, SectionTitle, InfoTable, NAVY } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
+import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { nameOr } from "@/lib/format";
 import { makeQrPng, docQrText } from "@/lib/qr";
@@ -42,13 +43,7 @@ const METHOD_FR: Record<string, string> = {
 };
 
 const styles = StyleSheet.create({
-  amountBox: {
-    border: `1.5px solid ${NAVY}`,
-    backgroundColor: "#f8fafc",
-    padding: 14,
-    marginBottom: 18,
-    alignItems: "center",
-  },
+  amountBox: { backgroundColor: "#f8fafc", padding: 14, marginBottom: 18, alignItems: "center" },
   amountLabel: { fontSize: 10, color: "#475569", marginBottom: 4 },
   amountValue: { fontSize: 20, fontWeight: "bold", color: "#065f46" },
   summaryRow: { gap: 12 },
@@ -79,14 +74,17 @@ export function buildReceiptDoc({
   stamp,
   qr,
   lang,
+  style,
 }: {
   p: ReceiptDocData;
   settings: Parameters<typeof LetterheadPage>[0]["settings"];
   stamp: Buffer | null;
   qr: Buffer | null;
   lang: "ar" | "fr";
+  style?: DocumentStyle;
 }) {
   const t = T[lang];
+  const st = docStyle(style);
   const rtl = lang === "ar";
   const baseDir = rtl ? ("auto" as const) : ("ltr" as const);
   const rowDir = rtl ? ("row-reverse" as const) : ("row" as const);
@@ -107,18 +105,18 @@ export function buildReceiptDoc({
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.receiptNo} ${p.receiptNumber}`} date={fmt(p.paidAt)} rtl={rtl} />
-        <DocTitle text={t.title} rtl={rtl} />
+        <RefBar number={`${t.receiptNo} ${p.receiptNumber}`} date={fmt(p.paidAt)} rtl={rtl} style={style} />
+        <DocTitle text={t.title} rtl={rtl} style={style} />
 
-        <View style={styles.amountBox}>
+        <View style={[styles.amountBox, { border: `1.5px solid ${st.accentColor}` }]}>
           <Text style={styles.amountLabel}>{t.amountLabel}</Text>
           <Text style={styles.amountValue}>{money(p.amount, p.currency)}</Text>
         </View>
 
-        <SectionTitle text={t.detailsSection} rtl={rtl} />
-        <InfoTable rows={rows} rtl={rtl} baseDir={baseDir} />
+        <SectionTitle text={t.detailsSection} rtl={rtl} style={style} />
+        <InfoTable rows={rows} rtl={rtl} baseDir={baseDir} style={style} />
 
-        <SectionTitle text={t.summarySection} rtl={rtl} />
+        <SectionTitle text={t.summarySection} rtl={rtl} style={style} />
         <View style={[styles.summaryRow, { flexDirection: rowDir }]}>
           <View style={styles.summaryBox}>
             <Text style={styles.summaryLabel}>{t.agreedTotal}</Text>
@@ -199,6 +197,7 @@ export async function renderReceiptPdf(
       stamp,
       qr,
       lang,
+      style: settingsDocStyle(settings),
     })
   );
   return { buffer, receiptNumber: payment.receiptNumber };

@@ -6,6 +6,8 @@ import { dirStyles, type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
 import { nameOr } from "@/lib/format";
+import { RefBar, DocTitle, docStyle } from "@/lib/pdf/chrome";
+import { settingsDocStyle } from "@/lib/documents";
 import type { InvoiceItem } from "../../actions";
 
 function formatDate(date: Date) {
@@ -52,23 +54,19 @@ const T = {
   },
 } as const;
 
-function makeStyles(lang: Lang) {
+function makeStyles(lang: Lang, st: ReturnType<typeof docStyle>) {
   const d = dirStyles(lang);
   const rtl = d.rtl;
   return StyleSheet.create({
-    title: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginBottom: 6 },
     meta: { fontSize: 10, color: "#475569", textAlign: "center", marginBottom: 16 },
     partyRow: { flexDirection: d.row, marginBottom: 14, gap: 16 },
     partyBox: { flex: 1, border: "1px solid #e2e8f0", borderRadius: 4, padding: 8 },
     partyLabel: { fontSize: 8.5, color: "#64748b", marginBottom: 2, textAlign: d.align },
     partyValue: { fontSize: 11, fontWeight: "bold", textAlign: d.align },
-    tableHeader: {
-      flexDirection: d.row, backgroundColor: "#f1f5f9",
-      borderTopLeftRadius: 4, borderTopRightRadius: 4, borderBottom: "1.5px solid #cbd5e1",
-    },
-    th: { fontSize: 10, fontWeight: "bold", color: "#334155", padding: 7, textAlign: d.align },
-    tr: { flexDirection: d.row, borderBottom: "1px solid #f1f5f9" },
-    td: { fontSize: 10.5, padding: 7, textAlign: d.align },
+    tableHeader: { flexDirection: d.row, backgroundColor: st.accentColor },
+    th: { fontSize: st.fontSize - 1.5, fontWeight: "bold", color: "#ffffff", padding: 7, textAlign: d.align },
+    tr: { flexDirection: d.row, borderBottom: "1px solid #e2e8f0" },
+    td: { fontSize: st.fontSize - 1, padding: 7, textAlign: d.align, color: st.textColor },
     colNum: { width: 30 },
     colDesc: { flex: 1 },
     colQty: { width: 60 },
@@ -76,11 +74,11 @@ function makeStyles(lang: Lang) {
     colTotal: { width: 95 },
     totalsBox: { marginTop: 12, alignSelf: "flex-start", width: 240 },
     totalRow: { flexDirection: d.row, justifyContent: "space-between", paddingVertical: 4, paddingHorizontal: 8 },
-    grandTotal: { backgroundColor: "#f1f5f9", borderRadius: 4, marginTop: 2 },
-    totalLabel: { fontSize: 10.5, color: "#334155" },
-    totalValue: { fontSize: 10.5, fontWeight: "bold" },
+    grandTotal: { backgroundColor: "#f1f5f9", borderTop: `1.5px solid ${st.accentColor}`, marginTop: 2 },
+    totalLabel: { fontSize: st.fontSize - 1, color: "#334155" },
+    totalValue: { fontSize: st.fontSize - 1, fontWeight: "bold" },
     detailsBox: { border: "1px solid #e2e8f0", borderRadius: 4, padding: 10, marginBottom: 14 },
-    detailsTitle: { fontSize: 10, fontWeight: "bold", color: "#334155", marginBottom: 6, textAlign: d.align },
+    detailsTitle: { fontSize: st.fontSize - 1.5, fontWeight: "bold", color: st.accentColor, marginBottom: 6, textAlign: d.align },
     detailsGrid: { flexDirection: d.row, flexWrap: "wrap", gap: 4 },
     detailItem: { fontSize: 9.5, color: "#475569", width: "50%", textAlign: d.align, marginBottom: 2 },
     programText: { marginTop: 6 },
@@ -100,7 +98,6 @@ export async function renderInvoicePdf(
   lang: Lang
 ): Promise<{ buffer: Buffer; invoiceNumber: string; email: string | null; customerName: string | null } | null> {
   const t = T[lang];
-  const styles = makeStyles(lang);
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
@@ -109,6 +106,8 @@ export async function renderInvoicePdf(
   if (!invoice) return null;
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const st = docStyle(settingsDocStyle(settings));
+  const styles = makeStyles(lang, st);
   const stampBuffer = invoice.showStamp ? loadPublicImage(settings?.stampPath) : null;
 
   // رمز رابط عام ثابت للتحقق (يُنشأ مرة واحدة ويُحفظ)
@@ -130,10 +129,13 @@ export async function renderInvoicePdf(
   const doc = (
     <Document>
       <LetterheadPage settings={settings} stamp={invoice.showStamp ? stampBuffer : null} qr={qr}>
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.meta}>
-          {t.invoiceNo}: {invoice.invoiceNumber}   |   {t.date}: {formatDate(invoice.docDate)}
-        </Text>
+        <RefBar
+          number={`${t.invoiceNo} ${invoice.invoiceNumber}`}
+          date={formatDate(invoice.docDate)}
+          rtl={lang !== "fr" && lang !== "en"}
+          style={st}
+        />
+        <DocTitle text={t.title} rtl={lang !== "fr" && lang !== "en"} style={st} />
 
         <View style={styles.partyRow}>
           <View style={styles.partyBox}>

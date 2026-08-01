@@ -1,12 +1,13 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { Document as PdfDocument, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document as PdfDocument, View, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
-import { parseBodyLines, parseDocStyle, PAGE_BREAK } from "@/lib/documents";
+import { parseBodyLines, parseDocStyle, settingsDocStyle, PAGE_BREAK } from "@/lib/documents";
 import { makeQrPng, docQrText } from "@/lib/qr";
+import { RefBar, DocTitle } from "@/lib/pdf/chrome";
 
 function formatDate(date: Date) {
   const day = String(date.getUTCDate()).padStart(2, "0");
@@ -16,40 +17,6 @@ function formatDate(date: Date) {
 
 registerArabicFonts();
 
-const staticStyles = StyleSheet.create({
-  metaRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  metaText: {
-    fontSize: 9,
-    color: "#475569",
-  },
-  signRow: {
-    marginTop: 28,
-    alignItems: "flex-start",
-  },
-  signBox: {
-    width: 180,
-    border: "1px solid #cbd5e1",
-    borderRadius: 4,
-    padding: 10,
-    minHeight: 96,
-    alignItems: "center",
-  },
-  signLabel: {
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-    fontSize: 10,
-  },
-  stampImage: {
-    width: 80,
-    height: 80,
-    objectFit: "contain",
-  },
-});
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -65,7 +32,8 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
     docQrText({ agency: settings?.agencyName, type: "Document", number: doc.docNumber, date: formatDate(doc.docDate), website: settings?.agencyWebsite })
   );
 
-  const style = parseDocStyle(doc.style);
+  // تنسيق المستند: ما اختير له تحديداً، وإلا التنسيق العام من الإعدادات
+  const style = doc.style ? parseDocStyle(doc.style) : settingsDocStyle(settings);
   // "يمين" = محاذاة طبيعية حسب اتجاه كل فقرة (يمين للعربية، يسار للإنجليزية)
   const align = style.align === "center" ? ("center" as const) : ("auto" as const);
 
@@ -141,17 +109,8 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
         <LetterheadPage key={p} settings={settings} stamp={stampBuffer} qr={qr}>
           {p === 0 ? (
             <>
-              <View style={staticStyles.metaRow}>
-                <Text style={staticStyles.metaText}>N° {doc.docNumber}</Text>
-                <Text style={staticStyles.metaText}>{formatDate(doc.docDate)}</Text>
-              </View>
-              <MixedText
-                text={doc.title}
-                style={{ fontSize: 18, fontWeight: "bold", color: style.textColor }}
-                size={18}
-                align="center"
-                containerStyle={{ marginBottom: 18 }}
-              />
+              <RefBar number={`N° ${doc.docNumber}`} date={formatDate(doc.docDate)} rtl style={style} />
+              {doc.title.trim() ? <DocTitle text={doc.title} rtl style={style} /> : null}
             </>
           ) : null}
           {renderBody(pageText)}

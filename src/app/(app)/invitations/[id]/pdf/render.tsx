@@ -5,6 +5,8 @@ import { MixedText } from "@/lib/pdf/MixedText";
 import { invitationBody, type InvLang, type Person } from "@/lib/invitation";
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
+import { RefBar, DocTitle, SectionTitle, docStyle } from "@/lib/pdf/chrome";
+import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 
 registerArabicFonts();
 
@@ -18,24 +20,6 @@ function fmt(date: Date | null | undefined) {
 }
 
 const styles = StyleSheet.create({
-  // شريط المرجع والتاريخ أعلى الخطاب
-  refBar: {
-    borderBottom: `1px solid ${NAVY}`,
-    paddingBottom: 5,
-    marginBottom: 16,
-    justifyContent: "space-between",
-  },
-  refText: { fontSize: 9, color: "#475569" },
-
-  // العنوان الرئيسي داخل إطار
-  titleWrap: { alignItems: "center", marginBottom: 18 },
-  titleBox: {
-    borderTop: `2px solid ${NAVY}`,
-    borderBottom: `2px solid ${NAVY}`,
-    paddingVertical: 6,
-    paddingHorizontal: 26,
-  },
-
   // صندوق الموضوع
   subjectBox: {
     backgroundColor: "#f1f5f9",
@@ -47,7 +31,6 @@ const styles = StyleSheet.create({
   },
 
   // جدول الأشخاص
-  peopleTitle: { fontSize: 10.5, fontWeight: "bold", color: NAVY, marginBottom: 5 },
   tableWrap: { border: "1px solid #cbd5e1", marginBottom: 14 },
   thead: { backgroundColor: NAVY },
   th: { color: "#ffffff", fontSize: 9.5, fontWeight: "bold", padding: 5 },
@@ -58,12 +41,9 @@ const styles = StyleSheet.create({
 
   // كتلة التوقيع
   signBlock: { marginTop: 16 },
-  signName: { fontSize: 11.5, fontWeight: "bold", color: NAVY },
   signRule: { borderTop: "1px solid #94a3b8", width: 150, marginTop: 4, paddingTop: 4 },
 
   // صفحة المخطط
-  sectionTitle: { fontSize: 14, fontWeight: "bold", color: NAVY, marginBottom: 3 },
-  sectionRule: { borderBottom: `2px solid ${NAVY}`, width: 60, marginBottom: 12 },
   itineraryBox: { border: "1px solid #cbd5e1", padding: 12 },
 });
 
@@ -85,13 +65,16 @@ export function buildInvitationDoc({
   settings,
   stamp,
   qr,
+  style,
 }: {
   inv: InvitationDocData;
   settings: Parameters<typeof LetterheadPage>[0]["settings"];
   stamp: Buffer | null;
   qr: Buffer | null;
+  style?: DocumentStyle;
 }) {
   const lang = (["ar", "fr", "en"].includes(inv.language) ? inv.language : "fr") as InvLang;
+  const st = docStyle(style);
   const rtl = lang === "ar";
   const align = rtl ? ("right" as const) : ("left" as const);
   const baseDir = rtl ? ("auto" as const) : ("ltr" as const);
@@ -111,14 +94,19 @@ export function buildInvitationDoc({
   const itinerary = inv.itinerary.trim();
 
   // فقرة نصية بمحاذاة اللغة ومسافة أسفلها
-  const Para = ({ text, size = 11.5, bold = false }: { text: string; size?: number; bold?: boolean }) => (
+  const Para = ({ text, bold = false }: { text: string; bold?: boolean }) => (
     <MixedText
       text={text}
-      size={size}
+      size={st.fontSize}
       align={align}
       baseDir={baseDir}
       containerStyle={{ marginBottom: 7 }}
-      style={{ lineHeight: 1.45, ...(bold ? { fontWeight: "bold" } : {}) }}
+      style={{
+        fontSize: st.fontSize,
+        lineHeight: st.lineHeight - 0.25,
+        color: st.textColor,
+        ...(bold ? { fontWeight: "bold" } : {}),
+      }}
     />
   );
 
@@ -133,11 +121,11 @@ export function buildInvitationDoc({
           <MixedText
             key={i}
             text={line}
-            size={11}
+            size={st.fontSize - 0.5}
             align={align}
             baseDir={baseDir}
             containerStyle={{ marginBottom: 3 }}
-            style={{ lineHeight: 1.5 }}
+            style={{ fontSize: st.fontSize - 0.5, lineHeight: st.lineHeight - 0.2, color: st.textColor }}
           />
         )
       );
@@ -146,32 +134,18 @@ export function buildInvitationDoc({
     <Document>
       {/* ---------- الصفحة الأولى: خطاب الدعوة ---------- */}
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <View style={[styles.refBar, { flexDirection: rowDir }]}>
-          <Text style={styles.refText}>N° {inv.refNumber}</Text>
-          <Text style={styles.refText}>{fmt(inv.docDate)}</Text>
-        </View>
-
-        <View style={styles.titleWrap}>
-          <View style={styles.titleBox}>
-            <MixedText
-              text={t.title}
-              size={16}
-              align="center"
-              baseDir={baseDir}
-              style={{ fontWeight: "bold", color: NAVY, letterSpacing: 0.5 }}
-            />
-          </View>
-        </View>
+        <RefBar number={`N° ${inv.refNumber}`} date={fmt(inv.docDate)} rtl={rtl} style={style} />
+        <DocTitle text={t.title} rtl={rtl} style={style} />
 
         <Para text={t.recipient} bold />
 
-        <View style={styles.subjectBox}>
+        <View style={[styles.subjectBox, { borderLeft: `3px solid ${st.accentColor}`, borderRight: `3px solid ${st.accentColor}` }]}>
           <MixedText
             text={`${t.subjectLabel} : ${t.subject}`}
             size={11}
             align={align}
             baseDir={baseDir}
-            style={{ fontWeight: "bold", color: NAVY }}
+            style={{ fontWeight: "bold", color: st.accentColor }}
           />
         </View>
 
@@ -187,10 +161,10 @@ export function buildInvitationDoc({
               align={align}
               baseDir={baseDir}
               containerStyle={{ marginBottom: 5 }}
-              style={{ fontWeight: "bold", color: NAVY }}
+              style={{ fontWeight: "bold", color: st.accentColor }}
             />
             <View style={styles.tableWrap}>
-              <View style={[styles.thead, { flexDirection: rowDir }]}>
+              <View style={[styles.thead, { flexDirection: rowDir, backgroundColor: st.accentColor }]}>
                 <Text style={[styles.th, styles.colN]}>{t.cols.n}</Text>
                 <Text style={[styles.th, styles.colName, { textAlign: align }]}>{t.cols.name}</Text>
                 <Text style={[styles.th, styles.colPass]}>{t.cols.passport}</Text>
@@ -223,29 +197,18 @@ export function buildInvitationDoc({
 
         {/* التوقيع — كتلة واحدة لا تنقسم بين صفحتين (وإلا ظهرت صفحة شبه فارغة) */}
         <View wrap={false} style={[styles.signBlock, { alignItems: rtl ? "flex-start" : "flex-end" }]}>
-          <Text style={[styles.refText, { textAlign: align }]}>{t.doneOn}</Text>
+          <Text style={{ fontSize: 9, color: "#475569", textAlign: align }}>{t.doneOn}</Text>
           <View style={styles.signRule}>
-            <MixedText text={t.agency} size={11.5} align="center" baseDir={baseDir} style={{ fontWeight: "bold", color: NAVY }} />
+            <MixedText text={t.agency} size={11.5} align="center" baseDir={baseDir} style={{ fontWeight: "bold", color: st.accentColor }} />
           </View>
         </View>
       </LetterheadPage>
 
       {/* ---------- الصفحة الثانية: مخطط الرحلة ---------- */}
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <View style={[styles.refBar, { flexDirection: rowDir }]}>
-          <Text style={styles.refText}>N° {inv.refNumber}</Text>
-          <Text style={styles.refText}>{fmt(inv.docDate)}</Text>
-        </View>
+        <RefBar number={`N° ${inv.refNumber}`} date={fmt(inv.docDate)} rtl={rtl} style={style} />
 
-        <MixedText
-          text={t.itineraryTitle}
-          size={14}
-          align={align}
-          baseDir={baseDir}
-          containerStyle={{ marginBottom: 3 }}
-          style={{ fontWeight: "bold", color: NAVY }}
-        />
-        <View style={[styles.sectionRule, { alignSelf: rtl ? "flex-end" : "flex-start" }]} />
+        <SectionTitle text={t.itineraryTitle} rtl={rtl} style={style} />
 
         <View style={styles.itineraryBox}>
           {itinerary ? (
@@ -294,6 +257,7 @@ export async function renderInvitationPdf(
       settings,
       stamp,
       qr,
+      style: settingsDocStyle(settings),
     })
   );
   return { buffer, refNumber: inv.refNumber, lang };

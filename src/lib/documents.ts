@@ -104,6 +104,12 @@ export function parseDocStyle(raw: unknown): DocumentStyle {
   };
 }
 
+// التنسيق الافتراضي المحفوظ في الإعدادات — يسري على كل المستندات المولَّدة
+// (فاتورة، دعوة، أمر تكليف، سند قبض) ويصلح أساساً للمستندات الحرة أيضاً.
+export function settingsDocStyle(settings: { docStyle?: unknown } | null | undefined): DocumentStyle {
+  return parseDocStyle(settings?.docStyle);
+}
+
 // يقرأ حقول التنسيق من FormData (تشترك فيها نماذج المستند والقالب)
 export function docStyleFromForm(formData: FormData): DocumentStyle {
   return parseDocStyle({

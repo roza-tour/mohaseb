@@ -2,7 +2,8 @@ import { Document, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer"
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
-import { RefBar, DocTitle, SectionTitle, InfoTable } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
+import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng, docQrText } from "@/lib/qr";
 import { nameOr } from "@/lib/format";
@@ -88,14 +89,17 @@ export function buildTaskOrderDoc({
   stamp,
   qr,
   lang,
+  style,
 }: {
   order: TaskOrderDocData;
   settings: Parameters<typeof LetterheadPage>[0]["settings"];
   stamp: Buffer | null;
   qr: Buffer | null;
   lang: "ar" | "fr";
+  style?: DocumentStyle;
 }) {
   const t = T[lang];
+  const st = docStyle(style);
   const rtl = lang === "ar";
   const align = rtl ? ("right" as const) : ("left" as const);
   const baseDir = rtl ? ("auto" as const) : ("ltr" as const);
@@ -117,16 +121,16 @@ export function buildTaskOrderDoc({
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.orderNo} ${order.ref}`} date={fmt(order.taskDate)} rtl={rtl} />
-        <DocTitle text={t.title} rtl={rtl} />
+        <RefBar number={`${t.orderNo} ${order.ref}`} date={fmt(order.taskDate)} rtl={rtl} style={style} />
+        <DocTitle text={t.title} rtl={rtl} style={style} />
 
-        <SectionTitle text={t.assigneeSection} rtl={rtl} />
-        <InfoTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} />
+        <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />
+        <InfoTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} style={style} />
 
-        <SectionTitle text={t.tripSection} rtl={rtl} />
-        <InfoTable rows={tripRows} rtl={rtl} baseDir={baseDir} />
+        <SectionTitle text={t.tripSection} rtl={rtl} style={style} />
+        <InfoTable rows={tripRows} rtl={rtl} baseDir={baseDir} style={style} />
 
-        <SectionTitle text={t.detailsTitle} rtl={rtl} />
+        <SectionTitle text={t.detailsTitle} rtl={rtl} style={style} />
         <View style={styles.detailsBox}>
           {(order.details.trim() || t.noDetails)
             .split(/\r?\n/)
@@ -136,11 +140,11 @@ export function buildTaskOrderDoc({
               <MixedText
                 key={i}
                 text={line}
-                size={11}
+                size={st.fontSize}
                 align={align}
                 baseDir={baseDir}
                 containerStyle={{ marginBottom: 3 }}
-                style={{ lineHeight: 1.45 }}
+                style={{ fontSize: st.fontSize, lineHeight: st.lineHeight, color: st.textColor }}
               />
             ))}
         </View>
@@ -191,6 +195,7 @@ export async function renderTaskOrderPdf(
       stamp,
       qr,
       lang,
+      style: settingsDocStyle(settings),
     })
   );
   return { buffer, ref };

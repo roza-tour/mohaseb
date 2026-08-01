@@ -31,6 +31,8 @@ model Settings {
   logoPath        String?
   stampPath       String?
   letterheadColor String   @default("#1f3864") // لون اسم الوكالة والشريط في ورق الشركة
+  // تنسيق افتراضي يسري على كل المستندات المولَّدة (حجم الخط، الألوان، التباعد...)
+  docStyle        Json?
   defaultCurrency String   @default("DZD")
   reminderDaysAhead Int    @default(7)
   updatedAt       DateTime @updatedAt
