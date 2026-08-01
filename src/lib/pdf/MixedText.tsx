@@ -52,6 +52,9 @@ export function detectBaseDir(text: string): Dir {
     if (RTL_CHAR.test(ch)) rtl++;
     else if (LTR_CHAR.test(ch)) ltr++;
   }
+  // نص بلا حروف قوية (هاتف، رقم مرجعي، تاريخ، مبلغ) يُكتب دائماً من اليسار لليمين
+  // حتى داخل مستند عربي — وإلا انعكس ترتيب مجموعاته (‎+213 659 530 210).
+  if (rtl === 0 && ltr === 0) return "ltr";
   return ltr > rtl ? "ltr" : "rtl";
 }
 
