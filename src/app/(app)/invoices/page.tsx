@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner, ErrorBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
 import { EmailDocButton } from "@/components/EmailDocButton";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -50,6 +50,8 @@ export default async function InvoicesPage({
           </div>
         }
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SuccessBanner message={sent} />
 

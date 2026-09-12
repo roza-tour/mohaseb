@@ -1,8 +1,10 @@
 "use server";
 
 import { z } from "zod";
+import { requireUser, requireAdmin } from "@/lib/authz";
+import { logActivity } from "@/lib/activity";
 import { prisma } from "@/lib/prisma";
-import { buildDocNumber } from "@/lib/documents";
+import { nextDocNumber } from "@/lib/docNumbers";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -22,6 +24,7 @@ const paymentSchema = z.object({
 });
 
 export async function createPayment(tripId: string, formData: FormData) {
+  await requireUser();
   const parsed = paymentSchema.safeParse({
     amount: formData.get("amount"),
     method: formData.get("method") || undefined,
@@ -33,27 +36,26 @@ export async function createPayment(tripId: string, formData: FormData) {
 
   // تاريخ الدفعة اختياري — إن تُرك فارغاً نضع تاريخ اليوم
   const paidAt = parsed.data.paidAt ?? new Date();
-  const year = paidAt.getFullYear();
-  const countThisYear = await prisma.payment.count({
-    where: {
-      paidAt: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
-    },
-  });
+  const receiptNumber = await nextDocNumber("receipt", paidAt.getFullYear());
 
   await prisma.payment.create({
     data: {
       ...parsed.data,
       paidAt,
       tripId,
-      receiptNumber: buildDocNumber(year, countThisYear),
+      receiptNumber,
     },
   });
+  await logActivity("create", "Payment", `سند قبض ${receiptNumber}`);
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/");
 }
 
+// حذف سند قبض = حذف سجل مالي — للمدير وحده
 export async function deletePayment(tripId: string, id: string) {
-  await prisma.payment.delete({ where: { id } });
+  await requireAdmin(`/trips/${tripId}`);
+  const removed = await prisma.payment.delete({ where: { id } });
+  await logActivity("delete", "Payment", `حذف سند قبض ${removed.receiptNumber}`);
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/");
 }

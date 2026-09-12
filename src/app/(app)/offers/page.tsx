@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Textarea, Button, EmptyState, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate } from "@/lib/format";
 import { isEmailConfigured } from "@/lib/email";
 import { createOffer, deleteOffer, sendOffer } from "./actions";
@@ -13,8 +14,14 @@ export default async function OffersPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
-  const [offers, recipientCount] = await Promise.all([
-    prisma.offer.findMany({ orderBy: { createdAt: "desc" } }),
+  const page = parsePage(sp.page);
+  const [offers, total, recipientCount] = await Promise.all([
+    prisma.offer.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.offer.count(),
     prisma.customer.count({ where: { email: { not: null } } }),
   ]);
   const configured = isEmailConfigured();
@@ -101,6 +108,7 @@ export default async function OffersPage({
           </div>
         )}
       </Card>
+      <Pagination page={page} total={total} basePath="/offers" />
     </div>
   );
 }

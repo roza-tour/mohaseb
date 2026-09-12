@@ -4,28 +4,49 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 // حماية من تخمين كلمات المرور: بعد 5 محاولات فاشلة لنفس البريد
-// يُقفل الدخول 10 دقائق. (عدّاد في الذاكرة — يُصفَّر عند إعادة تشغيل التطبيق)
+// يُقفل الدخول 10 دقائق. العدّاد في قاعدة البيانات لا في الذاكرة، حتى لا
+// يُصفَّر عند كل إعادة تشغيل للتطبيق (وهي كثيرة على الاستضافة المشتركة).
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 10 * 60 * 1000;
-const failedAttempts = new Map<string, { count: number; lockedUntil: number }>();
 
-function isLocked(email: string): boolean {
-  const rec = failedAttempts.get(email);
-  return !!rec && rec.lockedUntil > Date.now();
-}
-
-function recordFailure(email: string) {
-  const rec = failedAttempts.get(email) ?? { count: 0, lockedUntil: 0 };
-  rec.count += 1;
-  if (rec.count >= MAX_ATTEMPTS) {
-    rec.lockedUntil = Date.now() + LOCK_MS;
-    rec.count = 0;
+async function isLocked(email: string): Promise<boolean> {
+  try {
+    const rec = await prisma.loginAttempt.findUnique({ where: { email } });
+    return !!rec?.lockedUntil && rec.lockedUntil.getTime() > Date.now();
+  } catch {
+    // تعذّر الوصول للجدول (هجرة لم تُطبَّق بعد) — لا نمنع الدخول
+    return false;
   }
-  failedAttempts.set(email, rec);
 }
 
-function recordSuccess(email: string) {
-  failedAttempts.delete(email);
+async function recordFailure(email: string) {
+  try {
+    const rec = await prisma.loginAttempt.findUnique({ where: { email } });
+    const count = (rec?.count ?? 0) + 1;
+    const locked = count >= MAX_ATTEMPTS;
+    await prisma.loginAttempt.upsert({
+      where: { email },
+      create: {
+        email,
+        count: locked ? 0 : count,
+        lockedUntil: locked ? new Date(Date.now() + LOCK_MS) : null,
+      },
+      update: {
+        count: locked ? 0 : count,
+        lockedUntil: locked ? new Date(Date.now() + LOCK_MS) : rec?.lockedUntil ?? null,
+      },
+    });
+  } catch {
+    /* نتجاهل — لا نمنع تسجيل الدخول بسبب فشل التسجيل */
+  }
+}
+
+async function recordSuccess(email: string) {
+  try {
+    await prisma.loginAttempt.deleteMany({ where: { email } });
+  } catch {
+    /* نتجاهل */
+  }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -44,21 +65,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        if (isLocked(email)) return null;
+        if (await isLocked(email)) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-          recordFailure(email);
+          await recordFailure(email);
           return null;
         }
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) {
-          recordFailure(email);
+          await recordFailure(email);
           return null;
         }
 
-        recordSuccess(email);
+        await recordSuccess(email);
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       },
     }),

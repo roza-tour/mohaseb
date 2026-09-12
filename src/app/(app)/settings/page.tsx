@@ -1,11 +1,22 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Select, Button } from "@/components/ui";
-import { updateSettings, changePassword } from "./actions";
+import { PageHeader, Card, Field, Input, Select, Button, ErrorBanner, SuccessBanner } from "@/components/ui";
+import { updateSettings, changePassword, updateCleanupSettings, runCleanupNow } from "./actions";
+import { previewCleanup } from "@/lib/tripCleanup";
+import { formatDate } from "@/lib/format";
 import { StyleFields } from "../documents/StyleFields";
 import { settingsDocStyle } from "@/lib/documents";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const cleanupDays = settings?.autoCleanupDaysAfter ?? 90;
+  // كم سيُحذف لو شُغّل التنظيف الآن — يُعرض قبل التفعيل حتى لا يفاجئك الحذف
+  const pending = await previewCleanup(cleanupDays);
+  const cleaned = typeof sp.cleaned === "string" ? sp.cleaned.split("-") : null;
 
   return (
     <div>
@@ -21,6 +32,14 @@ export default async function SettingsPage() {
           </a>
         }
       />
+
+      {sp.saved && <SuccessBanner message="تم حفظ الإعدادات" />}
+      {cleaned && (
+        <SuccessBanner
+          message={`تم التنظيف: حُذفت ${cleaned[0]} رحلة و${cleaned[1]} أمر تكليف`}
+        />
+      )}
+      <ErrorBanner message={sp.error} />
 
       <form action={updateSettings} encType="multipart/form-data" className="space-y-6">
         <Card className="p-5 space-y-4">
@@ -131,6 +150,66 @@ export default async function SettingsPage() {
         >
           ⬇️ تحميل نسخة احتياطية الآن
         </a>
+      </Card>
+
+      <Card className="p-5 space-y-4 mt-6 max-w-lg">
+        <h2 className="font-bold text-slate-800">التنظيف التلقائي للجداول</h2>
+        <p className="text-xs text-slate-500">
+          عند تفعيله تُحذف تلقائياً الرحلات التي مضى على انتهائها المدة المحددة، وأوامر التكليف التي
+          مضى على تاريخ مهمتها نفس المدة — فتبقى الجداول مقتصرة على العمل الجاري.
+          <br />
+          <b className="text-slate-700">ماذا يبقى:</b> العملاء والمرشدون والسائقون والفنادق والفواتير
+          والمستندات الصادرة والقيود المحاسبية. والمبلغ المحصَّل من أي رحلة تُحذف يُسجَّل تلقائياً
+          كقيد إيراد حتى لا يختفي من الحسابات.
+          <br />
+          <b className="text-red-700">الحذف نهائي ولا يمكن التراجع عنه</b> — خذ نسخة احتياطية قبل التفعيل.
+        </p>
+
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          لو شُغّل التنظيف الآن بالمدة الحالية ({cleanupDays} يوماً) سيُحذف:{" "}
+          <b>{pending.trips}</b> رحلة و<b>{pending.taskOrders}</b> أمر تكليف.
+        </div>
+
+        <form action={updateCleanupSettings} className="space-y-4">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              id="autoCleanupEnabled"
+              name="autoCleanupEnabled"
+              defaultChecked={settings?.autoCleanupEnabled ?? false}
+            />
+            تفعيل التنظيف التلقائي
+          </label>
+          <Field label="المدة بعد انتهاء الرحلة أو المهمة (بالأيام)">
+            <Input
+              type="number"
+              id="autoCleanupDaysAfter"
+              name="autoCleanupDaysAfter"
+              min={0}
+              max={3650}
+              defaultValue={cleanupDays}
+            />
+          </Field>
+          <Button type="submit" variant="secondary">
+            حفظ إعدادات التنظيف
+          </Button>
+        </form>
+
+        <form action={runCleanupNow}>
+          <button
+            type="submit"
+            className="text-sm text-red-600 hover:underline"
+          >
+            🗑️ تشغيل التنظيف الآن
+          </button>
+        </form>
+
+        <p className="text-xs text-slate-400">
+          {settings?.lastCleanupAt
+            ? `آخر تنظيف: ${formatDate(settings.lastCleanupAt)}`
+            : "لم يُشغَّل التنظيف بعد."}{" "}
+          للتشغيل اليومي التلقائي أضف مهمة cron (سكربت <code dir="ltr">scripts/setup-cron.sh</code> يفعلها عنك).
+        </p>
       </Card>
 
       <Card className="p-5 space-y-4 mt-6 max-w-lg">

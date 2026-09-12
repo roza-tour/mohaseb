@@ -29,8 +29,17 @@ export default function ReminderBell() {
       }
     };
     load();
-    const interval = setInterval(load, 60_000);
-    return () => clearInterval(interval);
+    // كل تبويب مفتوح كان يستعلم كل دقيقة — حمل دائم على الاستضافة المشتركة بلا فائدة،
+    // فالرحلات لا تتغيّر كل دقيقة. صار كل 10 دقائق، مع تحديث فوري عند العودة للنافذة.
+    const interval = setInterval(load, 10 * 60_000);
+    const onFocus = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, []);
 
   useEffect(() => {

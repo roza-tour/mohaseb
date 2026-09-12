@@ -1,5 +1,7 @@
-// نسخة احتياطية تلقائية لقاعدة البيانات (mysqldump) — للتشغيل عبر cron على cPanel.
-// تحفظ ملف SQL في ~/mohaseb-backups وتحذف النسخ الأقدم من 14 يوماً.
+// نسخة احتياطية تلقائية — للتشغيل عبر cron على cPanel.
+// تحفظ ملف SQL لقاعدة البيانات + أرشيف الملفات المرفوعة (الشعار والختم والمرفقات)
+// في ~/mohaseb-backups وتحذف النسخ الأقدم من 14 يوماً.
+// الملفات كانت خارج النسخة تماماً: لو ضاع قرص الاستضافة تُفقد الجوازات والتذاكر نهائياً.
 // التشغيل:  cd ~/mohaseb-app && node scripts/backup.mjs
 import fs from "fs";
 import path from "path";
@@ -53,12 +55,28 @@ if (res.status !== 0) {
 }
 
 fs.writeFileSync(outFile, res.stdout);
-console.log(`✓ نسخة احتياطية: ${outFile} (${res.stdout.length} bytes)`);
+console.log(`✓ نسخة قاعدة البيانات: ${outFile} (${res.stdout.length} bytes)`);
+
+// ---------- الملفات المرفوعة: الشعار والختم (public/uploads) والمرفقات (private_uploads) ----------
+const fileDirs = ["public/uploads", "private_uploads"].filter((d) =>
+  fs.existsSync(path.join(process.cwd(), d))
+);
+if (fileDirs.length > 0) {
+  const filesOut = path.join(dir, `files-${stamp}.tar.gz`);
+  const tar = spawnSync("tar", ["-czf", filesOut, ...fileDirs], { cwd: process.cwd() });
+  if (tar.status === 0) {
+    console.log(`✓ نسخة الملفات: ${filesOut}`);
+  } else {
+    console.error("تعذّر أرشفة الملفات:", tar.stderr?.toString() || tar.error?.message);
+  }
+} else {
+  console.log("لا توجد ملفات مرفوعة لأرشفتها.");
+}
 
 // حذف النسخ الأقدم من 14 يوماً
 const cutoff = Date.now() - 14 * 86400000;
 for (const f of fs.readdirSync(dir)) {
-  if (!f.endsWith(".sql")) continue;
+  if (!f.endsWith(".sql") && !f.endsWith(".tar.gz")) continue;
   const fp = path.join(dir, f);
   if (fs.statSync(fp).mtimeMs < cutoff) {
     fs.unlinkSync(fp);

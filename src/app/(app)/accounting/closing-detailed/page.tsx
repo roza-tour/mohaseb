@@ -50,7 +50,6 @@ export default async function ClosingDetailedPage({
       const currencies = [...new Set([...p.trips.map((t) => t.currency), ...pTxCurrencies])];
       return currencies.map((currency) => {
         const trips = p.trips.filter((t) => t.currency === currency);
-        const tripIds = trips.map((t) => t.id);
         const tripAgreedRevenue = trips.reduce((s, t) => s + t.agreedPrice, 0);
         const bookingCost = trips.reduce(
           (s, t) =>
@@ -60,15 +59,14 @@ export default async function ClosingDetailedPage({
             t.otherBookings.reduce((a, b) => a + b.cost, 0),
           0
         );
-        // القيود تُنسب للبرنامج (كل رحلاته) وتُطابَق بالعملة — حتى لا يسقط مصروف بعملة مختلفة عن الرحلة
-        const txIncome = linkedTransactions
-          .filter((tx) => tx.tripId && pTripIds.has(tx.tripId) && tx.type === "INCOME" && tx.currency === currency)
-          .reduce((s, tx) => s + tx.amount, 0);
+        // القيود تُنسب للبرنامج (كل رحلاته) وتُطابَق بالعملة — حتى لا يسقط مصروف بعملة مختلفة عن الرحلة.
+        // قيود الإيراد المرتبطة برحلة لا تُضاف للإيراد: هي تحصيل من السعر المتفق عليه
+        // المحسوب أصلاً، وجمعها معه كان يضاعف إيراد البرنامج.
         const txExpense = linkedTransactions
           .filter((tx) => tx.tripId && pTripIds.has(tx.tripId) && tx.type === "EXPENSE" && tx.currency === currency)
           .reduce((s, tx) => s + tx.amount, 0);
 
-        const revenue = tripAgreedRevenue + txIncome;
+        const revenue = tripAgreedRevenue;
         const cost = bookingCost + txExpense;
         const profit = revenue - cost;
         const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;

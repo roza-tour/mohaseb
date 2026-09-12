@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -17,6 +18,7 @@ const openingBalanceSchema = z.object({
 });
 
 export async function createOpeningBalanceItem(formData: FormData) {
+  await requireUser();
   const data = openingBalanceSchema.parse({
     fiscalYear: formData.get("fiscalYear") || undefined,
     itemName: formData.get("itemName"),
@@ -32,6 +34,7 @@ export async function createOpeningBalanceItem(formData: FormData) {
 }
 
 export async function updateOpeningBalanceItem(id: string, formData: FormData) {
+  await requireUser();
   const data = openingBalanceSchema.parse({
     fiscalYear: formData.get("fiscalYear") || undefined,
     itemName: formData.get("itemName"),
@@ -47,6 +50,7 @@ export async function updateOpeningBalanceItem(id: string, formData: FormData) {
 }
 
 export async function deleteOpeningBalanceItem(id: string) {
+  await requireAdmin("/accounting/opening-balance");
   await prisma.openingBalance.delete({ where: { id } });
   revalidatePath("/accounting/opening-balance");
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate, formatCurrency } from "@/lib/format";
@@ -90,6 +90,8 @@ export default async function TransactionsPage({
           </div>
         }
       />
+
+      <ErrorBanner message={params.error} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <Card className="p-5">

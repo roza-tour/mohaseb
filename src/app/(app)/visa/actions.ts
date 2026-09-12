@@ -1,8 +1,9 @@
 "use server";
 
 import { z } from "zod";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { buildDocNumber } from "@/lib/documents";
+import { nextDocNumber } from "@/lib/docNumbers";
 import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
@@ -74,6 +75,7 @@ function readTravelers(formData: FormData) {
 
 // تعديل طلب فيزا صادر (يحتفظ برقمه المرجعي) — يستبدل قائمة المسافرين ويزامن قيد الإيراد
 export async function updateVisaApplication(id: string, formData: FormData) {
+  await requireUser();
   const existing = await prisma.visaApplication.findUnique({ where: { id } });
   if (!existing) redirect("/visa");
   const back = `/visa/${id}`;
@@ -139,6 +141,7 @@ export async function updateVisaApplication(id: string, formData: FormData) {
 }
 
 export async function createVisaApplication(formData: FormData) {
+  await requireUser();
   const parsed = appSchema.safeParse({
     wilaya: formData.get("wilaya"),
     wilayasConcernees: formData.get("wilayasConcernees") ?? "",
@@ -159,14 +162,11 @@ export async function createVisaApplication(formData: FormData) {
     redirect(withError("/visa/new", "أضف مسافراً واحداً على الأقل"));
   }
 
-  const year = new Date().getFullYear();
-  const count = await prisma.visaApplication.count({
-    where: { createdAt: { gte: new Date(year, 0, 1) } },
-  });
+  const refNumber = await nextDocNumber("visa", new Date().getFullYear());
 
   const created = await prisma.visaApplication.create({
     data: {
-      refNumber: buildDocNumber(year, count),
+      refNumber,
       ...parsed.data,
       travelers: { create: travelers },
     },
@@ -193,6 +193,7 @@ export async function createVisaApplication(formData: FormData) {
 }
 
 export async function deleteVisaApplication(id: string) {
+  await requireAdmin("/visa");
   await prisma.visaApplication.delete({ where: { id } });
   await logActivity("delete", "Visa", "حذف طلب فيزا");
   revalidatePath("/visa");
@@ -200,13 +201,13 @@ export async function deleteVisaApplication(id: string) {
 
 // تكرار طلب فيزا بكل مسافريه (رقم جديد) — يُسجَّل رسم جديد كإيراد
 export async function duplicateVisaApplication(id: string) {
+  await requireUser();
   const src = await prisma.visaApplication.findUnique({ where: { id }, include: { travelers: true } });
   if (!src) redirect("/visa");
-  const year = new Date().getFullYear();
-  const count = await prisma.visaApplication.count({ where: { createdAt: { gte: new Date(year, 0, 1) } } });
+  const refNumber = await nextDocNumber("visa", new Date().getFullYear());
   const created = await prisma.visaApplication.create({
     data: {
-      refNumber: buildDocNumber(year, count),
+      refNumber,
       wilaya: src.wilaya,
       wilayasConcernees: src.wilayasConcernees,
       arrivalDate: src.arrivalDate,

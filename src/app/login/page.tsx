@@ -12,6 +12,13 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // في الإنتاج تُصدَر كوكيز الجلسة بصيغة __Secure- ولا تعمل إلا على HTTPS،
+  // فالدخول عبر http يفشل صامتاً — نوضّح السبب بدل ترك المستخدم يظن أن كلمة المرور خاطئة.
+  const insecureConnection = () =>
+    typeof window !== "undefined" &&
+    window.location.protocol === "http:" &&
+    !["localhost", "127.0.0.1"].includes(window.location.hostname);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -23,7 +30,11 @@ function LoginForm() {
     });
     setLoading(false);
     if (res?.error) {
-      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      setError(
+        insecureConnection()
+          ? "تعذّر تسجيل الدخول. تفتح الموقع عبر اتصال غير آمن (http) وكوكيز الجلسة لا تعمل إلا على https — افتح الموقع بـ https أو فعّل شهادة SSL من لوحة الاستضافة."
+          : "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+      );
       return;
     }
     router.push(searchParams.get("callbackUrl") || "/");
@@ -45,6 +56,9 @@ function LoginForm() {
             <label className="block text-sm font-medium text-slate-700 mb-1">البريد الإلكتروني</label>
             <input
               type="email"
+              id="email"
+              name="email"
+              autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -56,6 +70,9 @@ function LoginForm() {
             <label className="block text-sm font-medium text-slate-700 mb-1">كلمة المرور</label>
             <input
               type="password"
+              id="password"
+              name="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

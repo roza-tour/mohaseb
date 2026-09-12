@@ -35,6 +35,10 @@ model Settings {
   docStyle        Json?
   defaultCurrency String   @default("DZD")
   reminderDaysAhead Int    @default(7)
+  // التنظيف التلقائي: حذف الرحلات المنتهية وأوامر التكليف المنقضية من الجداول
+  autoCleanupEnabled  Boolean   @default(false)
+  autoCleanupDaysAfter Int      @default(90)
+  lastCleanupAt       DateTime?
   updatedAt       DateTime @updatedAt
 }
 
@@ -135,6 +139,9 @@ model Trip {
   payments       Payment[]
   invoices       Invoice[]
   attachments    Attachment[]
+
+  @@index([startDate])
+  @@index([endDate])
 }
 
 // ---------- حجوزات الفنادق ----------
@@ -202,6 +209,8 @@ model Transaction {
   date        DateTime
   description String? @db.Text
   createdAt   DateTime @default(now())
+
+  @@index([date])
 }
 
 // ---------- الميزانية الافتتاحية ----------
@@ -230,6 +239,8 @@ model TaskOrder {
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdById  String?
   createdAt    DateTime @default(now())
+
+  @@index([taskDate])
 }
 
 // ---------- قوالب المستندات (يديرها المستخدم بنفسه) ----------
@@ -245,7 +256,7 @@ model DocumentTemplate {
 // ---------- المستندات الصادرة (دعوة سياحية، تصريح عمل، ...) ----------
 model Document {
   id         String    @id @default(cuid())
-  docNumber  String    // رقم تسلسلي مثل 2026/0001
+  docNumber  String    @unique // رقم تسلسلي مثل 2026/0001
   title      String
   body       String    @db.Text
   trip       Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
@@ -256,6 +267,8 @@ model Document {
   style      Json?     // تنسيق هذا المستند (يبدأ من تنسيق القالب ويعدَّل بحرية)
   docDate    DateTime  @default(now())
   createdAt  DateTime  @default(now())
+
+  @@index([docDate])
 }
 
 // ---------- دفعات العملاء (سندات القبض) ----------
@@ -263,19 +276,21 @@ model Payment {
   id            String   @id @default(cuid())
   trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId        String
-  receiptNumber String   // رقم سند القبض، مثال: 2026/0001
+  receiptNumber String   @unique // رقم سند القبض، مثال: 2026/0001
   amount        Float
   method        String   @default("CASH") // CASH | BANK | CHEQUE | OTHER
   reference     String?  // رقم الشيك أو التحويل البنكي
   notes         String?  @db.Text
   paidAt        DateTime @default(now())
   createdAt     DateTime @default(now())
+
+  @@index([paidAt])
 }
 
 // ---------- الفواتير ----------
 model Invoice {
   id            String    @id @default(cuid())
-  invoiceNumber String    // رقم الفاتورة، مثال: 2026/0001
+  invoiceNumber String    @unique // رقم الفاتورة، مثال: 2026/0001
   trip          Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
   tripId        String?
   customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -289,6 +304,8 @@ model Invoice {
   publicToken   String?   @unique // رمز رابط عام لمشاركة/التحقق من الفاتورة
   docDate       DateTime  @default(now())
   createdAt     DateTime  @default(now())
+
+  @@index([docDate])
 }
 
 // ---------- مرفقات الرحلات (جوازات، تذاكر، تأكيدات...) ----------
@@ -305,7 +322,7 @@ model Attachment {
 // ---------- طلبات الفيزا الصحراوية ----------
 model VisaApplication {
   id           String   @id @default(cuid())
-  refNumber    String   // رقم مرجعي 2026/0001
+  refNumber    String   @unique // رقم مرجعي 2026/0001
   wilaya       String   // ولاية مديرية السياحة الموجه إليها الملف
   wilayasConcernees String @default("") // الولايات المعنية بالبرنامج
   arrivalDate  DateTime
@@ -323,7 +340,7 @@ model VisaApplication {
 // الدعوات (مستند مدفوع مستقل): طلب موافقة على فيزا موجَّه لقنصلية لعدة أشخاص
 model Invitation {
   id            String   @id @default(cuid())
-  refNumber     String   // 2026/0001
+  refNumber     String   @unique // 2026/0001
   language      String   @default("fr") // ar | fr | en
   consulate     String   @default("")
   // المقدّم الأساسي + المرافقون: [{ name, passport }] وأولهم المقدّم الأساسي
@@ -383,4 +400,24 @@ model VisaTraveler {
   visaEmission    DateTime?
   visaExpirationA DateTime?
   createdAt       DateTime @default(now())
+}
+
+// ---------- عدّاد أرقام المستندات ----------
+// رقم كل مستند (فاتورة، سند قبض، دعوة...) يؤخذ من هنا داخل معاملة واحدة،
+// فلا يتكرّر رقم عند الحذف ولا عند إصدار مستندين في نفس اللحظة.
+model Counter {
+  kind       String // invoice | receipt | document | invitation | visa
+  year       Int
+  lastNumber Int    @default(0)
+
+  @@id([kind, year])
+}
+
+// ---------- محاولات تسجيل الدخول الفاشلة ----------
+// كانت تُحفظ في ذاكرة العملية فتُصفَّر عند كل إعادة تشغيل — صارت في قاعدة البيانات.
+model LoginAttempt {
+  email       String    @id
+  count       Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
 }

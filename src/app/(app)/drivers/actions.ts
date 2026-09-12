@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
+import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { withError } from "@/lib/formErrors";
@@ -27,13 +29,16 @@ function buildDriverData(formData: FormData) {
 }
 
 export async function createDriver(formData: FormData) {
+  await requireUser();
   const data = buildDriverData(formData);
-  await prisma.driver.create({ data });
+  const created = await prisma.driver.create({ data });
+  await logActivity("create", "Driver", created.name || "سائق بلا اسم");
   revalidatePath("/drivers");
   redirect("/drivers");
 }
 
 export async function updateDriver(id: string, formData: FormData) {
+  await requireUser();
   const data = buildDriverData(formData);
   await prisma.driver.update({ where: { id }, data });
   revalidatePath("/drivers");
@@ -41,6 +46,7 @@ export async function updateDriver(id: string, formData: FormData) {
 }
 
 export async function deleteDriver(id: string) {
+  await requireUser();
   // نفس منطق المرشدين: لا نترك أوامر تكليف بلا مكلَّف
   const assigned = await prisma.taskOrder.count({ where: { driverId: id } });
   if (assigned > 0) {
@@ -51,6 +57,7 @@ export async function deleteDriver(id: string) {
       )
     );
   }
-  await prisma.driver.delete({ where: { id } });
+  const removed = await prisma.driver.delete({ where: { id } });
+  await logActivity("delete", "Driver", removed.name || "سائق بلا اسم");
   revalidatePath("/drivers");
 }

@@ -14,6 +14,7 @@ type CurrencyTotals = {
   tripCost: number;
   incomeTx: number;
   expenseTx: number;
+  collected: number;
 };
 
 export default async function ClosingSummaryPage({
@@ -27,18 +28,24 @@ export default async function ClosingSummaryPage({
   const from = isNaN(fromRaw.getTime()) ? startOfYear() : fromRaw;
   const to = isNaN(toRaw.getTime()) ? endOfYear() : toRaw;
 
-  const [trips, transactions] = await Promise.all([
+  const [trips, transactions, payments] = await Promise.all([
     prisma.trip.findMany({
       where: { startDate: { gte: from, lte: to } },
       include: { hotelBookings: true, flightBookings: true, otherBookings: true },
     }),
     prisma.transaction.findMany({ where: { date: { gte: from, lte: to } } }),
+    // المحصَّل فعلاً من العملاء خلال الفترة (أساس نقدي — يُعرض للعلم ولا يُجمع مع الإيراد)
+    prisma.payment.findMany({
+      where: { paidAt: { gte: from, lte: to } },
+      include: { trip: { select: { currency: true } } },
+    }),
   ]);
 
   // فصل المجاميع حسب العملة حتى لا تُجمع مبالغ بعملات مختلفة كرقم واحد
   const byCurrency = new Map<string, CurrencyTotals>();
   const get = (c: string) => {
-    if (!byCurrency.has(c)) byCurrency.set(c, { tripRevenue: 0, tripCost: 0, incomeTx: 0, expenseTx: 0 });
+    if (!byCurrency.has(c))
+      byCurrency.set(c, { tripRevenue: 0, tripCost: 0, incomeTx: 0, expenseTx: 0, collected: 0 });
     return byCurrency.get(c)!;
   };
 
@@ -52,8 +59,16 @@ export default async function ClosingSummaryPage({
   }
   for (const tx of transactions) {
     const bucket = get(tx.currency);
-    if (tx.type === "INCOME") bucket.incomeTx += tx.amount;
-    else bucket.expenseTx += tx.amount;
+    // قيود الإيراد المرتبطة برحلة = تحصيل من سعرها المتفق عليه، لا إيراد إضافي.
+    // جمعها مع سعر الرحلة كان يضاعف الإيراد لمن يسجّل دفعات العملاء كقيود.
+    if (tx.type === "INCOME") {
+      if (!tx.tripId) bucket.incomeTx += tx.amount;
+    } else {
+      bucket.expenseTx += tx.amount;
+    }
+  }
+  for (const p of payments) {
+    get(p.trip.currency).collected += p.amount;
   }
 
   const currencies = [...byCurrency.keys()].sort();
@@ -66,6 +81,12 @@ export default async function ClosingSummaryPage({
         title="الميزانية الختامية المجملة"
         description="ملخص الإيرادات والمصروفات الإجمالي لفترة محددة — مفصولاً حسب العملة"
       />
+
+      <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 max-w-3xl">
+        الربح محسوب على <b>أساس الاستحقاق</b>: إيراد الرحلة هو سعرها المتفق عليه كاملاً سواء حُصِّل أم لا.
+        لذلك لا تُضاف قيود الإيراد المرتبطة برحلة (فهي تحصيل من نفس السعر)، بينما تُضاف القيود غير المرتبطة
+        برحلة كإيرادات أخرى. أما المبلغ المحصَّل فعلاً فيظهر في آخر سطر للعلم فقط.
+      </div>
 
       <Card className="p-5 mb-6">
         <form method="get" className="flex flex-wrap items-end gap-3">
@@ -116,7 +137,7 @@ export default async function ClosingSummaryPage({
                       <Td className="font-medium">{formatCurrency(t.tripRevenue, currency)}</Td>
                     </tr>
                     <tr>
-                      <Td className="text-slate-500">إيرادات أخرى</Td>
+                      <Td className="text-slate-500">إيرادات أخرى (قيود غير مرتبطة برحلة)</Td>
                       <Td className="font-medium">{formatCurrency(t.incomeTx, currency)}</Td>
                     </tr>
                     <tr className="bg-slate-50">
@@ -140,6 +161,15 @@ export default async function ClosingSummaryPage({
                       <Td className={`font-bold text-base ${netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {formatCurrency(netProfit, currency)}
                       </Td>
+                    </tr>
+                    <tr>
+                      <Td className="text-slate-500">
+                        المحصَّل فعلاً من العملاء خلال الفترة (سندات القبض)
+                        <span className="block text-xs text-slate-400">
+                          رقم نقدي للعلم — غير داخل في حساب الربح أعلاه
+                        </span>
+                      </Td>
+                      <Td className="font-medium text-sky-700">{formatCurrency(t.collected, currency)}</Td>
                     </tr>
                   </tbody>
                 </Table>

@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
+import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { withError } from "@/lib/formErrors";
@@ -27,13 +29,16 @@ function buildGuideData(formData: FormData) {
 }
 
 export async function createGuide(formData: FormData) {
+  await requireUser();
   const data = buildGuideData(formData);
-  await prisma.guide.create({ data });
+  const created = await prisma.guide.create({ data });
+  await logActivity("create", "Guide", created.name || "مرشد بلا اسم");
   revalidatePath("/guides");
   redirect("/guides");
 }
 
 export async function updateGuide(id: string, formData: FormData) {
+  await requireUser();
   const data = buildGuideData(formData);
   await prisma.guide.update({ where: { id }, data });
   revalidatePath("/guides");
@@ -41,6 +46,7 @@ export async function updateGuide(id: string, formData: FormData) {
 }
 
 export async function deleteGuide(id: string) {
+  await requireUser();
   // حذف مرشد له أوامر تكليف كان يُفرّغ خانة المكلَّف في تلك الأوامر بصمت
   // (تبقى الأوامر بلا اسم في القائمة وفي الـ PDF)، فنمنع الحذف ونشرح السبب.
   const assigned = await prisma.taskOrder.count({ where: { guideId: id } });
@@ -52,6 +58,7 @@ export async function deleteGuide(id: string) {
       )
     );
   }
-  await prisma.guide.delete({ where: { id } });
+  const removed = await prisma.guide.delete({ where: { id } });
+  await logActivity("delete", "Guide", removed.name || "مرشد بلا اسم");
   revalidatePath("/guides");
 }

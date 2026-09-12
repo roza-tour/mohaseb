@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
@@ -31,6 +32,7 @@ const transactionSchema = z.object({
 });
 
 export async function createTransaction(formData: FormData) {
+  await requireUser();
   const parsed = transactionSchema.safeParse({
     type: formData.get("type"),
     category: formData.get("category"),
@@ -60,6 +62,7 @@ export async function createTransaction(formData: FormData) {
 // تعديل قيد محاسبي. القيود المولَّدة تلقائياً من دعوة أو ملف فيزا لا تُعدَّل هنا
 // حتى لا تختلف عن مستندها — تُعدَّل من صفحة المستند نفسه فيُزامَن القيد تلقائياً.
 export async function updateTransaction(id: string, formData: FormData) {
+  await requireUser();
   const existing = await prisma.transaction.findUnique({ where: { id } });
   if (!existing) redirect("/accounting/transactions");
   const back = `/accounting/transactions/${id}`;
@@ -96,6 +99,7 @@ export async function updateTransaction(id: string, formData: FormData) {
 }
 
 export async function deleteTransaction(id: string) {
+  await requireAdmin("/accounting/transactions");
   await prisma.transaction.delete({ where: { id } });
   revalidatePath("/accounting/transactions");
 }

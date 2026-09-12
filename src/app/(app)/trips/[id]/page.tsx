@@ -94,7 +94,12 @@ export default async function TripDetailPage({
             </LinkButton>
             <DeleteButton
               action={deleteTrip.bind(null, id)}
-              confirmMessage="هل أنت متأكد من حذف هذه الرحلة؟ سيتم حذف جميع الحجوزات وأوامر التكليف المرتبطة بها."
+              confirmMessage={
+                `هل أنت متأكد من حذف هذه الرحلة؟ سيتم حذف الحجوزات وأوامر التكليف والمرفقات` +
+                (trip.payments.length > 0
+                  ? ` و${trip.payments.length} سند قبض — وسيُسجَّل المبلغ المحصَّل تلقائياً كقيد إيراد في المحاسبة حتى لا يختفي من الحسابات.`
+                  : " المرتبطة بها.")
+              }
             />
           </div>
         }

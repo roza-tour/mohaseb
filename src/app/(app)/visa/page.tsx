@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate } from "@/lib/format";
@@ -45,6 +45,8 @@ export default async function VisaPage({
         description="أنشئ طلب الفيزا مرة واحدة، وحمّل الملفين الرسميين (قائمة طالبي الفيزا Excel والبرنامج المفصل Word) معبأين تلقائياً"
         action={<LinkButton href="/visa/new">+ إنشاء فيزا</LinkButton>}
       />
+
+      <ErrorBanner message={sp.error} />
 
       {justCreated && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

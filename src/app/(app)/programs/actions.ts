@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
+import { requireUser } from "@/lib/authz";
 import { revalidatePath } from "next/cache";
 import { withError } from "@/lib/formErrors";
 import { redirect } from "next/navigation";
@@ -43,15 +45,18 @@ function parseProgramForm(formData: FormData) {
 }
 
 export async function createProgram(formData: FormData) {
+  await requireUser();
   const data = parseProgramForm(formData);
 
-  await prisma.tourProgram.create({ data });
+  const created = await prisma.tourProgram.create({ data });
+  await logActivity("create", "TourProgram", created.name || "برنامج بلا اسم");
 
   revalidatePath("/programs");
   redirect("/programs");
 }
 
 export async function updateProgram(id: string, formData: FormData) {
+  await requireUser();
   const data = parseProgramForm(formData);
 
   await prisma.tourProgram.update({ where: { id }, data });
@@ -61,7 +66,9 @@ export async function updateProgram(id: string, formData: FormData) {
 }
 
 export async function deleteProgram(id: string) {
+  await requireUser();
   let deactivated = false;
+  const program = await prisma.tourProgram.findUnique({ where: { id }, select: { name: true } });
   try {
     await prisma.tourProgram.delete({ where: { id } });
   } catch {
@@ -70,6 +77,11 @@ export async function deleteProgram(id: string) {
     await prisma.tourProgram.update({ where: { id }, data: { isActive: false } });
     deactivated = true;
   }
+  await logActivity(
+    deactivated ? "update" : "delete",
+    "TourProgram",
+    deactivated ? `تعطيل البرنامج ${program?.name ?? ""}` : (program?.name ?? "")
+  );
   revalidatePath("/programs");
   // نخبر المستخدم بالنتيجة بدل أن يبقى البرنامج ظاهراً وكأن الحذف لم يعمل
   if (deactivated) {

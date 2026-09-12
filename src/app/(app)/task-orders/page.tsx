@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
+import { Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate } from "@/lib/format";
 import { deleteTaskOrder } from "./actions";
 
@@ -12,10 +13,16 @@ export default async function TaskOrdersPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
-  const taskOrders = await prisma.taskOrder.findMany({
-    include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
-    orderBy: { taskDate: "desc" },
-  });
+  const page = parsePage(sp.page);
+  const [taskOrders, total] = await Promise.all([
+    prisma.taskOrder.findMany({
+      include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
+      orderBy: { taskDate: "desc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.taskOrder.count(),
+  ]);
 
   return (
     <div>
@@ -81,6 +88,8 @@ export default async function TaskOrdersPage({
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/task-orders" />
     </div>
   );
 }

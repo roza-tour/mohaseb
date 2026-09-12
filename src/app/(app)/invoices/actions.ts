@@ -1,8 +1,9 @@
 "use server";
 
 import { z } from "zod";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { buildDocNumber } from "@/lib/documents";
+import { nextDocNumber } from "@/lib/docNumbers";
 import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
@@ -24,6 +25,7 @@ const invoiceSchema = z.object({
 export type InvoiceItem = { description: string; qty: number; unitPrice: number };
 
 export async function createInvoice(formData: FormData) {
+  await requireUser();
   const parsed = invoiceSchema.safeParse({
     tripId: formData.get("tripId") || undefined,
     customerId: formData.get("customerId") || undefined,
@@ -61,14 +63,11 @@ export async function createInvoice(formData: FormData) {
 
   // تاريخ الفاتورة اختياري — إن تُرك فارغاً نضع تاريخ اليوم
   const docDate = parsed.data.docDate ?? new Date();
-  const year = docDate.getFullYear();
-  const countThisYear = await prisma.invoice.count({
-    where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
-  });
+  const invoiceNumber = await nextDocNumber("invoice", docDate.getFullYear());
 
   const created = await prisma.invoice.create({
     data: {
-      invoiceNumber: buildDocNumber(year, countThisYear),
+      invoiceNumber,
       tripId: parsed.data.tripId || null,
       customerId: parsed.data.customerId || null,
       currency: parsed.data.currency,
@@ -86,6 +85,7 @@ export async function createInvoice(formData: FormData) {
 
 // تعديل فاتورة صادرة (يحتفظ برقمها التسلسلي)
 export async function updateInvoice(id: string, formData: FormData) {
+  await requireUser();
   const existing = await prisma.invoice.findUnique({ where: { id } });
   if (!existing) redirect("/invoices");
   const back = `/invoices/${id}`;
@@ -143,6 +143,7 @@ export async function updateInvoice(id: string, formData: FormData) {
 
 // إرسال الفاتورة (PDF) بالبريد إلى العميل مباشرةً
 export async function emailInvoice(id: string, formData: FormData) {
+  await requireUser();
   const lang = (["ar", "fr", "en"].includes(String(formData.get("lang"))) ? formData.get("lang") : "ar") as
     | "ar"
     | "fr"
@@ -179,12 +180,14 @@ export async function emailInvoice(id: string, formData: FormData) {
 }
 
 export async function deleteInvoice(id: string) {
+  await requireAdmin("/invoices");
   await prisma.invoice.delete({ where: { id } });
   await logActivity("delete", "Invoice", `حذف فاتورة`);
   revalidatePath("/invoices");
 }
 
 export async function toggleInvoicePaid(id: string) {
+  await requireUser();
   const inv = await prisma.invoice.findUnique({ where: { id }, select: { paid: true, invoiceNumber: true } });
   if (!inv) return;
   await prisma.invoice.update({ where: { id }, data: { paid: !inv.paid } });
@@ -194,16 +197,14 @@ export async function toggleInvoicePaid(id: string) {
 
 // تكرار فاتورة (نسخة جديدة برقم جديد) لعميل متكرر
 export async function duplicateInvoice(id: string) {
+  await requireUser();
   const src = await prisma.invoice.findUnique({ where: { id } });
   if (!src) redirect("/invoices");
   const docDate = new Date();
-  const year = docDate.getFullYear();
-  const count = await prisma.invoice.count({
-    where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
-  });
+  const invoiceNumber = await nextDocNumber("invoice", docDate.getFullYear());
   const created = await prisma.invoice.create({
     data: {
-      invoiceNumber: buildDocNumber(year, count),
+      invoiceNumber,
       tripId: src.tripId,
       customerId: src.customerId,
       currency: src.currency,

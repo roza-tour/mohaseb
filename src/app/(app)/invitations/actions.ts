@@ -1,9 +1,9 @@
 "use server";
 
 import { z } from "zod";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { buildDocNumber } from "@/lib/documents";
+import { nextDocNumber } from "@/lib/docNumbers";
 import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
@@ -22,7 +22,7 @@ const schema = z.object({
 });
 
 export async function createInvitation(formData: FormData) {
-  if (!(await auth())?.user?.email) redirect("/login");
+  await requireUser();
 
   const parsed = schema.safeParse({
     language: formData.get("language") || "fr",
@@ -52,14 +52,11 @@ export async function createInvitation(formData: FormData) {
   }
 
   const docDate = new Date();
-  const year = docDate.getFullYear();
-  const count = await prisma.invitation.count({
-    where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
-  });
+  const refNumber = await nextDocNumber("invitation", docDate.getFullYear());
 
   const created = await prisma.invitation.create({
     data: {
-      refNumber: buildDocNumber(year, count),
+      refNumber,
       language: d.language,
       consulate: d.consulate,
       people,
@@ -97,7 +94,7 @@ export async function createInvitation(formData: FormData) {
 
 // تعديل دعوة صادرة (يحتفظ بالرقم المرجعي وتاريخ الإصدار)
 export async function updateInvitation(id: string, formData: FormData) {
-  if (!(await auth())?.user?.email) redirect("/login");
+  await requireUser();
 
   const existing = await prisma.invitation.findUnique({ where: { id } });
   if (!existing) redirect("/invitations");
@@ -177,6 +174,7 @@ export async function updateInvitation(id: string, formData: FormData) {
 
 // إرسال الدعوة (PDF) بالبريد إلى عنوان يُدخَل يدوياً (الدعوة لا تُخزّن بريداً)
 export async function emailInvitation(id: string, formData: FormData) {
+  await requireUser();
   const to = (formData.get("email") as string)?.trim() || "";
   if (!to) redirect(withError("/invitations", "أدخل بريداً إلكترونياً للإرسال"));
 
@@ -207,6 +205,7 @@ export async function emailInvitation(id: string, formData: FormData) {
 }
 
 export async function deleteInvitation(id: string) {
+  await requireAdmin("/invitations");
   // حذف الدعوة يحذف قيد الإيراد المرتبط تلقائياً (onDelete: Cascade)
   await prisma.invitation.delete({ where: { id } });
   await logActivity("delete", "Invitation", "حذف دعوة");
@@ -215,6 +214,7 @@ export async function deleteInvitation(id: string) {
 }
 
 export async function toggleInvitationPaid(id: string) {
+  await requireUser();
   const inv = await prisma.invitation.findUnique({ where: { id }, select: { paid: true, refNumber: true } });
   if (!inv) return;
   await prisma.invitation.update({ where: { id }, data: { paid: !inv.paid } });
@@ -224,16 +224,14 @@ export async function toggleInvitationPaid(id: string) {
 
 // تكرار دعوة (نسخة جديدة برقم جديد) — تُسجَّل رسماً جديداً كإيراد
 export async function duplicateInvitation(id: string) {
+  await requireUser();
   const src = await prisma.invitation.findUnique({ where: { id } });
   if (!src) redirect("/invitations");
   const docDate = new Date();
-  const year = docDate.getFullYear();
-  const count = await prisma.invitation.count({
-    where: { docDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },
-  });
+  const refNumber = await nextDocNumber("invitation", docDate.getFullYear());
   const created = await prisma.invitation.create({
     data: {
-      refNumber: buildDocNumber(year, count),
+      refNumber,
       language: src.language,
       consulate: src.consulate,
       people: src.people ?? [],

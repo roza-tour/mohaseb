@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
+import { requireUser, requireAdmin } from "@/lib/authz";
+import { logActivity } from "@/lib/activity";
+import { deleteTripPreservingMoney } from "@/lib/tripCleanup";
 
 function orNull(value: FormDataEntryValue | null) {
   const s = typeof value === "string" ? value.trim() : "";
@@ -59,25 +62,36 @@ function parseTripForm(
 }
 
 export async function createTrip(formData: FormData) {
+  await requireUser();
   const result = parseTripForm(formData);
   if ("error" in result) redirect(withError("/trips/new", result.error));
-  const trip = await prisma.trip.create({ data: result.data });
+  const trip = await prisma.trip.create({
+    data: result.data,
+    include: { program: true, customer: true },
+  });
+  await logActivity("create", "Trip", `${trip.program.name} — ${trip.customer.name}`);
   revalidatePath("/trips");
   redirect(`/trips/${trip.id}`);
 }
 
 export async function updateTrip(id: string, formData: FormData) {
+  await requireUser();
   const result = parseTripForm(formData);
   if ("error" in result) redirect(withError(`/trips/${id}/edit`, result.error));
   await prisma.trip.update({ where: { id }, data: result.data });
+  await logActivity("update", "Trip", "تعديل بيانات رحلة");
   revalidatePath("/trips");
   revalidatePath(`/trips/${id}`);
   redirect(`/trips/${id}`);
 }
 
+// حذف رحلة: للمدير فقط، ومع حفظ المبلغ المحصَّل كقيد إيراد حتى لا يختفي من الحسابات
 export async function deleteTrip(id: string) {
-  await prisma.trip.delete({ where: { id } });
+  await requireAdmin(`/trips/${id}`);
+  const label = await deleteTripPreservingMoney(id);
+  if (label) await logActivity("delete", "Trip", label);
   revalidatePath("/trips");
+  revalidatePath("/accounting/transactions");
   redirect("/trips");
 }
 
@@ -86,6 +100,7 @@ const statusSchema = z.object({
 });
 
 export async function updateTripStatus(id: string, formData: FormData) {
+  await requireUser();
   const { status } = statusSchema.parse({ status: formData.get("status") });
   await prisma.trip.update({ where: { id }, data: { status } });
   revalidatePath(`/trips/${id}`);
@@ -104,6 +119,7 @@ const hotelBookingSchema = z.object({
 });
 
 export async function createHotelBooking(tripId: string, formData: FormData) {
+  await requireUser();
   const parsed = hotelBookingSchema.safeParse({
     hotelId: formData.get("hotelId"),
     checkIn: formData.get("checkIn") || undefined,
@@ -126,6 +142,7 @@ export async function createHotelBooking(tripId: string, formData: FormData) {
 }
 
 export async function deleteHotelBooking(tripId: string, id: string) {
+  await requireUser();
   await prisma.hotelBooking.delete({ where: { id } });
   revalidatePath(`/trips/${tripId}`);
 }
@@ -144,6 +161,7 @@ const flightBookingSchema = z.object({
 });
 
 export async function createFlightBooking(tripId: string, formData: FormData) {
+  await requireUser();
   const parsed = flightBookingSchema.safeParse({
     airline: formData.get("airline"),
     flightNumber: orNull(formData.get("flightNumber")),
@@ -163,6 +181,7 @@ export async function createFlightBooking(tripId: string, formData: FormData) {
 }
 
 export async function deleteFlightBooking(tripId: string, id: string) {
+  await requireUser();
   await prisma.flightBooking.delete({ where: { id } });
   revalidatePath(`/trips/${tripId}`);
 }
@@ -178,6 +197,7 @@ const otherBookingSchema = z.object({
 });
 
 export async function createOtherBooking(tripId: string, formData: FormData) {
+  await requireUser();
   const parsed = otherBookingSchema.safeParse({
     type: formData.get("type"),
     description: orNull(formData.get("description")),
@@ -191,6 +211,7 @@ export async function createOtherBooking(tripId: string, formData: FormData) {
 }
 
 export async function deleteOtherBooking(tripId: string, id: string) {
+  await requireUser();
   await prisma.otherBooking.delete({ where: { id } });
   revalidatePath(`/trips/${tripId}`);
 }

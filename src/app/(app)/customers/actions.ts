@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/authz";
 import { logActivity } from "@/lib/activity";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -42,6 +43,7 @@ function buildCustomerData(formData: FormData) {
 }
 
 export async function createCustomer(formData: FormData) {
+  await requireUser();
   const data = buildCustomerData(formData);
   const c = await prisma.customer.create({ data });
   await logActivity("create", "Customer", c.name);
@@ -50,6 +52,7 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(id: string, formData: FormData) {
+  await requireUser();
   const data = buildCustomerData(formData);
   await prisma.customer.update({ where: { id }, data });
   revalidatePath("/customers");
@@ -57,6 +60,7 @@ export async function updateCustomer(id: string, formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
+  await requireUser();
   // العميل المرتبط برحلات أو فواتير لا يمكن حذفه (قيد foreign key في قاعدة البيانات)،
   // وكان الحذف يُسقط الصفحة بخطأ 500 بالإنجليزية — نشرح السبب بالعربية بدل ذلك.
   const [trips, invoices] = await Promise.all([

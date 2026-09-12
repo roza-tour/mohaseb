@@ -1,8 +1,10 @@
 "use server";
 
 import { z } from "zod";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { buildDocNumber, docStyleFromForm } from "@/lib/documents";
+import { docStyleFromForm } from "@/lib/documents";
+import { nextDocNumber } from "@/lib/docNumbers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
@@ -20,6 +22,7 @@ const documentSchema = z.object({
 });
 
 export async function createDocument(formData: FormData) {
+  await requireUser();
   const parsed = documentSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
@@ -39,18 +42,11 @@ export async function createDocument(formData: FormData) {
   if (data.passport.trim()) body = body.split("[PASSPORT]").join(data.passport.trim());
 
   const year = data.docDate.getFullYear();
-  const countThisYear = await prisma.document.count({
-    where: {
-      docDate: {
-        gte: new Date(year, 0, 1),
-        lt: new Date(year + 1, 0, 1),
-      },
-    },
-  });
+  const docNumber = await nextDocNumber("document", year);
 
   const created = await prisma.document.create({
     data: {
-      docNumber: buildDocNumber(year, countThisYear),
+      docNumber,
       title: data.title,
       body,
       tripId: data.tripId || null,
@@ -66,6 +62,7 @@ export async function createDocument(formData: FormData) {
 
 // تعديل مستند صادر (يحتفظ برقمه التسلسلي)
 export async function updateDocument(id: string, formData: FormData) {
+  await requireUser();
   const existing = await prisma.document.findUnique({ where: { id } });
   if (!existing) redirect("/documents");
   const back = `/documents/${id}`;
@@ -98,6 +95,7 @@ export async function updateDocument(id: string, formData: FormData) {
 }
 
 export async function deleteDocument(id: string) {
+  await requireAdmin("/documents");
   await prisma.document.delete({ where: { id } });
   revalidatePath("/documents");
 }
@@ -111,6 +109,7 @@ const templateSchema = z.object({
 });
 
 export async function createTemplate(formData: FormData) {
+  await requireUser();
   const data = templateSchema.parse({
     name: formData.get("name"),
     title: formData.get("title"),
@@ -121,6 +120,7 @@ export async function createTemplate(formData: FormData) {
 }
 
 export async function updateTemplate(id: string, formData: FormData) {
+  await requireUser();
   const data = templateSchema.parse({
     name: formData.get("name"),
     title: formData.get("title"),
@@ -134,6 +134,7 @@ export async function updateTemplate(id: string, formData: FormData) {
 }
 
 export async function deleteTemplate(id: string) {
+  await requireUser();
   await prisma.documentTemplate.delete({ where: { id } });
   revalidatePath("/documents/templates");
 }

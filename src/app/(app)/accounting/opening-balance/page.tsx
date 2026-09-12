@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatCurrency } from "@/lib/format";
 import { deleteOpeningBalanceItem } from "./actions";
@@ -96,6 +96,8 @@ export default async function OpeningBalancePage({
           <LinkButton href={`/accounting/opening-balance/new?year=${safeYear}`}>+ إضافة بند</LinkButton>
         }
       />
+
+      <ErrorBanner message={params.error} />
 
       <div className="flex items-center justify-center gap-4 mb-6">
         <Link

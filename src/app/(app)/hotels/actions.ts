@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity";
+import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { withError } from "@/lib/formErrors";
@@ -28,13 +30,16 @@ function buildHotelData(formData: FormData) {
 }
 
 export async function createHotel(formData: FormData) {
+  await requireUser();
   const data = buildHotelData(formData);
-  await prisma.hotel.create({ data });
+  const created = await prisma.hotel.create({ data });
+  await logActivity("create", "Hotel", created.name || "فندق بلا اسم");
   revalidatePath("/hotels");
   redirect("/hotels");
 }
 
 export async function updateHotel(id: string, formData: FormData) {
+  await requireUser();
   const data = buildHotelData(formData);
   await prisma.hotel.update({ where: { id }, data });
   revalidatePath("/hotels");
@@ -42,6 +47,7 @@ export async function updateHotel(id: string, formData: FormData) {
 }
 
 export async function deleteHotel(id: string) {
+  await requireUser();
   // الفندق المرتبط بحجوزات لا يمكن حذفه (قيد foreign key) — كان يُسقط الصفحة بخطأ 500
   const bookings = await prisma.hotelBooking.count({ where: { hotelId: id } });
   if (bookings > 0) {
@@ -52,6 +58,7 @@ export async function deleteHotel(id: string) {
       )
     );
   }
-  await prisma.hotel.delete({ where: { id } });
+  const removed = await prisma.hotel.delete({ where: { id } });
+  await logActivity("delete", "Hotel", removed.name || "فندق بلا اسم");
   revalidatePath("/hotels");
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate } from "@/lib/format";
 import { deleteDocument } from "./actions";
@@ -49,6 +49,8 @@ export default async function DocumentsPage({
           </div>
         }
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SearchBox q={q} basePath="/documents" placeholder="بحث بالعنوان أو الرقم أو العميل..." />
 

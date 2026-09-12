@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { EmailDocButton } from "@/components/EmailDocButton";
-import { SearchBox } from "@/components/ListControls";
+import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { deleteInvitation, toggleInvitationPaid, duplicateInvitation, emailInvitation } from "./actions";
 
@@ -17,11 +17,18 @@ export default async function InvitationsPage({
   const sp = await searchParams;
   const q = typeof sp.q === "string" && sp.q.trim() !== "" ? sp.q.trim() : undefined;
   const sent = typeof sp.sent === "string" ? sp.sent : undefined;
-  const invitations = await prisma.invitation.findMany({
-    where: q ? { OR: [{ refNumber: { contains: q } }, { consulate: { contains: q } }] } : {},
-    include: { program: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const page = parsePage(sp.page);
+  const where = q ? { OR: [{ refNumber: { contains: q } }, { consulate: { contains: q } }] } : {};
+  const [invitations, total] = await Promise.all([
+    prisma.invitation.findMany({
+      where,
+      include: { program: true },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.invitation.count({ where }),
+  ]);
 
   return (
     <div>
@@ -30,6 +37,8 @@ export default async function InvitationsPage({
         description="دعوات موجَّهة للقنصليات (خدمة مدفوعة) — تصدر PDF مختوماً بورقتين ويُسجَّل رسمها كإيراد تلقائياً"
         action={<LinkButton href="/invitations/new">+ دعوة جديدة</LinkButton>}
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SuccessBanner message={sent} />
 
@@ -104,6 +113,8 @@ export default async function InvitationsPage({
           </Table>
         )}
       </Card>
+
+      <Pagination page={page} total={total} basePath="/invitations" params={{ q }} />
     </div>
   );
 }

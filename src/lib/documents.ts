@@ -60,11 +60,6 @@ export function fillTemplate(
   return result;
 }
 
-// رقم تسلسلي للمستند بصيغة السنة/العدّاد، مثال: 2026/0007
-export function buildDocNumber(year: number, count: number) {
-  return `${year}/${String(count + 1).padStart(4, "0")}`;
-}
-
 // ---------- نظام تنسيق المستندات ----------
 // يُخزَّن كـ JSON مع كل مستند/قالب، ويتحكم في حجم الخط والألوان
 // وتباعد الأسطر والمحاذاة وإطار النص — دون الحاجة لتعديل الكود.
