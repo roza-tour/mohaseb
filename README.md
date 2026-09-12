@@ -77,14 +77,28 @@ npm run build                 # بناء نسخة الإنتاج
 ### فحص سريع بعد كل تحديث
 
 ```bash
-npm run smoke                       # يفحص http://localhost:3000
-node scripts/smoke-test.mjs https://mohaseb.rozatour-booking.com
+npm run smoke                                                   # يفحص http://localhost:3000
+node scripts/smoke-test.mjs https://mohaseb.rozatour-booking.com --public
 ```
 
-يتحقق من تسجيل الدخول وفتح الصفحات الأساسية، ومن أن صفحة التحقق من المستند (رمز QR) عامة،
-ومن أن مهام cron ترفض الرمز الخاطئ.
+يتحقق من فتح صفحة الدخول، وأن الصفحات محميّة، وأن صفحة التحقق من المستند (رمز QR) عامة،
+وأن مهام cron ترفض الرمز الخاطئ. `deploy.sh` يشغّله تلقائياً بعد كل نشر بوضع `--public`.
+لفحص الصفحات الداخلية أيضاً مرّر بيانات الدخول الحالية:
 
-### التحديثات لاحقاً (git pull فقط)
+```bash
+SMOKE_EMAIL=you@example.com SMOKE_PASSWORD=... node scripts/smoke-test.mjs https://... 
+```
+
+### التحديثات لاحقاً (أمر واحد)
+
+```bash
+cd ~/mohaseb-app && git pull && bash scripts/deploy.sh
+```
+
+يأخذ نسخة احتياطية، ثم يثبّت الحزم ويطبّق هجرات قاعدة البيانات ويبني التطبيق ويسجّل المهام
+التلقائية ويعيد التشغيل، ثم يفحص أن الموقع يعمل. لا حاجة لأي أمر آخر.
+
+### التحديث خطوة بخطوة (إن أردت التحكّم يدوياً)
 من مجلد التطبيق في الـ Terminal:
 ```bash
 git pull
