@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteDriver } from "./actions";
@@ -30,6 +30,8 @@ export default async function DriversPage({
         description="قاعدة بيانات السائقين ومركباتهم وبيانات التواصل الخاصة بهم"
         action={<LinkButton href="/drivers/new">+ إضافة سائق</LinkButton>}
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SearchBox q={q} basePath="/drivers" placeholder="بحث بالاسم أو الهاتف أو المركبة..." />
 

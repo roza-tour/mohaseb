@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteGuide } from "./actions";
@@ -30,6 +30,8 @@ export default async function GuidesPage({
         description="قاعدة بيانات المرشدين السياحيين واللغات التي يتقنونها وبيانات التواصل"
         action={<LinkButton href="/guides/new">+ إضافة مرشد</LinkButton>}
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SearchBox q={q} basePath="/guides" placeholder="بحث بالاسم أو الهاتف..." />
 

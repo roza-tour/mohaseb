@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { withError } from "@/lib/formErrors";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -60,12 +61,23 @@ export async function updateProgram(id: string, formData: FormData) {
 }
 
 export async function deleteProgram(id: string) {
+  let deactivated = false;
   try {
     await prisma.tourProgram.delete({ where: { id } });
   } catch {
     // على الأغلب فشل الحذف بسبب وجود رحلات مرتبطة بهذا البرنامج (قيد foreign key)
     // في هذه الحالة نكتفي بتعطيل البرنامج بدلاً من حذفه
     await prisma.tourProgram.update({ where: { id }, data: { isActive: false } });
+    deactivated = true;
   }
   revalidatePath("/programs");
+  // نخبر المستخدم بالنتيجة بدل أن يبقى البرنامج ظاهراً وكأن الحذف لم يعمل
+  if (deactivated) {
+    redirect(
+      withError(
+        "/programs",
+        "لم يُحذف البرنامج لارتباطه برحلات مسجَّلة — تم تعطيله فقط فلا يظهر عند إنشاء رحلات جديدة"
+      )
+    );
+  }
 }

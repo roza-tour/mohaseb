@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { withError } from "@/lib/formErrors";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -56,6 +57,23 @@ export async function updateCustomer(id: string, formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
+  // العميل المرتبط برحلات أو فواتير لا يمكن حذفه (قيد foreign key في قاعدة البيانات)،
+  // وكان الحذف يُسقط الصفحة بخطأ 500 بالإنجليزية — نشرح السبب بالعربية بدل ذلك.
+  const [trips, invoices] = await Promise.all([
+    prisma.trip.count({ where: { customerId: id } }),
+    prisma.invoice.count({ where: { customerId: id } }),
+  ]);
+  if (trips > 0) {
+    redirect(
+      withError(
+        "/customers",
+        `لا يمكن حذف هذا العميل لارتباطه بـ ${trips} رحلة — احذف رحلاته أولاً أو أبقِ بياناته للأرشيف`
+      )
+    );
+  }
+  const removed = await prisma.customer.findUnique({ where: { id }, select: { name: true } });
   await prisma.customer.delete({ where: { id } });
+  await logActivity("delete", "Customer", removed?.name ?? "");
+  if (invoices > 0) revalidatePath("/invoices");
   revalidatePath("/customers");
 }

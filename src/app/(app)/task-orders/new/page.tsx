@@ -32,6 +32,13 @@ export default async function NewTaskOrderPage({
         </div>
       )}
 
+      {guides.length === 0 && drivers.length === 0 && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 max-w-2xl">
+          لا يوجد مرشدون ولا سائقون مسجَّلون — لن تستطيع اختيار مكلَّف بالمهمة. أضف مرشداً من صفحة المرشدين
+          أو سائقاً من صفحة السائقين أولاً.
+        </div>
+      )}
+
       <TaskOrderForm
         action={createTaskOrder}
         trips={trips}

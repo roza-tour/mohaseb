@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { deleteHotel } from "./actions";
@@ -30,6 +30,8 @@ export default async function HotelsPage({
         description="قاعدة بيانات الفنادق المتعامل معها وبيانات التواصل الخاصة بها"
         action={<LinkButton href="/hotels/new">+ إضافة فندق</LinkButton>}
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SearchBox q={q} basePath="/hotels" placeholder="بحث بالاسم أو المدينة..." />
 

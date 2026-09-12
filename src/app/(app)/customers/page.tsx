@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, ErrorBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
@@ -37,6 +37,8 @@ export default async function CustomersPage({
           </div>
         }
       />
+
+      <ErrorBanner message={sp.error} />
 
       <SearchBox q={q} basePath="/customers" placeholder="بحث بالاسم أو الهاتف أو البريد..." />
 

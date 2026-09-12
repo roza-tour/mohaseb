@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { withError } from "@/lib/formErrors";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -40,6 +41,17 @@ export async function updateGuide(id: string, formData: FormData) {
 }
 
 export async function deleteGuide(id: string) {
+  // حذف مرشد له أوامر تكليف كان يُفرّغ خانة المكلَّف في تلك الأوامر بصمت
+  // (تبقى الأوامر بلا اسم في القائمة وفي الـ PDF)، فنمنع الحذف ونشرح السبب.
+  const assigned = await prisma.taskOrder.count({ where: { guideId: id } });
+  if (assigned > 0) {
+    redirect(
+      withError(
+        "/guides",
+        `لا يمكن حذف هذا المرشد لوجود ${assigned} أمر تكليف صادر باسمه — احذف أوامر التكليف أولاً أو غيّر المكلَّف فيها`
+      )
+    );
+  }
   await prisma.guide.delete({ where: { id } });
   revalidatePath("/guides");
 }

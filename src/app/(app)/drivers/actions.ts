@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { withError } from "@/lib/formErrors";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -40,6 +41,16 @@ export async function updateDriver(id: string, formData: FormData) {
 }
 
 export async function deleteDriver(id: string) {
+  // نفس منطق المرشدين: لا نترك أوامر تكليف بلا مكلَّف
+  const assigned = await prisma.taskOrder.count({ where: { driverId: id } });
+  if (assigned > 0) {
+    redirect(
+      withError(
+        "/drivers",
+        `لا يمكن حذف هذا السائق لوجود ${assigned} أمر تكليف صادر باسمه — احذف أوامر التكليف أولاً أو غيّر المكلَّف فيها`
+      )
+    );
+  }
   await prisma.driver.delete({ where: { id } });
   revalidatePath("/drivers");
 }

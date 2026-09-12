@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { withError } from "@/lib/formErrors";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -41,6 +42,16 @@ export async function updateHotel(id: string, formData: FormData) {
 }
 
 export async function deleteHotel(id: string) {
+  // الفندق المرتبط بحجوزات لا يمكن حذفه (قيد foreign key) — كان يُسقط الصفحة بخطأ 500
+  const bookings = await prisma.hotelBooking.count({ where: { hotelId: id } });
+  if (bookings > 0) {
+    redirect(
+      withError(
+        "/hotels",
+        `لا يمكن حذف هذا الفندق لوجود ${bookings} حجز مرتبط به — احذف الحجوزات أولاً أو أبقِ الفندق في القائمة`
+      )
+    );
+  }
   await prisma.hotel.delete({ where: { id } });
   revalidatePath("/hotels");
 }

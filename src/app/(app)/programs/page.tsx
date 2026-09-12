@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, LinkButton, Table, Th, Td, EmptyState, Badge } from "@/components/ui";
+import { PageHeader, Card, LinkButton, Table, Th, Td, EmptyState, Badge, ErrorBanner } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { DeleteButton } from "@/components/DeleteButton";
 import { deleteProgram } from "./actions";
@@ -28,6 +28,8 @@ export default async function ProgramsPage({
           </div>
         }
       />
+
+      <ErrorBanner message={sp.error} />
 
       {imported !== undefined && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

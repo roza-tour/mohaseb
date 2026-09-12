@@ -50,7 +50,9 @@ export default async function EditTaskOrderPage({
         submitLabel="حفظ التعديلات"
         initial={{
           tripId: order.tripId,
-          assigneeType: order.guideId ? "GUIDE" : "DRIVER",
+          // نعتمد الصفة المخزَّنة لا وجود المرشد، حتى لا تنقلب صفة الأمر
+          // إلى "سائق" لو حُذف المرشد المكلَّف من قاعدة البيانات
+          assigneeType: order.assigneeType === "DRIVER" ? "DRIVER" : "GUIDE",
           guideId: order.guideId ?? "",
           driverId: order.driverId ?? "",
           taskDate: formatDateForInput(order.taskDate),

@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge } from "@/components/ui";
+import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { formatDate } from "@/lib/format";
 import { deleteTaskOrder } from "./actions";
 
-export default async function TaskOrdersPage() {
+export default async function TaskOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
   const taskOrders = await prisma.taskOrder.findMany({
     include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
     orderBy: { taskDate: "desc" },
@@ -19,6 +24,8 @@ export default async function TaskOrdersPage() {
         description="إصدار أوامر تكليف للمرشدين والسائقين بصيغة PDF جاهزة للطباعة"
         action={<LinkButton href="/task-orders/new">+ أمر تكليف جديد</LinkButton>}
       />
+
+      {sp.updated && <SuccessBanner message="تم حفظ تعديلات أمر التكليف — أعِد تنزيل الـ PDF ليظهر بالبيانات الجديدة" />}
 
       <Card>
         {taskOrders.length === 0 ? (
@@ -42,7 +49,15 @@ export default async function TaskOrdersPage() {
                   <Td>
                     {to.trip.program.name} — {to.trip.customer.name}
                   </Td>
-                  <Td className="font-medium text-slate-800">{to.guide?.name ?? to.driver?.name ?? "—"}</Td>
+                  <Td className="font-medium text-slate-800">
+                    {to.guide?.name ??
+                      to.driver?.name ?? (
+                        // المكلَّف حُذف من قاعدة البيانات بعد إصدار الأمر
+                        <span className="text-red-600" title="المكلَّف محذوف من قاعدة البيانات">
+                          ⚠️ مكلَّف محذوف — عدّل الأمر
+                        </span>
+                      )}
+                  </Td>
                   <Td>
                     <Badge color={to.assigneeType === "GUIDE" ? "sky" : "amber"}>
                       {to.assigneeType === "GUIDE" ? "مرشد سياحي" : "سائق"}
