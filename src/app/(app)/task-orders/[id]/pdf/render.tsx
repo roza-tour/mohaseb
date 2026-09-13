@@ -7,6 +7,7 @@ import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng, docQrText } from "@/lib/qr";
 import { nameOr } from "@/lib/format";
+import { findTaskOrder } from "@/lib/taskOrderView";
 
 registerArabicFonts();
 
@@ -157,11 +158,10 @@ export async function renderTaskOrderPdf(
   id: string,
   lang: "ar" | "fr"
 ): Promise<{ buffer: Buffer; ref: string } | null> {
-  const taskOrder = await prisma.taskOrder.findUnique({
-    where: { id },
-    include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
-  });
+  // قراءة لا تنكسر: أمر تكليف يشير إلى رحلة محذوفة كان يُفشل توليد الـ PDF بخطأ خادم
+  const taskOrder = await findTaskOrder(id);
   if (!taskOrder) return null;
+  const trip = taskOrder.tripInfo;
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stamp = loadPublicImage(settings?.stampPath);
@@ -185,11 +185,11 @@ export async function renderTaskOrderPdf(
         assigneeName: taskOrder.guide?.name ?? taskOrder.driver?.name ?? "",
         assigneePhone: taskOrder.guide?.phone ?? taskOrder.driver?.phone ?? "",
         details: taskOrder.details ?? "",
-        programName: taskOrder.trip.program.name,
-        customerName: taskOrder.trip.customer.name,
-        numPax: taskOrder.trip.numPax,
-        tripStart: taskOrder.trip.startDate,
-        tripEnd: taskOrder.trip.endDate,
+        programName: trip?.programName ?? "—",
+        customerName: trip?.customerName ?? "—",
+        numPax: trip?.numPax ?? 0,
+        tripStart: trip?.startDate ?? taskOrder.taskDate,
+        tripEnd: trip?.endDate ?? taskOrder.taskDate,
       },
       settings,
       stamp,

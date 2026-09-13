@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate } from "@/lib/format";
+import { findTaskOrders } from "@/lib/taskOrderView";
 import { deleteTaskOrder } from "./actions";
 
 export default async function TaskOrdersPage({
@@ -14,9 +15,9 @@ export default async function TaskOrdersPage({
 }) {
   const sp = await searchParams;
   const page = parsePage(sp.page);
+  // قراءة لا تنكسر: أمر تكليف يشير إلى رحلة محذوفة كان يُسقط الصفحة كلها بخطأ خادم
   const [taskOrders, total] = await Promise.all([
-    prisma.taskOrder.findMany({
-      include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
+    findTaskOrders({
       orderBy: { taskDate: "desc" },
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
@@ -54,7 +55,13 @@ export default async function TaskOrdersPage({
               {taskOrders.map((to) => (
                 <tr key={to.id}>
                   <Td>
-                    {to.trip.program.name} — {to.trip.customer.name}
+                    {to.tripInfo ? (
+                      `${to.tripInfo.programName} — ${to.tripInfo.customerName}`
+                    ) : (
+                      <span className="text-red-600" title="الرحلة المرتبطة غير موجودة في قاعدة البيانات">
+                        ⚠️ رحلة محذوفة — عدّل الأمر أو احذفه
+                      </span>
+                    )}
                   </Td>
                   <Td className="font-medium text-slate-800">
                     {to.guide?.name ??

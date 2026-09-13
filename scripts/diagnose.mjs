@@ -150,6 +150,40 @@ if (prisma) {
       bad("لا يوجد مرشدون ولا سائقون", "لن تستطيع اختيار مكلَّف — أضفهم أولاً من صفحتي المرشدين والسائقين");
     }
 
+    // ── سجلات يتيمة: تشير إلى سجل أب غير موجود (تحدث عند الحذف اليدوي من
+    //    phpMyAdmin أو استعادة نسخة ناقصة). سطر واحد منها كان يُسقط الصفحة بخطأ 500.
+    const orphanChecks = [
+      ["أوامر تكليف بلا رحلة", "TaskOrder", "tripId", "Trip"],
+      ["حجوزات فنادق بلا رحلة", "HotelBooking", "tripId", "Trip"],
+      ["حجوزات طيران بلا رحلة", "FlightBooking", "tripId", "Trip"],
+      ["سندات قبض بلا رحلة", "Payment", "tripId", "Trip"],
+      ["مرفقات بلا رحلة", "Attachment", "tripId", "Trip"],
+      ["رحلات بلا برنامج", "Trip", "programId", "TourProgram"],
+      ["رحلات بلا عميل", "Trip", "customerId", "Customer"],
+    ];
+    let orphanTotal = 0;
+    for (const [label, table, col, parent] of orphanChecks) {
+      try {
+        const r = await prisma.$queryRawUnsafe(
+          `SELECT COUNT(*) AS n FROM \`${table}\` c LEFT JOIN \`${parent}\` p ON p.id = c.\`${col}\` WHERE c.\`${col}\` IS NOT NULL AND p.id IS NULL`
+        );
+        const n = Number(r?.[0]?.n ?? 0);
+        if (n > 0) {
+          bad(`${label}: ${n}`, "تُسقط الصفحة بخطأ خادم");
+          orphanTotal += n;
+        }
+      } catch {
+        /* تعذّر الفحص — نتجاهل */
+      }
+    }
+    if (orphanTotal === 0) {
+      ok("لا توجد سجلات يتيمة (كل السجلات مرتبطة بأصلها)");
+    } else {
+      console.log(`     ⇐ هذا سبب شائع لرسالة «A server error occurred» في صفحة بعينها.`);
+      console.log(`     الحل:  node scripts/repair.mjs        (يعرض ما سيُحذف)`);
+      console.log(`            node scripts/repair.mjs --yes  (ينفّذ الحذف)`);
+    }
+
     const orphans = await prisma.taskOrder.count({ where: { guideId: null, driverId: null } });
     if (orphans > 0) {
       warn(`${orphans} أمر تكليف بلا مكلَّف`, "حُذف المرشد/السائق بعد إصدار الأمر — عدّل الأمر واختر مكلَّفاً");

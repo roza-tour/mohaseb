@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import { formatDate } from "@/lib/format";
+import { findTaskOrders } from "@/lib/taskOrderView";
 
 const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
@@ -15,9 +16,8 @@ export default async function SchedulePage() {
   horizon.setUTCDate(horizon.getUTCDate() + 30);
 
   const [taskOrders, startingTrips] = await Promise.all([
-    prisma.taskOrder.findMany({
+    findTaskOrders({
       where: { taskDate: { gte: today, lt: horizon } },
-      include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
       orderBy: { taskDate: "asc" },
     }),
     prisma.trip.findMany({
@@ -95,7 +95,9 @@ export default async function SchedulePage() {
                       {to.assigneeType === "GUIDE" ? "مرشد" : "سائق"}
                     </Badge>
                     <span className="text-slate-500">
-                      رحلة {to.trip.program.name} — {to.trip.customer.name}
+                      {to.tripInfo
+                        ? `رحلة ${to.tripInfo.programName} — ${to.tripInfo.customerName}`
+                        : "⚠️ رحلة محذوفة"}
                     </span>
                     <Link
                       href={`/task-orders/${to.id}/pdf`}
