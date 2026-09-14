@@ -167,19 +167,7 @@ function assertSafeUrl(raw: string): URL {
 
 export async function fetchProgramsFromSite(url: string): Promise<ImportedProgram[]> {
   assertSafeUrl(url);
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml",
-    },
-    // لا نريد تخزيناً مؤقتاً — نجلب أحدث نسخة من الموقع كل مرة
-    cache: "no-store",
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!res.ok) {
-    throw new Error(`تعذر الوصول للموقع (HTTP ${res.status}) — تأكد من الرابط وحاول مجدداً`);
-  }
+  const res = await fetchFollowingSafeRedirects(url);
   const html = await res.text();
 
   const jsonLd = fromJsonLd(html, url);
@@ -193,4 +181,36 @@ export async function fetchProgramsFromSite(url: string): Promise<ImportedProgra
     seen.add(key);
     return true;
   });
+}
+
+// جلب الصفحة مع فحص كل تحويلة على حدة: fetch يتبع التحويلات تلقائياً، فموقع
+// خارجي يستطيع تحويلنا إلى عنوان داخلي بعد أن يمر الفحص الأول — نمنع ذلك.
+async function fetchFollowingSafeRedirects(startUrl: string): Promise<Response> {
+  let current = startUrl;
+  for (let hop = 0; hop < 5; hop++) {
+    assertSafeUrl(current);
+    const res = await fetch(current, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+      Accept: "text/html,application/xhtml+xml",
+    },
+    // لا نريد تخزيناً مؤقتاً — نجلب أحدث نسخة من الموقع كل مرة
+      cache: "no-store",
+      redirect: "manual",
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) throw new Error("تعذر الوصول للموقع (تحويل بلا عنوان)");
+      current = new URL(location, current).toString();
+      continue;
+    }
+    if (!res.ok) {
+      throw new Error(`تعذر الوصول للموقع (HTTP ${res.status}) — تأكد من الرابط وحاول مجدداً`);
+    }
+    return res;
+  }
+  throw new Error("تعذر الوصول للموقع (تحويلات كثيرة)");
 }

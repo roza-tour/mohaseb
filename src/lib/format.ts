@@ -1,3 +1,10 @@
+// المبالغ تُخزَّن كأرقام عشرية، وجمع عدة دفعات يُنتج كسراً دقيقاً جداً (مثل 2e-16)
+// يجعل رحلة مدفوعة بالكامل تظهر وكأن عليها متبقٍّ — في القوائم وفي تذكير المستحقات.
+// نقرّب لأقرب سنتيم قبل أي مقارنة أو عرض.
+export function roundMoney(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 export function formatCurrency(amount: number, currency = "DZD") {
   return `${amount.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }

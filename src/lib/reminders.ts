@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { roundMoney } from "@/lib/format";
 
 export async function getUpcomingTrips(daysAheadOverride?: number) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
@@ -38,16 +39,17 @@ export async function getOutstandingTrips() {
   });
   return trips
     .map((t) => {
-      const paid = t.payments.reduce((s, p) => s + p.amount, 0);
+      const paid = roundMoney(t.payments.reduce((s, p) => s + p.amount, 0));
       return {
         id: t.id,
         programName: t.program.name,
         customerName: t.customer.name,
         currency: t.currency,
-        remaining: t.agreedPrice - paid,
+        remaining: roundMoney(t.agreedPrice - paid),
       };
     })
-    .filter((t) => t.remaining > 0)
+    // أكبر من نصف سنتيم — حتى لا تُطارَد رحلة مدفوعة بالكامل بفارق كسري لا يُرى
+    .filter((t) => t.remaining >= 0.01)
     .sort((a, b) => b.remaining - a.remaining);
 }
 

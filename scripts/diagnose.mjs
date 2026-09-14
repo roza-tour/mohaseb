@@ -84,10 +84,12 @@ head("الإعدادات (.env)");
 const env = loadEnv();
 if (Object.keys(env).length === 0) bad("ملف .env غير موجود أو فارغ");
 for (const key of ["DATABASE_URL", "AUTH_SECRET"]) {
-  env[key] ? ok(`${key} موجود`) : bad(`${key} مفقود — التطبيق لن يعمل`);
+  if (env[key]) ok(`${key} موجود`);
+  else bad(`${key} مفقود — التطبيق لن يعمل`);
 }
 for (const key of ["APP_URL", "CRON_SECRET", "SMTP_HOST", "SMTP_PASS"]) {
-  env[key] ? ok(`${key} موجود`) : warn(`${key} غير مضبوط`, key.startsWith("SMTP") ? "البريد لن يُرسَل" : "");
+  if (env[key]) ok(`${key} موجود`);
+  else warn(`${key} غير مضبوط`, key.startsWith("SMTP") ? "البريد لن يُرسَل" : "");
 }
 
 // ============ 3) قاعدة البيانات ============
@@ -210,7 +212,8 @@ if (prisma) {
   let settings = null;
   try {
     settings = await prisma.settings.findUnique({ where: { id: 1 } });
-    settings ? ok("سجل الإعدادات موجود") : bad("سجل الإعدادات مفقود", "شغّل: npm run db:seed");
+    if (settings) ok("سجل الإعدادات موجود");
+    else bad("سجل الإعدادات مفقود", "شغّل: npm run db:seed");
   } catch (e) {
     bad("تعذّر قراءة الإعدادات (غالباً هجرة ناقصة)", String(e.message).split("\n")[0]);
   }
@@ -218,7 +221,8 @@ if (prisma) {
     ["خط Tajawal العادي", "public/fonts/Tajawal-Regular.ttf"],
     ["خط Tajawal العريض", "public/fonts/Tajawal-Bold.ttf"],
   ]) {
-    fs.existsSync(path.join(ROOT, rel)) ? ok(label) : bad(label, "مفقود — كل ملفات PDF ستفشل");
+    if (fs.existsSync(path.join(ROOT, rel))) ok(label);
+    else bad(label, "مفقود — كل ملفات PDF ستفشل");
   }
   for (const key of ["logoPath", "stampPath"]) {
     const rel = settings?.[key];
@@ -227,9 +231,9 @@ if (prisma) {
       continue;
     }
     const full = path.join(ROOT, "public", String(rel).replace(/^\//, ""));
-    fs.existsSync(full)
-      ? ok(`${key === "logoPath" ? "الشعار" : "الختم"} موجود`, rel)
-      : bad(`${key === "logoPath" ? "الشعار" : "الختم"} مسجَّل لكن الملف مفقود`, String(rel));
+    const what = key === "logoPath" ? "الشعار" : "الختم";
+    if (fs.existsSync(full)) ok(`${what} موجود`, rel);
+    else bad(`${what} مسجَّل لكن الملف مفقود`, String(rel));
   }
 }
 

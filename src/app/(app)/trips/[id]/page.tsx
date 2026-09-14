@@ -18,7 +18,7 @@ import {
 } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
-import { formatDate, formatCurrency, nameOr } from "@/lib/format";
+import { formatDate, formatCurrency, nameOr, roundMoney } from "@/lib/format";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "../statusLabels";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { createPayment, deletePayment } from "../paymentActions";
@@ -78,8 +78,8 @@ export default async function TripDetailPage({
   const profitColor = estimatedProfit > 0 ? "green" : estimatedProfit < 0 ? "red" : "slate";
   const waMessage = `مرحباً ${nameOr(trip.customer.name, "")}، تذكير بموعد رحلتكم "${nameOr(trip.program.name, "")}" من ${formatDate(trip.startDate)} إلى ${formatDate(trip.endDate)}. نتمنى لكم رحلة سعيدة!`;
   const customerWa = waLink(trip.customer.phone, waMessage);
-  const totalPaid = trip.payments.reduce((s, p) => s + p.amount, 0);
-  const remaining = trip.agreedPrice - totalPaid;
+  const totalPaid = roundMoney(trip.payments.reduce((s, p) => s + p.amount, 0));
+  const remaining = roundMoney(trip.agreedPrice - totalPaid);
   const remainingColor = remaining <= 0 ? "green" : "amber";
 
   return (

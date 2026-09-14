@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, LinkButton, Table, Th, Td, EmptyState, Badge } from "@/components/ui";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
-import { formatDate, formatCurrency } from "@/lib/format";
+import { formatDate, formatCurrency, roundMoney } from "@/lib/format";
 import { TRIP_STATUSES, TRIP_STATUS_LABELS, TRIP_STATUS_COLORS, TripStatus } from "./statusLabels";
 import type { Prisma } from "@prisma/client";
 
@@ -104,8 +104,8 @@ export default async function TripsPage({
             </thead>
             <tbody>
               {trips.map((t) => {
-                const paid = t.payments.reduce((s, p) => s + p.amount, 0);
-                const remaining = t.agreedPrice - paid;
+                const paid = roundMoney(t.payments.reduce((s, p) => s + p.amount, 0));
+                const remaining = roundMoney(t.agreedPrice - paid);
                 return (
                   <tr key={t.id}>
                     <Td>{t.program.name}</Td>
