@@ -47,3 +47,6 @@ next-env.d.ts
 
 # private uploads (attachments: passports, tickets — served only via authenticated route)
 /private_uploads
+
+# مجلد إعادة تشغيل Passenger (يُنشأ على السيرفر)
+/tmp/
