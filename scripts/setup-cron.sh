@@ -86,19 +86,24 @@ echo "   node: $NODE_BIN"
 REMINDER_CMD="curl -fsS \"$APP_URL/api/reminders/email?token=$CRON_SECRET\" >/dev/null 2>&1 # MOHASEB_REMINDER"
 # التنظيف التلقائي: لا يحذف شيئاً ما لم تفعّله من صفحة الإعدادات
 CLEANUP_CMD="curl -fsS \"$APP_URL/api/cleanup?token=$CRON_SECRET\" >/dev/null 2>&1 # MOHASEB_CLEANUP"
+# إبقاء التطبيق مستيقظاً: الاستضافة المشتركة توقف التطبيق عند الخمول، فأول
+# زيارة بعدها تستغرق عشرات الثواني ("الموقع تقيل"). نداء خفيف كل 10 دقائق
+# لصفحة الدخول (صفحة ثابتة، بلا قاعدة بيانات) يبقيه جاهزاً.
+KEEPALIVE_CMD="curl -fsS -m 30 \"$APP_URL/login\" >/dev/null 2>&1 # MOHASEB_KEEPALIVE"
 BACKUP_CMD="cd $APP_DIR && $NODE_BIN scripts/backup.mjs >> \$HOME/mohaseb-backups/backup.log 2>&1 # MOHASEB_BACKUP"
 
 mkdir -p "$HOME/mohaseb-backups"
 
 # نبني جدول cron جديداً: نحذف أسطرنا القديمة (بالعلامة) ثم نضيف المحدَّثة
 CURRENT="$(crontab -l 2>/dev/null || true)"
-NEW="$(printf '%s\n' "$CURRENT" | grep -v 'MOHASEB_REMINDER' | grep -v 'MOHASEB_BACKUP' | grep -v 'MOHASEB_CLEANUP' | sed '/^$/d')"
-NEW="$(printf '%s\n0 7 * * * %s\n0 3 * * * %s\n30 3 * * * %s\n' "$NEW" "$REMINDER_CMD" "$BACKUP_CMD" "$CLEANUP_CMD" | sed '/^$/d')"
+NEW="$(printf '%s\n' "$CURRENT" | grep -v 'MOHASEB_REMINDER' | grep -v 'MOHASEB_BACKUP' | grep -v 'MOHASEB_CLEANUP' | grep -v 'MOHASEB_KEEPALIVE' | sed '/^$/d')"
+NEW="$(printf '%s\n0 7 * * * %s\n0 3 * * * %s\n30 3 * * * %s\n*/10 * * * * %s\n' "$NEW" "$REMINDER_CMD" "$BACKUP_CMD" "$CLEANUP_CMD" "$KEEPALIVE_CMD" | sed '/^$/d')"
 
 if printf '%s\n' "$NEW" | crontab - 2>/dev/null; then
   echo "   ✓ التذكير اليومي: كل يوم الساعة 7:00 صباحاً"
   echo "   ✓ النسخة الاحتياطية: كل يوم الساعة 3:00 فجراً"
   echo "   ✓ التنظيف التلقائي: كل يوم الساعة 3:30 فجراً (بعد الباك أب، ولا يعمل إلا إن فعّلته من الإعدادات)"
+  echo "   ✓ إبقاء التطبيق مستيقظاً: كل 10 دقائق (يمنع بطء أول زيارة بعد الخمول)"
 else
   echo "   ⚠️  تعذّر تسجيل cron من الترمنال."
   echo "      أضِفهما يدوياً من cPanel ← Cron Jobs:"

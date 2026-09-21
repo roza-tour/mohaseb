@@ -194,13 +194,18 @@ if (prisma) {
     }
 
     // أوامر مرتبطة برحلة محذوفة (لا يفترض حدوثها — قيد قاعدة البيانات يمنعها)
+    // قراءة آمنة (لا تمرّ بعلاقة الرحلة الإلزامية حتى لا تفشل الأداة نفسها)
     const sample = await prisma.taskOrder.findFirst({
-      include: { trip: { include: { program: true, customer: true } }, guide: true, driver: true },
+      include: { guide: true, driver: true },
       orderBy: { taskDate: "desc" },
     });
     if (sample) {
+      const tripRow = await prisma.trip.findUnique({ where: { id: sample.tripId }, select: { programId: true } });
+      const prog = tripRow
+        ? await prisma.tourProgram.findUnique({ where: { id: tripRow.programId }, select: { name: true } })
+        : null;
       console.log(
-        `  أحدث أمر: ${sample.trip?.program?.name ?? "؟"} — ${sample.guide?.name ?? sample.driver?.name ?? "بلا مكلَّف"} — ${new Date(sample.taskDate).toISOString().slice(0, 10)}`
+        `  أحدث أمر: ${prog?.name ?? "رحلة/برنامج محذوف"} — ${sample.guide?.name ?? sample.driver?.name ?? "بلا مكلَّف"} — ${new Date(sample.taskDate).toISOString().slice(0, 10)}`
       );
     }
   } catch (e) {
@@ -235,6 +240,55 @@ if (prisma) {
     if (fs.existsSync(full)) ok(`${what} موجود`, rel);
     else bad(`${what} مسجَّل لكن الملف مفقود`, String(rel));
   }
+}
+
+// ============ قياس السرعة ============
+head("قياس السرعة");
+if (prisma) {
+  const timed = async (label, fn, slowMs) => {
+    const t0 = Date.now();
+    try {
+      const n = await fn();
+      const ms = Date.now() - t0;
+      const detail = `${ms}ms${n === undefined ? "" : ` · ${n} سجل`}`;
+      if (ms > slowMs) warn(label, detail + " — بطيء");
+      else ok(label, detail);
+      return ms;
+    } catch (e) {
+      bad(label, String(e.message).split("\n")[0]);
+      return -1;
+    }
+  };
+
+  await timed("زمن الوصول لقاعدة البيانات", async () => {
+    await prisma.$queryRawUnsafe("SELECT 1");
+  }, 200);
+
+  await timed("صفحة الفواتير (استعلام)", async () => {
+    const rows = await prisma.invoice.findMany({ include: { customer: true }, orderBy: { createdAt: "desc" }, take: 25 });
+    return rows.length;
+  }, 800);
+
+  await timed("صفحة الرحلات (استعلام)", async () => {
+    const rows = await prisma.trip.findMany({ include: { payments: true }, orderBy: { startDate: "desc" }, take: 25 });
+    return rows.length;
+  }, 800);
+
+  await timed("المستحقات (كل الرحلات + دفعاتها)", async () => {
+    const rows = await prisma.trip.findMany({ where: { status: { notIn: ["CANCELLED"] } }, include: { payments: true } });
+    return rows.length;
+  }, 1500);
+
+  // أحجام الجداول — تفسّر البطء التدريجي
+  const tables = ["Trip", "Invoice", "Payment", "Transaction", "Document", "TaskOrder", "Customer", "ActivityLog"];
+  const counts = [];
+  for (const t of tables) {
+    try {
+      const r = await prisma.$queryRawUnsafe(`SELECT COUNT(*) AS n FROM \`${t}\``);
+      counts.push(`${t}: ${Number(r?.[0]?.n ?? 0)}`);
+    } catch { /* تجاهل */ }
+  }
+  console.log("  أحجام الجداول: " + counts.join(" · "));
 }
 
 // ============ 6) توليد PDF فعلياً ============

@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, ErrorBanner } from "@/components/ui";
 import { createTransaction } from "../actions";

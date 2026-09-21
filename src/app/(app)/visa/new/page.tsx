@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, Card, Field, Select, Button, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { createVisaApplication } from "../actions";
@@ -15,11 +16,7 @@ export default async function NewVisaPage({
   const invitationId = typeof sp.invitationId === "string" ? sp.invitationId : "";
 
   const [trips, customers, invitations] = await Promise.all([
-    prisma.trip.findMany({
-      include: { program: true, customer: true },
-      orderBy: { startDate: "desc" },
-      take: 50,
-    }),
+    findTripsWithNames({ orderBy: { startDate: "desc" }, take: 50 }),
     prisma.customer.findMany({ orderBy: { name: "asc" }, take: 500 }),
     prisma.invitation.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
   ]);
@@ -28,7 +25,7 @@ export default async function NewVisaPage({
   // تعبئة مسبقة من الرحلة إن اختيرت: التواريخ وتفاصيل البرنامج من مخطط البرنامج
   const prefillArrival = trip ? formatDateForInput(trip.startDate) : "";
   const prefillDeparture = trip ? formatDateForInput(trip.endDate) : "";
-  const prefillProgram = trip?.program.itinerary ?? "";
+  const prefillProgram = trip?.programItinerary ?? "";
 
   // تعبئة المسافرين مسبقاً من عميل (+ مرافقيه) أو من دعوة موجودة
   type Person = { name?: string; passport?: string };
@@ -75,7 +72,7 @@ export default async function NewVisaPage({
                 <option value="">بدون</option>
                 {trips.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.program.name} — {t.customer.name}
+                    {t.programName} — {t.customerName}
                   </option>
                 ))}
               </Select>
