@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, ErrorBanner } from "@/components/ui";
 import { createTaskOrder } from "../actions";
 import { TaskOrderForm } from "../TaskOrderForm";
@@ -12,10 +13,7 @@ export default async function NewTaskOrderPage({
   const tripId = typeof sp.tripId === "string" ? sp.tripId : "";
 
   const [trips, guides, drivers] = await Promise.all([
-    prisma.trip.findMany({
-      include: { program: true, customer: true },
-      orderBy: { startDate: "desc" },
-    }),
+    findTripsWithNames({ orderBy: { startDate: "desc" }, }),
     prisma.guide.findMany({ orderBy: { name: "asc" } }),
     prisma.driver.findMany({ orderBy: { name: "asc" } }),
   ]);

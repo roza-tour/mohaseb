@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, ErrorBanner } from "@/components/ui";
@@ -18,7 +19,7 @@ export default async function EditTaskOrderPage({
 
   const [order, trips, guides, drivers] = await Promise.all([
     prisma.taskOrder.findUnique({ where: { id } }),
-    prisma.trip.findMany({ include: { program: true, customer: true }, orderBy: { startDate: "desc" } }),
+    findTripsWithNames({ orderBy: { startDate: "desc" } }),
     prisma.guide.findMany({ orderBy: { name: "asc" } }),
     prisma.driver.findMany({ orderBy: { name: "asc" } }),
   ]);

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
@@ -17,7 +18,7 @@ export default async function EditTransactionPage({
 
   const [tx, trips] = await Promise.all([
     prisma.transaction.findUnique({ where: { id } }),
-    prisma.trip.findMany({ include: { program: true, customer: true }, orderBy: { startDate: "desc" } }),
+    findTripsWithNames({ orderBy: { startDate: "desc" } }),
   ]);
   if (!tx) notFound();
 

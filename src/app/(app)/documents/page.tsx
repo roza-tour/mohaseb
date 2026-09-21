@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadTripsById, tripProgramName } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -27,13 +28,14 @@ export default async function DocumentsPage({
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
       where,
-      include: { trip: { include: { program: true } }, customer: true },
+      include: { customer: true },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
     }),
     prisma.document.count({ where }),
   ]);
+  const tripsById = await loadTripsById(documents.map((d) => d.tripId));
 
   return (
     <div>
@@ -77,7 +79,7 @@ export default async function DocumentsPage({
                   <Td className="font-mono text-xs">{d.docNumber}</Td>
                   <Td className="font-medium text-slate-800">{d.title}</Td>
                   <Td>{d.customer?.name ?? "—"}</Td>
-                  <Td>{d.trip ? d.trip.program.name : "—"}</Td>
+                  <Td>{d.tripId ? tripProgramName(tripsById.get(d.tripId)) : "—"}</Td>
                   <Td>{formatDate(d.docDate)}</Td>
                   <Td>
                     <Link

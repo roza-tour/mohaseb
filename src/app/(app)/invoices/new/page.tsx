@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { createInvoice } from "../actions";
@@ -13,10 +14,7 @@ export default async function NewInvoicePage({
   const tripId = typeof sp.tripId === "string" ? sp.tripId : "";
 
   const [trips, customers, settings] = await Promise.all([
-    prisma.trip.findMany({
-      include: { program: true, customer: true },
-      orderBy: { startDate: "desc" },
-    }),
+    findTripsWithNames({ orderBy: { startDate: "desc" }, }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.settings.findUnique({ where: { id: 1 } }),
   ]);

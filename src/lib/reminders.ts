@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findTripsWithNames, attachTripNames } from "@/lib/safeRead";
 import { roundMoney } from "@/lib/format";
 
 export async function getUpcomingTrips(daysAheadOverride?: number) {
@@ -12,19 +13,18 @@ export async function getUpcomingTrips(daysAheadOverride?: number) {
   horizon.setUTCDate(horizon.getUTCDate() + daysAhead);
   horizon.setUTCHours(23, 59, 59, 999);
 
-  const trips = await prisma.trip.findMany({
+  const trips = await findTripsWithNames({
     where: {
       startDate: { gte: today, lte: horizon },
       status: { notIn: ["CANCELLED", "COMPLETED"] },
     },
-    include: { program: true, customer: true },
     orderBy: { startDate: "asc" },
   });
 
   return trips.map((t) => ({
     id: t.id,
-    programName: t.program.name,
-    customerName: t.customer.name,
+    programName: t.programName,
+    customerName: t.customerName,
     startDate: t.startDate,
     daysRemaining: Math.round((t.startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
     status: t.status,
@@ -33,17 +33,19 @@ export async function getUpcomingTrips(daysAheadOverride?: number) {
 
 // الرحلات التي بها مستحقات متبقية على العميل (لم يُدفع كامل السعر المتفق عليه)
 export async function getOutstandingTrips() {
-  const trips = await prisma.trip.findMany({
+  const rows = await prisma.trip.findMany({
     where: { status: { notIn: ["CANCELLED"] } },
-    include: { customer: true, program: true, payments: true },
+    include: { payments: true },
   });
+  const names = await attachTripNames(rows);
+  const trips = rows.map((r, i) => ({ ...r, ...names[i] }));
   return trips
     .map((t) => {
       const paid = roundMoney(t.payments.reduce((s, p) => s + p.amount, 0));
       return {
         id: t.id,
-        programName: t.program.name,
-        customerName: t.customer.name,
+        programName: t.programName,
+        customerName: t.customerName,
         currency: t.currency,
         remaining: roundMoney(t.agreedPrice - paid),
       };

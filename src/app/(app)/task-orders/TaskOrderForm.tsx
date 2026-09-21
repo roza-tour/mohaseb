@@ -21,7 +21,7 @@ export function TaskOrderForm({
   submitLabel = "إصدار الأمر (PDF)",
 }: {
   action: (formData: FormData) => void;
-  trips: { id: string; startDate: Date; program: { name: string }; customer: { name: string } }[];
+  trips: { id: string; startDate: Date; programName: string; customerName: string }[];
   guides: { id: string; name: string }[];
   drivers: { id: string; name: string }[];
   initial: TaskOrderInitial;
@@ -35,7 +35,7 @@ export function TaskOrderForm({
             <option value="">اختر الرحلة...</option>
             {trips.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.program.name} — {t.customer.name} — {formatDate(t.startDate)}
+                {t.programName} — {t.customerName} — {formatDate(t.startDate)}
               </option>
             ))}
           </Select>

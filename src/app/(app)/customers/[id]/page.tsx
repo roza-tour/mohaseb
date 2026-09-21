@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadTripsById, tripProgramName } from "@/lib/safeRead";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
@@ -24,13 +25,15 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
     where: { id },
     include: {
       trips: {
-        include: { program: true, payments: true },
+        include: { payments: true },
         orderBy: { startDate: "desc" },
       },
       documents: { orderBy: { createdAt: "desc" }, take: 10 },
     },
   });
   if (!customer) notFound();
+  // أسماء البرامج تُقرأ منفصلة: رحلة برنامجها محذوف كانت تُسقط صفحة العميل
+  const tripsById = await loadTripsById(customer.trips.map((t) => t.id));
 
   // إجماليات العميل مفصولة حسب العملة
   const totals = new Map<string, { agreed: number; paid: number }>();
@@ -117,7 +120,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 const remaining = t.agreedPrice - paid;
                 return (
                   <tr key={t.id}>
-                    <Td className="font-medium text-slate-800">{t.program.name}</Td>
+                    <Td className="font-medium text-slate-800">{tripProgramName(tripsById.get(t.id))}</Td>
                     <Td>
                       {formatDate(t.startDate)} - {formatDate(t.endDate)}
                     </Td>

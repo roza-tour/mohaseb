@@ -1,6 +1,6 @@
 // استبدال متغيرات قوالب المستندات بقيم فعلية من الرحلة والعميل والإعدادات.
 // المتغيرات بأقواس مربعة لاتينية حتى تبقى واضحة داخل النص العربي.
-import type { Customer, Settings, TourProgram, Trip } from "@prisma/client";
+import type { Customer, Settings } from "@prisma/client";
 
 export const TEMPLATE_VARIABLES: { token: string; label: string }[] = [
   { token: "[CLIENT]", label: "اسم العميل" },
@@ -29,26 +29,35 @@ function fmt(date: Date) {
 export function fillTemplate(
   body: string,
   ctx: {
-    trip?: (Trip & { program: TourProgram; customer: Customer }) | null;
+    // شكل خفيف لا يمرّ بعلاقات إلزامية — رحلة ببرنامج محذوف كانت تُسقط الصفحة
+    trip?: {
+      startDate: Date;
+      endDate: Date;
+      numPax: number;
+      programName: string;
+      programDurationDays: number;
+      programItinerary: string | null;
+      customerName: string;
+    } | null;
     customer?: Customer | null;
     settings?: Settings | null;
     consulate?: string | null;
     passport?: string | null;
   }
 ): string {
-  const customer = ctx.customer ?? ctx.trip?.customer ?? null;
+  const clientName = ctx.customer?.name?.trim() || ctx.trip?.customerName?.trim() || "";
   const replacements: Record<string, string> = {
-    "[CLIENT]": customer?.name?.trim() || "[CLIENT]",
-    "[PROGRAM]": ctx.trip?.program.name?.trim() || "[PROGRAM]",
+    "[CLIENT]": clientName || "[CLIENT]",
+    "[PROGRAM]": ctx.trip?.programName?.trim() || "[PROGRAM]",
     "[START_DATE]": ctx.trip ? fmt(ctx.trip.startDate) : "[START_DATE]",
     "[END_DATE]": ctx.trip ? fmt(ctx.trip.endDate) : "[END_DATE]",
-    "[DURATION]": ctx.trip ? String(ctx.trip.program.durationDays) : "[DURATION]",
+    "[DURATION]": ctx.trip ? String(ctx.trip.programDurationDays) : "[DURATION]",
     "[PAX]": ctx.trip ? String(ctx.trip.numPax) : "[PAX]",
     // اسم القنصلية ورقم الجواز يُملآن من حقلين مستقلين عند الإصدار
     "[CONSULATE]": ctx.consulate?.trim() || "[CONSULATE]",
     "[PASSPORT]": ctx.passport?.trim() || "[PASSPORT]",
     // مخطط الرحلة يُملأ من تفاصيل برنامج الرحلة المرتبطة
-    "[ITINERARY]": ctx.trip?.program.itinerary?.trim() || "[ITINERARY]",
+    "[ITINERARY]": ctx.trip?.programItinerary?.trim() || "[ITINERARY]",
     "[TODAY]": fmt(new Date()),
     "[AGENCY]": ctx.settings?.agencyName ?? "[AGENCY]",
   };

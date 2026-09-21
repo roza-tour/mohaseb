@@ -24,7 +24,7 @@ export function InvoiceForm({
   submitLabel = "إصدار الفاتورة (PDF)",
 }: {
   action: (formData: FormData) => void;
-  trips: { id: string; customerId: string | null; startDate: Date; program: { name: string }; customer: { name: string } }[];
+  trips: { id: string; customerId: string | null; startDate: Date; programName: string; customerName: string }[];
   customers: { id: string; name: string }[];
   initial: InvoiceInitial;
   submitLabel?: string;
@@ -38,7 +38,7 @@ export function InvoiceForm({
               <option value="">بدون ربط برحلة</option>
               {trips.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.program.name} — {t.customer.name} — {formatDate(t.startDate)}
+                  {t.programName} — {t.customerName} — {formatDate(t.startDate)}
                 </option>
               ))}
             </Select>

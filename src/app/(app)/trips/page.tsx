@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { attachTripNames } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, LinkButton, Table, Th, Td, EmptyState, Badge } from "@/components/ui";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
@@ -31,16 +32,19 @@ export default async function TripsPage({
       : {}),
   };
 
-  const [trips, total] = await Promise.all([
+  // قراءة آمنة: رحلة برنامجها أو عميلها محذوف كانت تُسقط الصفحة كلها بخطأ خادم
+  const [rows, total] = await Promise.all([
     prisma.trip.findMany({
       where,
-      include: { program: true, customer: true, payments: true },
+      include: { payments: true }, // علاقة قائمة — آمنة
       orderBy: { startDate: "desc" },
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
     }),
     prisma.trip.count({ where }),
   ]);
+  const names = await attachTripNames(rows);
+  const trips = rows.map((r, i) => ({ ...r, ...names[i] }));
 
   const statusTabs: { key?: string; label: string }[] = [
     { key: undefined, label: "الكل" },
@@ -108,8 +112,8 @@ export default async function TripsPage({
                 const remaining = roundMoney(t.agreedPrice - paid);
                 return (
                   <tr key={t.id}>
-                    <Td>{t.program.name}</Td>
-                    <Td>{t.customer.name}</Td>
+                    <Td>{t.programName}</Td>
+                    <Td>{t.customerName}</Td>
                     <Td>
                       {formatDate(t.startDate)} - {formatDate(t.endDate)}
                     </Td>

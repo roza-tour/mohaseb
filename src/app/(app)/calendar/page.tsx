@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card } from "@/components/ui";
 
@@ -27,7 +28,7 @@ export default async function CalendarPage({
   const firstWeekday = monthStart.getUTCDay(); // 0 = الأحد
 
   const [trips, visas] = await Promise.all([
-    prisma.trip.findMany({
+    findTripsWithNames({
       where: {
         status: { notIn: ["CANCELLED"] },
         OR: [
@@ -35,7 +36,6 @@ export default async function CalendarPage({
           { endDate: { gte: monthStart, lt: monthEnd } },
         ],
       },
-      include: { program: true, customer: true },
     }),
     prisma.visaApplication.findMany({
       where: {
@@ -60,9 +60,9 @@ export default async function CalendarPage({
 
   for (const t of trips) {
     const sd = dayIfInMonth(t.startDate);
-    if (sd) push(sd, { label: `▶ ${t.program.name} — ${t.customer.name}`, href: `/trips/${t.id}`, color: "emerald" });
+    if (sd) push(sd, { label: `▶ ${t.programName} — ${t.customerName}`, href: `/trips/${t.id}`, color: "emerald" });
     const ed = dayIfInMonth(t.endDate);
-    if (ed) push(ed, { label: `■ نهاية: ${t.program.name}`, href: `/trips/${t.id}`, color: "slate" });
+    if (ed) push(ed, { label: `■ نهاية: ${t.programName}`, href: `/trips/${t.id}`, color: "slate" });
   }
   for (const v of visas) {
     const ad = dayIfInMonth(v.arrivalDate);

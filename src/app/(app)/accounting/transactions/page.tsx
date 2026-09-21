@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadTripsById, tripLabel } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
@@ -39,7 +40,6 @@ export default async function TransactionsPage({
   const [transactions, txCount, totals] = await Promise.all([
     prisma.transaction.findMany({
       where,
-      include: { trip: { include: { program: true, customer: true } } },
       orderBy: { date: "desc" },
       skip: (page - 1) * TX_PER_PAGE,
       take: TX_PER_PAGE,
@@ -52,6 +52,8 @@ export default async function TransactionsPage({
       where: dateWhere,
     }),
   ]);
+  // اسم الرحلة يُقرأ منفصلاً حتى لا تُسقط الصفحةَ رحلةٌ برنامجها محذوف
+  const tripsById = await loadTripsById(transactions.map((t) => t.tripId));
 
   // مجاميع مفصولة حسب العملة (لا تُجمع عملات مختلفة كرقم واحد)
   const currencies = [...new Set(totals.map((t) => t.currency))].sort();
@@ -180,7 +182,7 @@ export default async function TransactionsPage({
                   </Td>
                   <Td>{t.category}</Td>
                   <Td className="font-medium text-slate-800">{formatCurrency(t.amount, t.currency)}</Td>
-                  <Td>{t.trip ? `${t.trip.program.name} — ${t.trip.customer.name}` : "—"}</Td>
+                  <Td>{t.tripId ? tripLabel(tripsById.get(t.tripId)) : "—"}</Td>
                   <Td>{t.description ?? "—"}</Td>
                   <Td>
                     <Link href={`/accounting/transactions/${t.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">

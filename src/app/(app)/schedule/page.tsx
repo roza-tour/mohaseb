@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { findTaskOrders } from "@/lib/taskOrderView";
@@ -20,9 +20,8 @@ export default async function SchedulePage() {
       where: { taskDate: { gte: today, lt: horizon } },
       orderBy: { taskDate: "asc" },
     }),
-    prisma.trip.findMany({
+    findTripsWithNames({
       where: { startDate: { gte: today, lt: horizon }, status: { notIn: ["CANCELLED"] } },
-      include: { program: true, customer: true },
       orderBy: { startDate: "asc" },
     }),
   ]);
@@ -77,8 +76,8 @@ export default async function SchedulePage() {
                     className="flex flex-wrap items-center gap-2 rounded-lg bg-sky-50 border border-sky-100 px-3 py-2 text-sm hover:bg-sky-100 transition"
                   >
                     <span>🧳</span>
-                    <span className="font-medium text-slate-800">بداية رحلة: {t.program.name}</span>
-                    <span className="text-slate-500">— {t.customer.name}</span>
+                    <span className="font-medium text-slate-800">بداية رحلة: {t.programName}</span>
+                    <span className="text-slate-500">— {t.customerName}</span>
                     <span className="text-xs text-slate-400">({t.numPax} أشخاص)</span>
                   </Link>
                 ))}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadTripsById, tripProgramName } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner, ErrorBanner } from "@/components/ui";
 import { ExportButton } from "@/components/ExportButton";
@@ -28,7 +29,7 @@ export default async function InvoicesPage({
   const [invoices, total, settings] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      include: { customer: true, trip: { include: { program: true } } },
+      include: { customer: true }, // العميل علاقة اختيارية — آمنة
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
@@ -36,6 +37,8 @@ export default async function InvoicesPage({
     prisma.invoice.count({ where }),
     prisma.settings.findUnique({ where: { id: 1 } }),
   ]);
+  // اسم الرحلة يُقرأ منفصلاً: رحلة برنامجها محذوف كانت تُسقط الصفحة كلها بخطأ خادم
+  const tripsById = await loadTripsById(invoices.map((i) => i.tripId));
   const agencyName = settings?.agencyName?.trim() || "روزا تور";
 
   return (
@@ -87,7 +90,7 @@ export default async function InvoicesPage({
                   <tr key={inv.id}>
                     <Td className="font-mono text-xs">{inv.invoiceNumber}</Td>
                     <Td>{inv.customer?.name ?? "—"}</Td>
-                    <Td>{inv.trip?.program.name ?? "—"}</Td>
+                    <Td>{inv.tripId ? tripProgramName(tripsById.get(inv.tripId)) : "—"}</Td>
                     <Td>{formatDate(inv.docDate)}</Td>
                     <Td className="font-medium text-slate-800">
                       {formatCurrency(totalAmount, inv.currency)}

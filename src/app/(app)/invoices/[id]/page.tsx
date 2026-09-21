@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, ErrorBanner } from "@/components/ui";
@@ -18,7 +19,7 @@ export default async function EditInvoicePage({
 
   const [invoice, trips, customers] = await Promise.all([
     prisma.invoice.findUnique({ where: { id } }),
-    prisma.trip.findMany({ include: { program: true, customer: true }, orderBy: { startDate: "desc" } }),
+    findTripsWithNames({ orderBy: { startDate: "desc" } }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
   ]);
   if (!invoice) notFound();

@@ -22,7 +22,7 @@ export function TransactionForm({
   locked = false,
 }: {
   action: (formData: FormData) => void;
-  trips: { id: string; startDate: Date; program: { name: string }; customer: { name: string } }[];
+  trips: { id: string; startDate: Date; programName: string; customerName: string }[];
   initial: TransactionInitial;
   submitLabel?: string;
   locked?: boolean;
@@ -78,7 +78,7 @@ export function TransactionForm({
               <option value="">بدون ارتباط برحلة</option>
               {trips.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {nameOr(t.program.name)} — {nameOr(t.customer.name)} — {formatDate(t.startDate)}
+                  {nameOr(t.programName)} — {nameOr(t.customerName)} — {formatDate(t.startDate)}
                 </option>
               ))}
             </Select>

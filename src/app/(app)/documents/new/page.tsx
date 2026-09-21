@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, Card, Select, Button, ErrorBanner } from "@/components/ui";
 import { formatDate, formatDateForInput } from "@/lib/format";
 import { fillTemplate, parseDocStyle } from "@/lib/documents";
@@ -16,10 +17,7 @@ export default async function NewDocumentPage({
 
   const [templates, trips, customers, settings] = await Promise.all([
     prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
-    prisma.trip.findMany({
-      include: { program: true, customer: true },
-      orderBy: { startDate: "desc" },
-    }),
+    findTripsWithNames({ orderBy: { startDate: "desc" }, }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.settings.findUnique({ where: { id: 1 } }),
   ]);
@@ -60,7 +58,7 @@ export default async function NewDocumentPage({
               <option value="">بدون ربط برحلة</option>
               {trips.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.program.name} — {t.customer.name} — {formatDate(t.startDate)}
+                  {t.programName} — {t.customerName} — {formatDate(t.startDate)}
                 </option>
               ))}
             </Select>

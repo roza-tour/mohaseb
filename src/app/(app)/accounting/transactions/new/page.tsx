@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, ErrorBanner } from "@/components/ui";
 import { createTransaction } from "../actions";
 import { TransactionForm } from "../TransactionForm";
@@ -9,10 +10,7 @@ export default async function NewTransactionPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
-  const trips = await prisma.trip.findMany({
-    include: { program: true, customer: true },
-    orderBy: { startDate: "desc" },
-  });
+  const trips = await findTripsWithNames({ orderBy: { startDate: "desc" }, });
 
   const today = new Date().toISOString().slice(0, 10);
 
