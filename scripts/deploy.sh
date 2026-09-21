@@ -10,19 +10,10 @@ set -e
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_DIR"
 
-# تفعيل بيئة node الخاصة بـ cPanel إن لم تكن مفعّلة
-if ! command -v npm >/dev/null 2>&1; then
-  ACTIVATE="$(ls -d "$HOME"/nodevenv/mohaseb-app/*/bin/activate 2>/dev/null | head -n1 || true)"
-  if [ -n "$ACTIVATE" ]; then
-    echo "▶ تفعيل بيئة node ..."
-    # shellcheck disable=SC1090
-    source "$ACTIVATE"
-  else
-    echo "❌ لم أجد npm ولا بيئة node. فعّلها يدوياً:"
-    echo "   source ~/nodevenv/mohaseb-app/*/bin/activate"
-    exit 1
-  fi
-fi
+# تفعيل بيئة node (سكربت cPanel يستعمل متغيّراً غير مُعرَّف — المساعد يتعامل معه)
+# shellcheck disable=SC1091
+source "$APP_DIR/scripts/_activate.sh"
+mohaseb_activate_node || exit 1
 
 echo "▶ 1/6 نسخة احتياطية قبل أي تعديل على قاعدة البيانات ..."
 # لو فشلت (mysqldump غير متاح مثلاً) لا نوقف النشر، لكن ننبّه بوضوح
