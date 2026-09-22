@@ -52,10 +52,20 @@ console.log(`  الفرع: ${branch || "غير معروف"}`);
 console.log(`  آخر كوميت: ${commit} — ${subject}`);
 if (dirty) {
   const files = dirty.split("\n").filter(Boolean);
-  warn("توجد تعديلات محلية غير محفوظة", `${files.length} ملف`);
-  for (const f of files.slice(0, 10)) console.log(`     ${f}`);
-  console.log("     ملف معدَّل هنا يوقف `git pull` في المرة القادمة.");
-  console.log("     لإلغاء التعديلات والعودة لنسخة GitHub:  git checkout -- <الملف>");
+  // فرق مهم: الملف المعدَّل يوقف `git pull`، أمّا الملف الجديد غير المتتبَّع
+  // فلا يوقفه إلا إذا جاء تحديث يحمل الاسم نفسه.
+  const edited = files.filter((f) => !f.startsWith("??"));
+  const untracked = files.filter((f) => f.startsWith("??"));
+  if (edited.length > 0) {
+    bad("ملفات معدَّلة ستوقف `git pull` القادم", `${edited.length} ملف`);
+    for (const f of edited.slice(0, 10)) console.log(`     ${f}`);
+    console.log("     لإلغاء التعديل والعودة لنسخة GitHub:  git checkout -- <الملف>");
+  }
+  if (untracked.length > 0) {
+    console.log(`  ملفات موجودة هنا وليست من البرنامج (${untracked.length}) — لا توقف التحديث:`);
+    for (const f of untracked.slice(0, 10)) console.log(`     ${f.replace(/^\?\?\s*/, "")}`);
+    console.log("     لا تحذف .htaccess ولا .well-known — هما من إعداد الاستضافة.");
+  }
 }
 
 // هل الكود المنشور يحتوي الإصلاحات؟ (نفحص وجود ملفات أُضيفت فيها)
@@ -96,6 +106,13 @@ for (const key of ["DATABASE_URL", "AUTH_SECRET"]) {
 for (const key of ["APP_URL", "CRON_SECRET", "SMTP_HOST", "SMTP_PASS"]) {
   if (env[key]) ok(`${key} موجود`);
   else warn(`${key} غير مضبوط`, key.startsWith("SMTP") ? "البريد لن يُرسَل" : "");
+}
+// بدون AUTH_URL يبني NextAuth العنوان من ترويسة الاستضافة، وإن وصلت مكرّرة
+// سقطت الطلبات بخطأ خادم: TypeError: Invalid URL في middleware
+if (env.AUTH_URL) ok("AUTH_URL موجود", "يمنع خطأ Invalid URL خلف البروكسي");
+else {
+  bad("AUTH_URL مفقود", "سبب خطأ TypeError: Invalid URL المتكرر");
+  console.log("     الحل:  bash scripts/setup-cron.sh   (يضيفه ويعيد التشغيل)");
 }
 
 // ============ 3) قاعدة البيانات ============

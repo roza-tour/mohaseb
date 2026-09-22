@@ -57,6 +57,15 @@ APP_URL="$(get_env APP_URL)"
 [ -z "$APP_URL" ] && APP_URL="https://mohaseb.rozatour-booking.com"
 add_env_if_missing APP_URL "$APP_URL" "عنوان التطبيق العام (روابط QR للتحقق)"
 
+# عنوان تسجيل الدخول الثابت.
+# بدونه يبني NextAuth العنوان من ترويسة x-forwarded-host القادمة من الاستضافة.
+# لو وصلت الترويسة مكرّرة (قيمتان مفصولتان بفاصلة، وهو ما يحدث فعلاً هنا)
+# يصير العنوان غير صالح ويسقط الطلب بخطأ خادم: TypeError: Invalid URL.
+# تثبيت AUTH_URL يجعله يتجاهل الترويسة تماماً.
+AUTH_URL="$(get_env AUTH_URL)"
+[ -z "$AUTH_URL" ] && AUTH_URL="${APP_URL%/}"
+add_env_if_missing AUTH_URL "$AUTH_URL" "عنوان التطبيق لتسجيل الدخول (يمنع خطأ Invalid URL خلف البروكسي)"
+
 # بريد استقبال التذكير اليومي
 REMINDER_TO="$(get_env REMINDER_TO)"
 [ -z "$REMINDER_TO" ] && REMINDER_TO="agence.rozatour@gmail.com"
