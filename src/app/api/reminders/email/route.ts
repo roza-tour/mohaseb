@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { searchParamsOf } from "@/lib/reqUrl";
 import { buildReminderDigest } from "@/lib/reminders";
 import { isEmailConfigured, sendBulkEmail } from "@/lib/email";
 
@@ -8,8 +9,7 @@ import { isEmailConfigured, sendBulkEmail } from "@/lib/email";
 // يمكن استدعاؤها إمّا بجلسة مستخدم (زر «أرسل الآن») أو عبر Cron
 // بتمرير الرمز السري: /api/reminders/email?token=CRON_SECRET
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const token = url.searchParams.get("token");
+  const token = searchParamsOf(req.url).get("token");
   const cronSecret = process.env.CRON_SECRET;
 
   const authorized = (cronSecret && token === cronSecret) || Boolean(await auth());

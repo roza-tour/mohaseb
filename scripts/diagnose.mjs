@@ -50,7 +50,13 @@ const subject = sh("git log -1 --format=%s");
 const dirty = sh("git status --porcelain");
 console.log(`  الفرع: ${branch || "غير معروف"}`);
 console.log(`  آخر كوميت: ${commit} — ${subject}`);
-if (dirty) warn("توجد تعديلات محلية غير محفوظة", `${dirty.split("\n").length} ملف`);
+if (dirty) {
+  const files = dirty.split("\n").filter(Boolean);
+  warn("توجد تعديلات محلية غير محفوظة", `${files.length} ملف`);
+  for (const f of files.slice(0, 10)) console.log(`     ${f}`);
+  console.log("     ملف معدَّل هنا يوقف `git pull` في المرة القادمة.");
+  console.log("     لإلغاء التعديلات والعودة لنسخة GitHub:  git checkout -- <الملف>");
+}
 
 // هل الكود المنشور يحتوي الإصلاحات؟ (نفحص وجود ملفات أُضيفت فيها)
 const newFiles = ["src/lib/docNumbers.ts", "src/lib/tripCleanup.ts", "src/lib/authz.ts", "src/app/api/cleanup/route.ts"];
@@ -324,12 +330,55 @@ const logPath = path.join(ROOT, "stderr.log");
 if (!fs.existsSync(logPath)) {
   console.log("  لا يوجد ملف stderr.log");
 } else {
-  const lines = fs.readFileSync(logPath, "utf8").split(/\r?\n/);
-  const errs = lines.filter((l) => /error|Error|ERR_|Unknown column|ECONNREFUSED|heap/.test(l)).slice(-12);
-  if (errs.length === 0) console.log("  لا توجد أخطاء حديثة");
-  else {
-    problems += 1;
-    for (const l of errs) console.log("  » " + l.slice(0, 200));
+  const stat = fs.statSync(logPath);
+  const ageHours = (Date.now() - stat.mtimeMs) / 3600000;
+  const when =
+    ageHours < 1 ? `منذ ${Math.round(ageHours * 60)} دقيقة`
+    : ageHours < 48 ? `منذ ${Math.round(ageHours)} ساعة`
+    : `منذ ${Math.round(ageHours / 24)} يوم`;
+  console.log(`  آخر كتابة في السجل: ${when} · الحجم: ${Math.round(stat.size / 1024)} كيلوبايت`);
+
+  // Passenger يسبق كل سطر بـ "App 12345 output:" — نزيله قبل التحليل
+  const strip = (l) => l.replace(/^App\s+\d+\s+\w+:\s?/, "");
+  const lines = fs.readFileSync(logPath, "utf8").split(/\r?\n/).map(strip);
+
+  // عنوان الخطأ: السطر الذي يبدأ باسم الخطأ، لا سطور التفاصيل التي تليه
+  const isHeadline = (l) =>
+    /^\s*(\w*Error|Unknown column|ECONNREFUSED)\b/.test(l) ||
+    /heap out of memory/.test(l);
+  const heads = lines.map((l, i) => [l, i]).filter(([l]) => isHeadline(l));
+
+  if (heads.length === 0) {
+    ok("لا توجد أخطاء في السجل");
+  } else {
+    // كم مرة تكرّر كل نوع خطأ — يفرّق بين عطل يتكرّر وعطل حدث مرة
+    const kinds = new Map();
+    for (const [l] of heads) {
+      const key = l.trim().slice(0, 70);
+      kinds.set(key, (kinds.get(key) ?? 0) + 1);
+    }
+    console.log("  أنواع الأخطاء وعدد مرّاتها:");
+    for (const [k, n] of [...kinds.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)) {
+      console.log(`    ${n}×  ${k}`);
+    }
+
+    // آخر خطأ كاملاً مع مساره في الكود — هذا ما يحدّد مصدر العطل
+    const lastIdx = heads[heads.length - 1][1];
+    const block = lines
+      .slice(lastIdx, lastIdx + 20)
+      .filter((l) => l.trim() !== "")
+      .filter((l, i) => i === 0 || /^\s*(at |code:|input:|\w+:)/.test(l));
+    console.log("\n  آخر خطأ كاملاً (منه نعرف مكانه في الكود):");
+    for (const l of block) console.log("  » " + l.slice(0, 180));
+
+    // السجل يتراكم بلا حد؛ خطأ قديم قد يبدو حديثاً
+    if (ageHours > 24) {
+      warn("كل هذه الأخطاء قديمة (السجل لم يُكتب فيه منذ يوم على الأقل) — غالباً ليست مشكلة حالية");
+      console.log("     لتصفير السجل ومتابعة الجديد فقط:  : > stderr.log");
+    } else {
+      problems += 1;
+      console.log("     لتصفير السجل ومتابعة الجديد فقط:  : > stderr.log");
+    }
   }
 }
 

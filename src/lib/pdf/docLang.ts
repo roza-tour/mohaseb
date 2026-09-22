@@ -1,8 +1,10 @@
 // اختيار لغة المستند من الرابط (?lang=ar|fr|en) مع لغة افتراضية لكل نوع مستند.
+import { searchParamsOf } from "@/lib/reqUrl";
+
 export type Lang = "ar" | "fr" | "en";
 
 export function pickLang(url: string, def: Lang): Lang {
-  const v = new URL(url).searchParams.get("lang");
+  const v = searchParamsOf(url).get("lang");
   return v === "fr" || v === "ar" || v === "en" ? v : def;
 }
 
