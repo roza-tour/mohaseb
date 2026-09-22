@@ -10,6 +10,19 @@
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_DIR" || exit 1
 
+# نحفظ كل ما يُطبع في ملف، حتى يمكن إرساله كاملاً بدل نسخه من الشاشة.
+if [ -z "${MOHASEB_FIXALL_LOG:-}" ]; then
+  mkdir -p "$APP_DIR/tmp"
+  export MOHASEB_FIXALL_LOG="$APP_DIR/tmp/fixall-$(date +%Y%m%d-%H%M%S).log"
+  bash "$APP_DIR/scripts/fixall.sh" "$@" 2>&1 | tee "$MOHASEB_FIXALL_LOG"
+  status=${PIPESTATUS[0]}
+  echo
+  echo "📄 التقرير كاملاً محفوظ في:"
+  echo "   $MOHASEB_FIXALL_LOG"
+  echo "   لإظهاره كاملاً:  cat $MOHASEB_FIXALL_LOG"
+  exit "$status"
+fi
+
 # shellcheck disable=SC1091
 source "$APP_DIR/scripts/_activate.sh"
 mohaseb_activate_node || exit 1

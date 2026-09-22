@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getUpcomingTrips } from "@/lib/reminders";
+import { getOutstandingByCurrency } from "@/lib/outstanding";
+import { getMonthlyTotals } from "@/lib/stats";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { formatDate, formatCurrency } from "@/lib/format";
 import Link from "next/link";
@@ -8,28 +10,40 @@ import { SendReminderButton } from "@/components/SendReminderButton";
 
 export default async function DashboardPage() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const [customersCount, activeTrips, upcoming, monthTransactions, settings, unpaidTrips, invitationsMonth, visasMonth] =
-    await Promise.all([
-      prisma.customer.count(),
-      prisma.trip.count({ where: { status: { in: ["PLANNED", "CONFIRMED", "IN_PROGRESS"] } } }),
-      getUpcomingTrips(),
-      prisma.transaction.findMany({ where: { date: { gte: monthStart } } }),
-      prisma.settings.findUnique({ where: { id: 1 } }),
-      prisma.trip.findMany({
-        where: { status: { notIn: ["CANCELLED"] } },
-        include: { payments: true },
-      }),
-      prisma.invitation.count({ where: { docDate: { gte: monthStart } } }),
-      prisma.visaApplication.count({ where: { createdAt: { gte: monthStart } } }),
-    ]);
+  // كل ما لا يعتمد على غيره يُطلب دفعةً واحدة، والمجاميع تُحسب داخل قاعدة
+  // البيانات بدل قراءة آلاف الصفوف إلى الذاكرة — كان هذا أبطأ ما في الصفحة.
+  const [
+    customersCount,
+    activeTrips,
+    upcoming,
+    monthSums,
+    settings,
+    outstandingByCurrency,
+    invitationsMonth,
+    visasMonth,
+    topProgramsRaw,
+  ] = await Promise.all([
+    prisma.customer.count(),
+    prisma.trip.count({ where: { status: { in: ["PLANNED", "CONFIRMED", "IN_PROGRESS"] } } }),
+    getUpcomingTrips(),
+    prisma.transaction.groupBy({
+      by: ["type", "currency", "category"],
+      where: { date: { gte: monthStart } },
+      _sum: { amount: true },
+    }),
+    prisma.settings.findUnique({ where: { id: 1 } }),
+    getOutstandingByCurrency(),
+    prisma.invitation.count({ where: { docDate: { gte: monthStart } } }),
+    prisma.visaApplication.count({ where: { createdAt: { gte: monthStart } } }),
+    // أكثر البرامج طلباً (حسب عدد الرحلات)
+    prisma.trip.groupBy({
+      by: ["programId"],
+      _count: { programId: true },
+      orderBy: { _count: { programId: "desc" } },
+      take: 5,
+    }),
+  ]);
 
-  // أكثر البرامج طلباً (حسب عدد الرحلات)
-  const topProgramsRaw = await prisma.trip.groupBy({
-    by: ["programId"],
-    _count: { programId: true },
-    orderBy: { _count: { programId: "desc" } },
-    take: 5,
-  });
   const topProgramNames = await prisma.tourProgram.findMany({
     where: { id: { in: topProgramsRaw.map((t) => t.programId) } },
     select: { id: true, name: true },
@@ -39,24 +53,11 @@ export default async function DashboardPage() {
     count: t._count.programId,
   }));
 
-  // بيانات رسم آخر ستة أشهر (بالعملة الافتراضية فقط)
-  const sixMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
-  const chartTxs = await prisma.transaction.findMany({
-    where: { date: { gte: sixMonthsAgo } },
-    select: { type: true, amount: true, date: true, currency: true },
-  });
-
-
   const currency = settings?.defaultCurrency ?? "DZD";
-  // المستحقات المتبقية لدى العملاء، مفصولة حسب العملة
-  const outstandingByCurrency = new Map<string, number>();
-  for (const t of unpaidTrips) {
-    const paid = t.payments.reduce((s, p) => s + p.amount, 0);
-    const remaining = t.agreedPrice - paid;
-    if (remaining > 0) {
-      outstandingByCurrency.set(t.currency, (outstandingByCurrency.get(t.currency) ?? 0) + remaining);
-    }
-  }
+  // بيانات رسم آخر ستة أشهر — مجمَّعة شهرياً داخل قاعدة البيانات
+  const sixMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
+  const monthlyTotals = await getMonthlyTotals(sixMonthsAgo, currency);
+
   const outstandingText =
     outstandingByCurrency.size === 0
       ? formatCurrency(0, currency)
@@ -65,23 +66,20 @@ export default async function DashboardPage() {
   const chartData: MonthPoint[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
-    const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-    const monthTxs = chartTxs.filter(
-      (t) => t.currency === currency && t.date >= d && t.date < next
-    );
+    const totals = monthlyTotals.find((t) => t.year === d.getFullYear() && t.month === d.getMonth() + 1);
     chartData.push({
       label: `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`,
-      income: monthTxs.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0),
-      expense: monthTxs.filter((t) => t.type === "EXPENSE").reduce((s, t) => s + t.amount, 0),
+      income: totals?.income ?? 0,
+      expense: totals?.expense ?? 0,
     });
   }
   // إيرادات ومصروفات الشهر مفصولة حسب العملة حتى لا تُجمع عملات مختلفة في رقم واحد
   const monthIncomeByCurrency = new Map<string, number>();
   const monthExpenseByCurrency = new Map<string, number>();
-  for (const t of monthTransactions) {
+  for (const g of monthSums) {
     const target =
-      t.type === "INCOME" ? monthIncomeByCurrency : t.type === "EXPENSE" ? monthExpenseByCurrency : null;
-    if (target) target.set(t.currency, (target.get(t.currency) ?? 0) + t.amount);
+      g.type === "INCOME" ? monthIncomeByCurrency : g.type === "EXPENSE" ? monthExpenseByCurrency : null;
+    if (target) target.set(g.currency, (target.get(g.currency) ?? 0) + (g._sum.amount ?? 0));
   }
   const perCurrencyText = (m: Map<string, number>) =>
     m.size === 0
@@ -93,9 +91,9 @@ export default async function DashboardPage() {
   // إيراد الخدمات (الدعوات + الفيزا) هذا الشهر، مفصولاً حسب العملة
   const SERVICE_CATS = ["خدمة دعوة", "خدمة فيزا صحراوية"];
   const serviceRevByCurrency = new Map<string, number>();
-  for (const t of monthTransactions) {
-    if (t.type === "INCOME" && SERVICE_CATS.includes(t.category)) {
-      serviceRevByCurrency.set(t.currency, (serviceRevByCurrency.get(t.currency) ?? 0) + t.amount);
+  for (const g of monthSums) {
+    if (g.type === "INCOME" && SERVICE_CATS.includes(g.category)) {
+      serviceRevByCurrency.set(g.currency, (serviceRevByCurrency.get(g.currency) ?? 0) + (g._sum.amount ?? 0));
     }
   }
   const serviceRevText = perCurrencyText(serviceRevByCurrency);

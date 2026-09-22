@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { findTripsWithNames, attachTripNames } from "@/lib/safeRead";
-import { roundMoney } from "@/lib/format";
+import { findTripsWithNames, lookupNames } from "@/lib/safeRead";
+import { getOutstandingRows } from "@/lib/outstanding";
 
 export async function getUpcomingTrips(daysAheadOverride?: number) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
@@ -32,27 +32,17 @@ export async function getUpcomingTrips(daysAheadOverride?: number) {
 }
 
 // الرحلات التي بها مستحقات متبقية على العميل (لم يُدفع كامل السعر المتفق عليه)
+// الجمع يتم داخل قاعدة البيانات، ولا نقرأ إلا الرحلات المستحقة فعلاً وأسماءها.
 export async function getOutstandingTrips() {
-  const rows = await prisma.trip.findMany({
-    where: { status: { notIn: ["CANCELLED"] } },
-    include: { payments: true },
-  });
-  const names = await attachTripNames(rows);
-  const trips = rows.map((r, i) => ({ ...r, ...names[i] }));
-  return trips
-    .map((t) => {
-      const paid = roundMoney(t.payments.reduce((s, p) => s + p.amount, 0));
-      return {
-        id: t.id,
-        programName: t.programName,
-        customerName: t.customerName,
-        currency: t.currency,
-        remaining: roundMoney(t.agreedPrice - paid),
-      };
-    })
-    // أكبر من نصف سنتيم — حتى لا تُطارَد رحلة مدفوعة بالكامل بفارق كسري لا يُرى
-    .filter((t) => t.remaining >= 0.01)
-    .sort((a, b) => b.remaining - a.remaining);
+  const rows = await getOutstandingRows();
+  const names = await lookupNames(rows);
+  return rows.map((t) => ({
+    id: t.id,
+    programName: names.programName(t.programId),
+    customerName: names.customerName(t.customerId),
+    currency: t.currency,
+    remaining: t.remaining,
+  }));
 }
 
 // بناء رسالة التذكير اليومية (HTML) بالرحلات القادمة والمستحقات المتبقية
