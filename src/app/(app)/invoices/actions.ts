@@ -14,6 +14,18 @@ const invoiceSchema = z.object({
   customerId: z.string().optional(),
   currency: z.string().min(1).default("DZD"),
   discount: z.coerce.number().min(0).default(0),
+  // البرنامج أو الخدمة المشتراة — مربع اختياري في الفاتورة
+  purchasedItem: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
+  // الفرع المُصدِّر، وبيانات الحساب المحوَّل إليه
+  branchId: z.string().optional(),
+  showBankDetails: z.boolean(),
+  bankDetails: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   notes: z
     .string()
     .optional()
@@ -31,6 +43,10 @@ export async function createInvoice(formData: FormData) {
     customerId: formData.get("customerId") || undefined,
     currency: formData.get("currency") || undefined,
     discount: formData.get("discount") || undefined,
+    purchasedItem: formData.get("purchasedItem") ?? undefined,
+    branchId: formData.get("branchId") || undefined,
+    showBankDetails: formData.get("showBankDetails") === "on",
+    bankDetails: formData.get("bankDetails") ?? undefined,
     notes: formData.get("notes") ?? undefined,
     showStamp: formData.get("showStamp") === "on",
     docDate: formData.get("docDate") || undefined,
@@ -72,6 +88,10 @@ export async function createInvoice(formData: FormData) {
       customerId: parsed.data.customerId || null,
       currency: parsed.data.currency,
       discount: parsed.data.discount,
+      purchasedItem: parsed.data.purchasedItem,
+      branchId: parsed.data.branchId || null,
+      showBankDetails: parsed.data.showBankDetails,
+      bankDetails: parsed.data.bankDetails,
       notes: parsed.data.notes,
       showStamp: parsed.data.showStamp,
       docDate,
@@ -95,6 +115,10 @@ export async function updateInvoice(id: string, formData: FormData) {
     customerId: formData.get("customerId") || undefined,
     currency: formData.get("currency") || undefined,
     discount: formData.get("discount") || undefined,
+    purchasedItem: formData.get("purchasedItem") ?? undefined,
+    branchId: formData.get("branchId") || undefined,
+    showBankDetails: formData.get("showBankDetails") === "on",
+    bankDetails: formData.get("bankDetails") ?? undefined,
     notes: formData.get("notes") ?? undefined,
     showStamp: formData.get("showStamp") === "on",
     docDate: formData.get("docDate") || undefined,
@@ -129,6 +153,10 @@ export async function updateInvoice(id: string, formData: FormData) {
       customerId: parsed.data.customerId || null,
       currency: parsed.data.currency,
       discount: parsed.data.discount,
+      purchasedItem: parsed.data.purchasedItem,
+      branchId: parsed.data.branchId || null,
+      showBankDetails: parsed.data.showBankDetails,
+      bankDetails: parsed.data.bankDetails,
       notes: parsed.data.notes,
       showStamp: parsed.data.showStamp,
       docDate: parsed.data.docDate ?? existing.docDate,
@@ -209,6 +237,10 @@ export async function duplicateInvoice(id: string) {
       customerId: src.customerId,
       currency: src.currency,
       discount: src.discount,
+      purchasedItem: src.purchasedItem,
+      branchId: src.branchId,
+      showBankDetails: src.showBankDetails,
+      bankDetails: src.bankDetails,
       notes: src.notes,
       showStamp: src.showStamp,
       items: src.items ?? [],

@@ -39,7 +39,35 @@ model Settings {
   autoCleanupEnabled  Boolean   @default(false)
   autoCleanupDaysAfter Int      @default(90)
   lastCleanupAt       DateTime?
+  // بيانات الحساب البنكي الافتراضية للتحويل (تظهر في الفاتورة عند طلب ذلك)
+  bankDetails     String?  @db.Text
   updatedAt       DateTime @updatedAt
+}
+
+// ---------- الفروع ----------
+// الوكالة الأم وفروعها (مثل: روزا تور الرئيسية، الجيريا كومباس، كيميت ترافيل).
+// الفاتورة تُصدَر باسم فرع منها فتحمل ترويسته وبياناته وحسابه البنكي.
+// الحقل الفارغ في الفرع يرث قيمته من إعدادات الوكالة الأم.
+model Branch {
+  id              String   @id @default(cuid())
+  name            String
+  tagline         String   @default("")
+  address         String   @default("")
+  phone           String   @default("")
+  email           String   @default("")
+  website         String   @default("")
+  rc              String   @default("") // السجل التجاري
+  logoPath        String?
+  stampPath       String?
+  letterheadColor String?  // لون الترويسة الخاص بالفرع
+  bankDetails     String?  @db.Text // بيانات التحويل البنكي لهذا الفرع
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  invoices        Invoice[]
+
+  @@index([sortOrder])
 }
 
 // ---------- العملاء ----------
@@ -298,6 +326,14 @@ model Invoice {
   currency      String    @default("DZD")
   items         Json      // [{ description, qty, unitPrice }]
   discount      Float     @default(0)
+  // البرنامج أو الخدمة المشتراة — مربع اختياري يظهر في الفاتورة قبل الملاحظات
+  purchasedItem String?   @db.Text
+  // الفرع المُصدِّر للفاتورة — ترويسة الفاتورة وبياناتها تتبعه
+  branch        Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId      String?
+  // بيانات الحساب المحوَّل إليه — تظهر عند تفعيلها، من الفرع أو بنص خاص بالفاتورة
+  showBankDetails Boolean @default(false)
+  bankDetails   String?   @db.Text
   notes         String?   @db.Text
   showStamp     Boolean   @default(true)
   paid          Boolean   @default(false) // حالة الدفع

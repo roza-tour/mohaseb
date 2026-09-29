@@ -1,12 +1,10 @@
 "use server";
 
-import fs from "fs";
-import path from "path";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { cleanupLogoStamp } from "@/lib/imageCleanup";
+import { saveUpload } from "@/lib/uploads";
 import { docStyleFromForm } from "@/lib/documents";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -24,40 +22,13 @@ const settingsSchema = z.object({
   agencyWebsite: z.string().optional().default(""),
   agencyRC: z.string().optional().default(""),
   letterheadColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "لون غير صالح").default("#1f3864"),
+  bankDetails: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   defaultCurrency: z.string().min(1).default("DZD"),
   reminderDaysAhead: z.coerce.number().int().min(0).default(7),
 });
-
-const LOGO_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-const LOGO_MAX = 5 * 1024 * 1024; // 5MB
-
-async function saveUpload(file: File, prefix: string): Promise<string | undefined> {
-  if (!file || file.size === 0) return undefined;
-  if (!LOGO_TYPES.includes(file.type)) {
-    throw new Error("يُسمح فقط بصور PNG أو JPG أو WEBP");
-  }
-  if (file.size > LOGO_MAX) {
-    throw new Error("حجم الصورة يتجاوز 5 ميغابايت");
-  }
-  const raw = Buffer.from(await file.arrayBuffer());
-
-  // الشعار والختم: نفرّغ الخلفية البيضاء تلقائياً (تصبح شفافة) ونحفظها PNG
-  let out: Uint8Array = raw;
-  let ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
-  try {
-    out = await cleanupLogoStamp(raw);
-    ext = "png";
-  } catch {
-    // لو فشلت المعالجة لأي سبب نحفظ الصورة الأصلية كما هي
-    out = raw;
-  }
-
-  const filename = `${prefix}-${Date.now()}.${ext}`;
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await fs.promises.mkdir(uploadsDir, { recursive: true });
-  await fs.promises.writeFile(path.join(uploadsDir, filename), out);
-  return `/uploads/${filename}`;
-}
 
 export async function updateSettings(formData: FormData) {
   // إعدادات الوكالة وختمها وشعارها تخصّ المدير وحده
@@ -71,6 +42,7 @@ export async function updateSettings(formData: FormData) {
     agencyWebsite: formData.get("agencyWebsite"),
     agencyRC: formData.get("agencyRC"),
     letterheadColor: formData.get("letterheadColor"),
+    bankDetails: formData.get("bankDetails") ?? undefined,
     defaultCurrency: formData.get("defaultCurrency"),
     reminderDaysAhead: formData.get("reminderDaysAhead"),
   });

@@ -13,10 +13,15 @@ export default async function NewInvoicePage({
   const sp = await searchParams;
   const tripId = typeof sp.tripId === "string" ? sp.tripId : "";
 
-  const [trips, customers, settings] = await Promise.all([
+  const [trips, customers, settings, branches] = await Promise.all([
     findTripsWithNames({ orderBy: { startDate: "desc" }, }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.settings.findUnique({ where: { id: 1 } }),
+    prisma.branch.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true },
+    }),
   ]);
 
   const trip = tripId ? trips.find((t) => t.id === tripId) : null;
@@ -32,6 +37,7 @@ export default async function NewInvoicePage({
         action={createInvoice}
         trips={trips}
         customers={customers}
+        branches={branches}
         initial={{
           tripId,
           customerId: trip?.customerId ?? "",
@@ -39,6 +45,10 @@ export default async function NewInvoicePage({
           currency: defaultCurrency,
           items: [],
           discount: 0,
+          purchasedItem: "",
+          branchId: "",
+          showBankDetails: false,
+          bankDetails: "",
           notes: "",
           showStamp: true,
         }}

@@ -1,7 +1,6 @@
 import { Card, Field, Input, Textarea, Select, Button, LinkButton } from "@/components/ui";
 import { TravelersEditor, type Traveler } from "./TravelersEditor";
-
-const CURRENCIES = ["USD", "EUR", "DZD", "TND", "MAD", "SAR"];
+import { CURRENCIES } from "@/lib/currencies";
 
 export type VisaInitial = {
   wilaya: string;

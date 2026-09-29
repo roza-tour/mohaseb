@@ -68,6 +68,7 @@ npm install --include=dev || fail "تثبيت الحزم"
 step "تحديث قاعدة البيانات"
 npm run db:deploy || fail "هجرة قاعدة البيانات"
 npx tsx prisma/add-programs.ts || true
+npx tsx prisma/add-branches.ts || true
 
 # ── 5) البناء ──────────────────────────────────
 step "بناء التطبيق"

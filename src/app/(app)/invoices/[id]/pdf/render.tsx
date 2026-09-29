@@ -1,5 +1,7 @@
 import { Document, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
+import { findTripWithNames } from "@/lib/safeRead";
+import { branchLetterhead, bankDetailsText } from "@/lib/branches";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { dirStyles, type Lang } from "@/lib/pdf/docLang";
@@ -35,6 +37,8 @@ const T = {
     stamp: "ختم الوكالة",
     tripDetails: "تفاصيل الرحلة", period: "الفترة", duration: "المدة", days: "أيام",
     pax: "عدد المسافرين", program: "البرنامج", notesLabel: "ملاحظات",
+    purchased: "البرنامج / الخدمة المشتراة",
+    bank: "الحساب المحوَّل إليه",
   },
   fr: {
     title: "Facture", invoiceNo: "N° de facture", date: "Date", billTo: "Facturé à",
@@ -43,6 +47,8 @@ const T = {
     stamp: "Cachet de l'agence",
     tripDetails: "Détails du voyage", period: "Période", duration: "Durée", days: "jours",
     pax: "Voyageurs", program: "Programme", notesLabel: "Remarques",
+    purchased: "Programme / prestation achetée",
+    bank: "Coordonnées bancaires",
   },
   en: {
     title: "Invoice", invoiceNo: "Invoice No.", date: "Date", billTo: "Bill To",
@@ -51,6 +57,8 @@ const T = {
     stamp: "Agency Stamp",
     tripDetails: "Trip Details", period: "Period", duration: "Duration", days: "days",
     pax: "Travelers", program: "Program", notesLabel: "Notes",
+    purchased: "Program / Service Purchased",
+    bank: "Bank Transfer Details",
   },
 } as const;
 
@@ -82,6 +90,19 @@ function makeStyles(lang: Lang, st: ReturnType<typeof docStyle>) {
     detailsGrid: { flexDirection: d.row, flexWrap: "wrap", gap: 4 },
     detailItem: { fontSize: 9.5, color: "#475569", width: "50%", textAlign: d.align, marginBottom: 2 },
     programText: { marginTop: 6 },
+    purchasedBox: {
+      marginTop: 16,
+      border: "1px solid #e2e8f0",
+      borderRadius: 4,
+      padding: 10,
+      backgroundColor: "#f8fafc",
+    },
+    bankBox: {
+      marginTop: 12,
+      border: `1px solid ${st.accentColor}`,
+      borderRadius: 4,
+      padding: 10,
+    },
     stampWrap: { marginTop: 28, alignItems: rtl ? "flex-start" : "flex-end" },
     stampBox: {
       border: "1px solid #cbd5e1", borderRadius: 4, padding: 10, minHeight: 95, width: 170,
@@ -101,11 +122,22 @@ export async function renderInvoicePdf(
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { customer: true, trip: { include: { program: true } } },
+    include: { customer: true }, // العميل علاقة اختيارية — آمنة
   });
   if (!invoice) return null;
+  // الرحلة تُقرأ منفصلة: فاتورة مربوطة برحلة برنامجها محذوف كانت تُسقط توليد
+  // الـ PDF كله بخطأ خادم، لأن Prisma يرفض علاقة إلزامية سجلها مفقود.
+  const trip = invoice.tripId ? await findTripWithNames(invoice.tripId) : null;
 
-  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const agencySettings = await prisma.settings.findUnique({ where: { id: 1 } });
+  // الفرع المُصدِّر: ترويسة الفاتورة وبياناتها تتبعه، وما يتركه فارغاً يرثه من الوكالة الأم
+  const branch = invoice.branchId
+    ? await prisma.branch.findUnique({ where: { id: invoice.branchId } })
+    : null;
+  const settings = branchLetterhead(agencySettings, branch);
+  const bankText = invoice.showBankDetails
+    ? bankDetailsText(invoice.bankDetails, branch, agencySettings)
+    : "";
   const st = docStyle(settingsDocStyle(settings));
   const styles = makeStyles(lang, st);
   const stampBuffer = invoice.showStamp ? loadPublicImage(settings?.stampPath) : null;
@@ -124,7 +156,7 @@ export async function renderInvoicePdf(
   const grandTotal = subtotal - invoice.discount;
 
   // تفاصيل البرنامج: نفضّل النص اليومي (itinerary) وإلا الوصف العام
-  const programText = (invoice.trip?.program.itinerary || invoice.trip?.program.description || "").trim();
+  const programText = (trip?.programItinerary || trip?.programDescription || "").trim();
 
   const doc = (
     <Document>
@@ -142,26 +174,26 @@ export async function renderInvoicePdf(
             <Text style={styles.partyLabel}>{t.billTo}</Text>
             <MixedText text={nameOr(invoice.customer?.name)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
           </View>
-          {invoice.trip ? (
+          {trip ? (
             <View style={styles.partyBox}>
               <Text style={styles.partyLabel}>{t.forTrip}</Text>
-              <MixedText text={nameOr(invoice.trip.program.name)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+              <MixedText text={nameOr(trip.programName)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
             </View>
           ) : null}
         </View>
 
-        {invoice.trip ? (
+        {trip ? (
           <View style={styles.detailsBox}>
             <Text style={styles.detailsTitle}>{t.tripDetails}</Text>
             <View style={styles.detailsGrid}>
               <Text style={styles.detailItem}>
-                {t.period}: {formatDate(invoice.trip.startDate)} — {formatDate(invoice.trip.endDate)}
+                {t.period}: {formatDate(trip.startDate)} — {formatDate(trip.endDate)}
               </Text>
               <Text style={styles.detailItem}>
-                {t.duration}: {tripDays(invoice.trip.startDate, invoice.trip.endDate)} {t.days}
+                {t.duration}: {tripDays(trip.startDate, trip.endDate)} {t.days}
               </Text>
               <Text style={styles.detailItem}>
-                {t.pax}: {invoice.trip.numPax}
+                {t.pax}: {trip.numPax}
               </Text>
             </View>
             {programText ? (
@@ -218,6 +250,34 @@ export async function renderInvoicePdf(
             </Text>
           </View>
         </View>
+
+        {/* البرنامج أو الخدمة المشتراة — مربع اختياري قبل الملاحظات */}
+        {invoice.purchasedItem ? (
+          <View style={styles.purchasedBox}>
+            <Text style={styles.detailsTitle}>{t.purchased}</Text>
+            <MixedText
+              text={invoice.purchasedItem}
+              size={10}
+              align={dirStyles(lang).align}
+              baseDir={lang === "fr" ? "ltr" : "auto"}
+              style={{ fontSize: 10, color: "#334155" }}
+            />
+          </View>
+        ) : null}
+
+        {/* الحساب المحوَّل إليه — يظهر عند تفعيله من الفاتورة */}
+        {bankText ? (
+          <View style={styles.bankBox}>
+            <Text style={styles.detailsTitle}>{t.bank}</Text>
+            <MixedText
+              text={bankText}
+              size={10}
+              align={dirStyles(lang).align}
+              baseDir="ltr"
+              style={{ fontSize: 10, color: "#334155" }}
+            />
+          </View>
+        ) : null}
 
         {invoice.notes ? (
           <View style={{ marginTop: 14 }}>

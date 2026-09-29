@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner } from "@/components/ui";
 import { createTrip } from "../actions";
-import { TRIP_STATUSES, TRIP_STATUS_LABELS, CURRENCIES } from "../statusLabels";
+import { TRIP_STATUSES, TRIP_STATUS_LABELS } from "../statusLabels";
+import { CURRENCIES } from "@/lib/currencies";
 import { ProgramDatesFields } from "../ProgramDatesFields";
 
 export default async function NewTripPage({

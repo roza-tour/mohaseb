@@ -21,6 +21,7 @@ export type TripWithNames = Trip & {
   customerName: string;
   programDurationDays: number;
   programItinerary: string | null;
+  programDescription: string | null;
 };
 
 // يضيف اسم البرنامج واسم العميل لمجموعة رحلات دون المرور بعلاقات إلزامية
@@ -29,7 +30,7 @@ export async function attachTripNames(trips: Trip[]): Promise<TripWithNames[]> {
   const [programs, customers] = await Promise.all([
     prisma.tourProgram.findMany({
       where: { id: { in: [...new Set(trips.map((t) => t.programId))] } },
-      select: { id: true, name: true, durationDays: true, itinerary: true },
+      select: { id: true, name: true, durationDays: true, itinerary: true, description: true },
     }),
     prisma.customer.findMany({
       where: { id: { in: [...new Set(trips.map((t) => t.customerId))] } },
@@ -46,6 +47,7 @@ export async function attachTripNames(trips: Trip[]): Promise<TripWithNames[]> {
       programName: program?.name ?? MISSING_PROGRAM,
       programDurationDays: program?.durationDays ?? 0,
       programItinerary: program?.itinerary ?? null,
+      programDescription: program?.description ?? null,
       customerName: customerName.get(t.customerId) ?? MISSING_CUSTOMER,
     };
   });

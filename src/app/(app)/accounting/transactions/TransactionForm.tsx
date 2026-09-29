@@ -1,7 +1,6 @@
 import { Card, Field, Input, Textarea, Select, Button, LinkButton } from "@/components/ui";
 import { formatDate, nameOr } from "@/lib/format";
-
-const CURRENCIES = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];
+import { CURRENCIES } from "@/lib/currencies";
 
 export type TransactionInitial = {
   type: string;

@@ -17,10 +17,15 @@ export default async function EditInvoicePage({
   const { id } = await params;
   const sp = await searchParams;
 
-  const [invoice, trips, customers] = await Promise.all([
+  const [invoice, trips, customers, branches] = await Promise.all([
     prisma.invoice.findUnique({ where: { id } }),
     findTripsWithNames({ orderBy: { startDate: "desc" } }),
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
+    prisma.branch.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true },
+    }),
   ]);
   if (!invoice) notFound();
 
@@ -48,6 +53,7 @@ export default async function EditInvoicePage({
         action={updateInvoice.bind(null, id)}
         trips={trips}
         customers={customers}
+        branches={branches}
         submitLabel="حفظ التعديلات"
         initial={{
           tripId: invoice.tripId ?? "",
@@ -60,6 +66,10 @@ export default async function EditInvoicePage({
             unitPrice: String(it.unitPrice),
           })),
           discount: invoice.discount,
+          purchasedItem: invoice.purchasedItem ?? "",
+          branchId: invoice.branchId ?? "",
+          showBankDetails: invoice.showBankDetails,
+          bankDetails: invoice.bankDetails ?? "",
           notes: invoice.notes ?? "",
           showStamp: invoice.showStamp,
         }}

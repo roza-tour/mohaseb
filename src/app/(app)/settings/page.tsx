@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Select, Button, ErrorBanner, SuccessBanner } from "@/components/ui";
+import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner, SuccessBanner } from "@/components/ui";
 import { updateSettings, changePassword, updateCleanupSettings, runCleanupNow } from "./actions";
 import { previewCleanup } from "@/lib/tripCleanup";
 import { formatDate } from "@/lib/format";
 import { StyleFields } from "../documents/StyleFields";
 import { settingsDocStyle } from "@/lib/documents";
+import { CURRENCIES, currencyLabel } from "@/lib/currencies";
 
 export default async function SettingsPage({
   searchParams,
@@ -24,12 +25,20 @@ export default async function SettingsPage({
         title="الإعدادات"
         description="بيانات الوكالة والشعار والختم والإعدادات العامة"
         action={
-          <a
-            href="/settings/users"
-            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition bg-slate-100 text-slate-700 hover:bg-slate-200"
-          >
-            👥 إدارة المستخدمين
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/settings/branches"
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              🏢 الفروع
+            </a>
+            <a
+              href="/settings/users"
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              👥 إدارة المستخدمين
+            </a>
+          </div>
         }
       />
 
@@ -76,13 +85,20 @@ export default async function SettingsPage({
             </Field>
             <Field label="العملة الافتراضية">
               <Select name="defaultCurrency" defaultValue={settings?.defaultCurrency ?? "DZD"}>
-                <option value="DZD">دينار جزائري (DZD)</option>
-                <option value="EUR">يورو (EUR)</option>
-                <option value="USD">دولار أمريكي (USD)</option>
-                <option value="TND">دينار تونسي (TND)</option>
-                <option value="MAD">درهم مغربي (MAD)</option>
-                <option value="SAR">ريال سعودي (SAR)</option>
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {currencyLabel(c)}
+                  </option>
+                ))}
               </Select>
+            </Field>
+            <Field label="بيانات الحساب البنكي للتحويل (تظهر في الفاتورة عند تفعيلها)">
+              <Textarea
+                name="bankDetails"
+                rows={4}
+                defaultValue={settings?.bankDetails ?? ""}
+                placeholder={"اسم البنك: ...\nاسم صاحب الحساب: ...\nرقم الحساب / RIB: ...\nIBAN: ...\nSWIFT: ..."}
+              />
             </Field>
             <Field label="لون ترويسة المستندات (الاسم والشريط في ورق الشركة)">
               <Input

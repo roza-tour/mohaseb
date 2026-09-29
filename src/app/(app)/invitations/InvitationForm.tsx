@@ -1,8 +1,7 @@
 import { Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { PeopleEditor, type CustomerOpt } from "./PeopleEditor";
-
-const CURRENCIES = ["USD", "EUR", "DZD", "TND", "MAD", "SAR"];
+import { CURRENCIES } from "@/lib/currencies";
 
 export type InvitationInitial = {
   language: string;

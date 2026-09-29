@@ -1,8 +1,7 @@
-import { Card, Field, Select, Input, Button, LinkButton } from "@/components/ui";
+import { Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { formatDate, formatDateForInput } from "@/lib/format";
 import { ItemsEditor } from "./ItemsEditor";
-
-const CURRENCIES = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];
+import { CURRENCIES } from "@/lib/currencies";
 
 export type InvoiceInitial = {
   tripId: string;
@@ -11,6 +10,10 @@ export type InvoiceInitial = {
   currency: string;
   items: { description: string; qty: string; unitPrice: string }[];
   discount: number;
+  purchasedItem: string;
+  branchId: string;
+  showBankDetails: boolean;
+  bankDetails: string;
   notes: string;
   showStamp: boolean;
 };
@@ -20,12 +23,14 @@ export function InvoiceForm({
   action,
   trips,
   customers,
+  branches,
   initial,
   submitLabel = "إصدار الفاتورة (PDF)",
 }: {
   action: (formData: FormData) => void;
   trips: { id: string; customerId: string | null; startDate: Date; programName: string; customerName: string }[];
   customers: { id: string; name: string }[];
+  branches: { id: string; name: string }[];
   initial: InvoiceInitial;
   submitLabel?: string;
 }) {
@@ -65,20 +70,62 @@ export function InvoiceForm({
               ))}
             </Select>
           </Field>
+          {/* الفرع المُصدِّر: ترويسة الفاتورة وبياناتها تتبعه */}
+          {branches.length > 0 ? (
+            <Field label="الفرع المُصدِّر للفاتورة">
+              <Select name="branchId" defaultValue={initial.branchId}>
+                <option value="">الوكالة الرئيسية (من الإعدادات)</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
         </div>
 
         <Field label="بنود الفاتورة">
           <ItemsEditor currency={initial.currency} initial={initial.items} />
         </Field>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="الخصم (اختياري)">
-            <Input type="number" name="discount" min={0} step="0.01" defaultValue={initial.discount} />
+        <Field label="الخصم (اختياري)">
+          <Input type="number" name="discount" min={0} step="0.01" defaultValue={initial.discount} />
+        </Field>
+
+        {/* يظهر كمربّع مستقل في الفاتورة قبل الملاحظات — اتركه فارغاً فلا يظهر */}
+        <Field label="البرنامج أو الخدمة المشتراة (اختياري)">
+          <Textarea
+            name="purchasedItem"
+            rows={3}
+            defaultValue={initial.purchasedItem}
+            placeholder="مثال: برنامج جولة الصحراء — تمنراست، 8 أيام / 7 ليالٍ، شامل الإقامة والنقل والمرشد"
+          />
+        </Field>
+
+        {/* الحساب المحوَّل إليه: يظهر في الفاتورة عند تفعيله فقط.
+            إن تُرك النص فارغاً يأخذ حساب الفرع المختار، وإلا حساب الوكالة الأم. */}
+        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input type="checkbox" name="showBankDetails" defaultChecked={initial.showBankDetails} />
+            🏦 إظهار بيانات الحساب المحوَّل إليه على الفاتورة
+          </label>
+          <Field label="بيانات الحساب (اتركها فارغة لاستعمال حساب الفرع المختار)">
+            <Textarea
+              name="bankDetails"
+              rows={4}
+              defaultValue={initial.bankDetails}
+              placeholder={"اسم البنك: ...\nاسم صاحب الحساب: ...\nرقم الحساب / RIB: ...\nIBAN: ...\nSWIFT: ..."}
+            />
           </Field>
-          <Field label="ملاحظات تظهر أسفل الفاتورة (اختياري)">
-            <Input name="notes" defaultValue={initial.notes} placeholder="مثال: تُدفع خلال 7 أيام من تاريخ الإصدار" />
-          </Field>
+          <p className="text-xs text-slate-500">
+            حسابات الفروع تُضبط من: الإعدادات ← الفروع. وحساب الوكالة الرئيسية من صفحة الإعدادات.
+          </p>
         </div>
+
+        <Field label="ملاحظات تظهر أسفل الفاتورة (اختياري)">
+          <Input name="notes" defaultValue={initial.notes} placeholder="مثال: تُدفع خلال 7 أيام من تاريخ الإصدار" />
+        </Field>
 
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" name="showStamp" defaultChecked={initial.showStamp} />

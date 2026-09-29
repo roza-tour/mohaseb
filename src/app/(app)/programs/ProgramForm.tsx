@@ -1,7 +1,6 @@
 import { Field, Input, Textarea, Select, Button, LinkButton, Card } from "@/components/ui";
 import type { TourProgram } from "@prisma/client";
-
-const currencies = ["DZD", "EUR", "USD", "TND", "MAD", "SAR"];
+import { CURRENCIES as currencies } from "@/lib/currencies";
 
 export function ProgramForm({
   action,
