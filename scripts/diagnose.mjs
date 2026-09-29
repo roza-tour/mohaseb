@@ -28,6 +28,16 @@ function sh(cmd) {
   }
 }
 
+// مثل sh لكنه يعيد ما طُبع حتى لو فشل الأمر — بعض الأوامر تخرج بخطأ
+// وهي تقول الشيء المهم (مثل `prisma migrate status` حين توجد هجرة معلَّقة).
+function shOutput(cmd) {
+  try {
+    return execSync(cmd, { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"] }).toString().trim();
+  } catch (e) {
+    return `${e.stdout?.toString() ?? ""}\n${e.stderr?.toString() ?? ""}`.trim();
+  }
+}
+
 function loadEnv() {
   const envPath = path.join(ROOT, ".env");
   if (!fs.existsSync(envPath)) return {};
@@ -137,6 +147,23 @@ if (prisma) {
     for (const r of rows) console.log(`    • ${r.migration_name}`);
   } catch {
     warn("تعذّر قراءة جدول الهجرات");
+  }
+
+  // هل بقيت هجرة لم تُطبَّق؟ هذا أخطر عطل ممكن: الكود الجديد يسأل قاعدة
+  // بيانات قديمة عن أعمدة لا توجد فيها، فتسقط صفحات كاملة بخطأ خادم.
+  const status = shOutput("npx --no-install prisma migrate status");
+  if (status.includes("Database schema is up to date")) {
+    ok("قاعدة البيانات محدَّثة بالكامل (لا هجرات معلَّقة)");
+  } else if (status === "") {
+    warn("تعذّر فحص حالة الهجرات");
+  } else {
+    bad("قاعدة البيانات غير محدَّثة — الكود أحدث منها");
+    const noise = /^(warn |For more information|Environment variables|Prisma schema loaded|Datasource |npm notice)/;
+    for (const l of status.split("\n").filter((l) => l.trim() !== "" && !noise.test(l.trim())).slice(0, 8)) {
+      console.log(`     ${l.trim().slice(0, 160)}`);
+    }
+    console.log("     ⇐ هذا يُسقط الصفحات التي تقرأ الأعمدة الجديدة بخطأ خادم.");
+    console.log("     الحل:  npm run db:deploy  ثم  npm run build  ثم  touch tmp/restart.txt");
   }
 
   // هل طُبِّقت هجرة الإصلاحات الأخيرة؟
