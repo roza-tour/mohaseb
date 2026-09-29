@@ -11,7 +11,10 @@ import { redirect } from "next/navigation";
 const BACK = "/settings/branches";
 
 const branchSchema = z.object({
-  name: z.string().trim().min(1, "اسم الفرع مطلوب"),
+  name: z.string().trim().min(1, "اسم الفرع بالعربية مطلوب"),
+  // الاسم بالفرنسية والإنجليزية — الفارغ منهما يُستعمل مكانه الاسم العربي
+  nameFr: z.string().trim().optional().default(""),
+  nameEn: z.string().trim().optional().default(""),
   isActive: z.boolean(),
   sortOrder: z.coerce.number().int().default(0),
 });
@@ -20,6 +23,8 @@ export async function createBranch(formData: FormData) {
   await requireAdmin(BACK);
   const parsed = branchSchema.safeParse({
     name: formData.get("name") ?? "",
+    nameFr: formData.get("nameFr") ?? "",
+    nameEn: formData.get("nameEn") ?? "",
     isActive: true,
     sortOrder: formData.get("sortOrder") || 0,
   });
@@ -35,6 +40,8 @@ export async function updateBranch(id: string, formData: FormData) {
   await requireAdmin(BACK);
   const parsed = branchSchema.safeParse({
     name: formData.get("name") ?? "",
+    nameFr: formData.get("nameFr") ?? "",
+    nameEn: formData.get("nameEn") ?? "",
     isActive: formData.get("isActive") === "on",
     sortOrder: formData.get("sortOrder") || 0,
   });

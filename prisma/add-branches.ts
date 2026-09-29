@@ -28,8 +28,8 @@ loadEnv();
 const prisma = new PrismaClient();
 
 const BRANCHES = [
-  { name: "الجيريا كومباس", sortOrder: 0 },
-  { name: "كيميت ترافيل", sortOrder: 1 },
+  { name: "الجيريا كومباس", nameFr: "Algeria Compass", nameEn: "Algeria Compass", sortOrder: 0 },
+  { name: "كيميت ترافيل", nameFr: "Kemet Travel", nameEn: "Kemet Travel", sortOrder: 1 },
 ];
 
 async function main() {
@@ -48,7 +48,7 @@ async function main() {
   }
   console.log(`\nتم: أُضيف ${added}، تم تخطي ${skipped}.`);
   if (added > 0) {
-    console.log("لتعديل الأسماء أو إضافة فرع: الإعدادات ← الفروع");
+    console.log("لتعديل الأسماء (بالعربية والفرنسية والإنجليزية) أو إضافة فرع: الإعدادات ← الفروع");
   }
 }
 

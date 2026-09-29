@@ -41,7 +41,7 @@ export default async function BranchesPage({
     <div className="space-y-6">
       <PageHeader
         title="الفروع"
-        description="أسماء الفروع التي تُشترى منها الخدمات. الفاتورة تبقى فاتورة الوكالة بترويستها وختمها كما هي، ويُذكَر فيها الفرع فقط — وبلا فرع تخرج عادية."
+        description="أسماء الفروع التي تُشترى منها الخدمات. الفاتورة تبقى فاتورة الوكالة بترويستها وختمها كما هي، ويُذكَر فيها الفرع فقط — وبلا فرع تخرج عادية. كل نسخة من الفاتورة تعرض الاسم بلغتها، والاسم الفارغ يُستعمل مكانه العربي."
         action={
           <LinkButton href="/settings" variant="secondary">
             رجوع للإعدادات
@@ -59,7 +59,9 @@ export default async function BranchesPage({
           <Table>
             <thead>
               <tr>
-                <Th>اسم الفرع</Th>
+                <Th>الاسم بالعربية</Th>
+                <Th>بالفرنسية</Th>
+                <Th>بالإنجليزية</Th>
                 <Th>الترتيب</Th>
                 <Th>يظهر في قائمة الفاتورة</Th>
                 <Th></Th>
@@ -72,6 +74,12 @@ export default async function BranchesPage({
                   <Td>
                     <form action={updateBranch.bind(null, b.id)} id={`branch-${b.id}`} className="contents" />
                     <Input form={`branch-${b.id}`} name="name" defaultValue={b.name} />
+                  </Td>
+                  <Td>
+                    <Input form={`branch-${b.id}`} name="nameFr" dir="ltr" defaultValue={b.nameFr} />
+                  </Td>
+                  <Td>
+                    <Input form={`branch-${b.id}`} name="nameEn" dir="ltr" defaultValue={b.nameEn} />
                   </Td>
                   <Td className="w-24">
                     <Input form={`branch-${b.id}`} type="number" name="sortOrder" defaultValue={b.sortOrder} />
@@ -100,8 +108,14 @@ export default async function BranchesPage({
       <Card className="p-5 max-w-xl">
         <h2 className="font-bold text-slate-800 mb-4">إضافة فرع</h2>
         <form action={createBranch} className="space-y-4">
-          <Field label="اسم الفرع" required>
+          <Field label="الاسم بالعربية" required>
             <Input name="name" placeholder="مثال: كيميت ترافيل" />
+          </Field>
+          <Field label="الاسم بالفرنسية (يظهر في النسخة الفرنسية من الفاتورة)">
+            <Input name="nameFr" dir="ltr" placeholder="Kemet Travel" />
+          </Field>
+          <Field label="الاسم بالإنجليزية (يظهر في النسخة الإنجليزية من الفاتورة)">
+            <Input name="nameEn" dir="ltr" placeholder="Kemet Travel" />
           </Field>
           <Field label="ترتيب الظهور في القائمة">
             <Input type="number" name="sortOrder" defaultValue={branches.length} />

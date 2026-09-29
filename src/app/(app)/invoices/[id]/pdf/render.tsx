@@ -130,9 +130,16 @@ export async function renderInvoicePdf(
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   // الفرع يُذكَر في الفاتورة فقط — الترويسة والشعار والختم تبقى للوكالة كما هي
-  const branch = invoice.branchId
-    ? await prisma.branch.findUnique({ where: { id: invoice.branchId }, select: { name: true } })
+  const branchRow = invoice.branchId
+    ? await prisma.branch.findUnique({
+        where: { id: invoice.branchId },
+        select: { name: true, nameFr: true, nameEn: true },
+      })
     : null;
+  // اسم الفرع بلغة النسخة — والعربي احتياطياً إن لم يُكتب الاسم بتلك اللغة
+  const branchName = branchRow
+    ? (lang === "fr" ? branchRow.nameFr : lang === "en" ? branchRow.nameEn : "").trim() || branchRow.name
+    : "";
   const bankText = invoice.bankDetails?.trim() ?? "";
   const st = docStyle(settingsDocStyle(settings));
   const styles = makeStyles(lang, st);
@@ -177,10 +184,10 @@ export async function renderInvoicePdf(
             </View>
           ) : null}
           {/* الفرع — يظهر فقط إن اختير، ولا يغيّر شيئاً آخر في الفاتورة */}
-          {branch ? (
+          {branchName ? (
             <View style={styles.partyBox}>
               <Text style={styles.partyLabel}>{t.branch}</Text>
-              <MixedText text={branch.name} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+              <MixedText text={branchName} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
             </View>
           ) : null}
         </View>

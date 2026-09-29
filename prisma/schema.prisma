@@ -49,7 +49,9 @@ model Settings {
 // بلا فرع = فاتورة روزا تور عادية بلا أي إشارة إلى فرع.
 model Branch {
   id        String   @id @default(cuid())
-  name      String
+  name      String            // الاسم بالعربية — يظهر في البرنامج وفي النسخة العربية
+  nameFr    String   @default("") // الاسم في النسخة الفرنسية (فارغ = يُستعمل العربي)
+  nameEn    String   @default("") // الاسم في النسخة الإنجليزية (فارغ = يُستعمل العربي)
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
