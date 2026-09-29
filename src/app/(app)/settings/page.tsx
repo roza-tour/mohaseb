@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Field, Input, Textarea, Select, Button, ErrorBanner, SuccessBanner } from "@/components/ui";
+import { PageHeader, Card, Field, Input, Select, Button, ErrorBanner, SuccessBanner } from "@/components/ui";
 import { updateSettings, changePassword, updateCleanupSettings, runCleanupNow } from "./actions";
 import { previewCleanup } from "@/lib/tripCleanup";
 import { formatDate } from "@/lib/format";
@@ -91,14 +91,6 @@ export default async function SettingsPage({
                   </option>
                 ))}
               </Select>
-            </Field>
-            <Field label="بيانات الحساب البنكي للتحويل (تظهر في الفاتورة عند تفعيلها)">
-              <Textarea
-                name="bankDetails"
-                rows={4}
-                defaultValue={settings?.bankDetails ?? ""}
-                placeholder={"اسم البنك: ...\nاسم صاحب الحساب: ...\nرقم الحساب / RIB: ...\nIBAN: ...\nSWIFT: ..."}
-              />
             </Field>
             <Field label="لون ترويسة المستندات (الاسم والشريط في ورق الشركة)">
               <Input

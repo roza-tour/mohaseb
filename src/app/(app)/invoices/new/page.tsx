@@ -47,7 +47,6 @@ export default async function NewInvoicePage({
           discount: 0,
           purchasedItem: "",
           branchId: "",
-          showBankDetails: false,
           bankDetails: "",
           notes: "",
           showStamp: true,

@@ -68,7 +68,6 @@ export default async function EditInvoicePage({
           discount: invoice.discount,
           purchasedItem: invoice.purchasedItem ?? "",
           branchId: invoice.branchId ?? "",
-          showBankDetails: invoice.showBankDetails,
           bankDetails: invoice.bankDetails ?? "",
           notes: invoice.notes ?? "",
           showStamp: invoice.showStamp,

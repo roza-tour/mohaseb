@@ -39,33 +39,22 @@ model Settings {
   autoCleanupEnabled  Boolean   @default(false)
   autoCleanupDaysAfter Int      @default(90)
   lastCleanupAt       DateTime?
-  // بيانات الحساب البنكي الافتراضية للتحويل (تظهر في الفاتورة عند طلب ذلك)
-  bankDetails     String?  @db.Text
   updatedAt       DateTime @updatedAt
 }
 
 // ---------- الفروع ----------
-// الوكالة الأم وفروعها (مثل: روزا تور الرئيسية، الجيريا كومباس، كيميت ترافيل).
-// الفاتورة تُصدَر باسم فرع منها فتحمل ترويسته وبياناته وحسابه البنكي.
-// الحقل الفارغ في الفرع يرث قيمته من إعدادات الوكالة الأم.
+// فروع الوكالة (الجيريا كومباس في الجزائر، كيميت ترافيل في مصر).
+// اسم فقط: الفاتورة تبقى فاتورة روزا تور بترويستها وختمها كما هي،
+// ويُذكَر الفرع فيها لبيان أن الخدمة اشتُريت من هذا الفرع.
+// بلا فرع = فاتورة روزا تور عادية بلا أي إشارة إلى فرع.
 model Branch {
-  id              String   @id @default(cuid())
-  name            String
-  tagline         String   @default("")
-  address         String   @default("")
-  phone           String   @default("")
-  email           String   @default("")
-  website         String   @default("")
-  rc              String   @default("") // السجل التجاري
-  logoPath        String?
-  stampPath       String?
-  letterheadColor String?  // لون الترويسة الخاص بالفرع
-  bankDetails     String?  @db.Text // بيانات التحويل البنكي لهذا الفرع
-  isActive        Boolean  @default(true)
-  sortOrder       Int      @default(0)
-  createdAt       DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
 
-  invoices        Invoice[]
+  invoices  Invoice[]
 
   @@index([sortOrder])
 }
@@ -328,11 +317,10 @@ model Invoice {
   discount      Float     @default(0)
   // البرنامج أو الخدمة المشتراة — مربع اختياري يظهر في الفاتورة قبل الملاحظات
   purchasedItem String?   @db.Text
-  // الفرع المُصدِّر للفاتورة — ترويسة الفاتورة وبياناتها تتبعه
+  // الفرع الذي اشتُريت منه الخدمة — اختياري، ولا يغيّر ترويسة الفاتورة
   branch        Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   branchId      String?
-  // بيانات الحساب المحوَّل إليه — تظهر عند تفعيلها، من الفرع أو بنص خاص بالفاتورة
-  showBankDetails Boolean @default(false)
+  // بيانات الحساب المحوَّل إليه — تُكتب يدوياً وتظهر إن كُتبت (الدفع كاش = تُترك فارغة)
   bankDetails   String?   @db.Text
   notes         String?   @db.Text
   showStamp     Boolean   @default(true)

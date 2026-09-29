@@ -12,7 +12,6 @@ export type InvoiceInitial = {
   discount: number;
   purchasedItem: string;
   branchId: string;
-  showBankDetails: boolean;
   bankDetails: string;
   notes: string;
   showStamp: boolean;
@@ -70,11 +69,11 @@ export function InvoiceForm({
               ))}
             </Select>
           </Field>
-          {/* الفرع المُصدِّر: ترويسة الفاتورة وبياناتها تتبعه */}
+          {/* الفرع الذي اشتُريت منه الخدمة — الفاتورة تبقى كما هي، ويُذكَر الفرع فيها فقط */}
           {branches.length > 0 ? (
-            <Field label="الفرع المُصدِّر للفاتورة">
+            <Field label="الفرع (اختياري)">
               <Select name="branchId" defaultValue={initial.branchId}>
-                <option value="">الوكالة الرئيسية (من الإعدادات)</option>
+                <option value="">بدون فرع</option>
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -103,25 +102,15 @@ export function InvoiceForm({
           />
         </Field>
 
-        {/* الحساب المحوَّل إليه: يظهر في الفاتورة عند تفعيله فقط.
-            إن تُرك النص فارغاً يأخذ حساب الفرع المختار، وإلا حساب الوكالة الأم. */}
-        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" name="showBankDetails" defaultChecked={initial.showBankDetails} />
-            🏦 إظهار بيانات الحساب المحوَّل إليه على الفاتورة
-          </label>
-          <Field label="بيانات الحساب (اتركها فارغة لاستعمال حساب الفرع المختار)">
-            <Textarea
-              name="bankDetails"
-              rows={4}
-              defaultValue={initial.bankDetails}
-              placeholder={"اسم البنك: ...\nاسم صاحب الحساب: ...\nرقم الحساب / RIB: ...\nIBAN: ...\nSWIFT: ..."}
-            />
-          </Field>
-          <p className="text-xs text-slate-500">
-            حسابات الفروع تُضبط من: الإعدادات ← الفروع. وحساب الوكالة الرئيسية من صفحة الإعدادات.
-          </p>
-        </div>
+        {/* الحساب المحوَّل إليه — يظهر في الفاتورة إن كُتب، ويختفي إن تُرك فارغاً */}
+        <Field label="الحساب المحوَّل إليه (اختياري — اتركه فارغاً لو الدفع كاش)">
+          <Textarea
+            name="bankDetails"
+            rows={4}
+            defaultValue={initial.bankDetails}
+            placeholder={"اسم البنك: ...\nاسم صاحب الحساب: ...\nرقم الحساب / RIB: ...\nIBAN: ..."}
+          />
+        </Field>
 
         <Field label="ملاحظات تظهر أسفل الفاتورة (اختياري)">
           <Input name="notes" defaultValue={initial.notes} placeholder="مثال: تُدفع خلال 7 أيام من تاريخ الإصدار" />

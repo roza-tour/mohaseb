@@ -22,10 +22,6 @@ const settingsSchema = z.object({
   agencyWebsite: z.string().optional().default(""),
   agencyRC: z.string().optional().default(""),
   letterheadColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "لون غير صالح").default("#1f3864"),
-  bankDetails: z
-    .string()
-    .optional()
-    .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   defaultCurrency: z.string().min(1).default("DZD"),
   reminderDaysAhead: z.coerce.number().int().min(0).default(7),
 });
@@ -42,7 +38,6 @@ export async function updateSettings(formData: FormData) {
     agencyWebsite: formData.get("agencyWebsite"),
     agencyRC: formData.get("agencyRC"),
     letterheadColor: formData.get("letterheadColor"),
-    bankDetails: formData.get("bankDetails") ?? undefined,
     defaultCurrency: formData.get("defaultCurrency"),
     reminderDaysAhead: formData.get("reminderDaysAhead"),
   });

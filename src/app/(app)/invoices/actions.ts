@@ -19,9 +19,8 @@ const invoiceSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
-  // الفرع المُصدِّر، وبيانات الحساب المحوَّل إليه
+  // الفرع الذي اشتُريت منه الخدمة، وبيانات الحساب المحوَّل إليه
   branchId: z.string().optional(),
-  showBankDetails: z.boolean(),
   bankDetails: z
     .string()
     .optional()
@@ -45,7 +44,6 @@ export async function createInvoice(formData: FormData) {
     discount: formData.get("discount") || undefined,
     purchasedItem: formData.get("purchasedItem") ?? undefined,
     branchId: formData.get("branchId") || undefined,
-    showBankDetails: formData.get("showBankDetails") === "on",
     bankDetails: formData.get("bankDetails") ?? undefined,
     notes: formData.get("notes") ?? undefined,
     showStamp: formData.get("showStamp") === "on",
@@ -90,7 +88,6 @@ export async function createInvoice(formData: FormData) {
       discount: parsed.data.discount,
       purchasedItem: parsed.data.purchasedItem,
       branchId: parsed.data.branchId || null,
-      showBankDetails: parsed.data.showBankDetails,
       bankDetails: parsed.data.bankDetails,
       notes: parsed.data.notes,
       showStamp: parsed.data.showStamp,
@@ -117,7 +114,6 @@ export async function updateInvoice(id: string, formData: FormData) {
     discount: formData.get("discount") || undefined,
     purchasedItem: formData.get("purchasedItem") ?? undefined,
     branchId: formData.get("branchId") || undefined,
-    showBankDetails: formData.get("showBankDetails") === "on",
     bankDetails: formData.get("bankDetails") ?? undefined,
     notes: formData.get("notes") ?? undefined,
     showStamp: formData.get("showStamp") === "on",
@@ -155,7 +151,6 @@ export async function updateInvoice(id: string, formData: FormData) {
       discount: parsed.data.discount,
       purchasedItem: parsed.data.purchasedItem,
       branchId: parsed.data.branchId || null,
-      showBankDetails: parsed.data.showBankDetails,
       bankDetails: parsed.data.bankDetails,
       notes: parsed.data.notes,
       showStamp: parsed.data.showStamp,
@@ -239,7 +234,6 @@ export async function duplicateInvoice(id: string) {
       discount: src.discount,
       purchasedItem: src.purchasedItem,
       branchId: src.branchId,
-      showBankDetails: src.showBankDetails,
       bankDetails: src.bankDetails,
       notes: src.notes,
       showStamp: src.showStamp,

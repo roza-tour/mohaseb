@@ -1,7 +1,6 @@
 import { Document, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { findTripWithNames } from "@/lib/safeRead";
-import { branchLetterhead, bankDetailsText } from "@/lib/branches";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { dirStyles, type Lang } from "@/lib/pdf/docLang";
@@ -38,7 +37,7 @@ const T = {
     tripDetails: "تفاصيل الرحلة", period: "الفترة", duration: "المدة", days: "أيام",
     pax: "عدد المسافرين", program: "البرنامج", notesLabel: "ملاحظات",
     purchased: "البرنامج / الخدمة المشتراة",
-    bank: "الحساب المحوَّل إليه",
+    bank: "الحساب المحوَّل إليه", branch: "الفرع",
   },
   fr: {
     title: "Facture", invoiceNo: "N° de facture", date: "Date", billTo: "Facturé à",
@@ -48,7 +47,7 @@ const T = {
     tripDetails: "Détails du voyage", period: "Période", duration: "Durée", days: "jours",
     pax: "Voyageurs", program: "Programme", notesLabel: "Remarques",
     purchased: "Programme / prestation achetée",
-    bank: "Coordonnées bancaires",
+    bank: "Coordonnées bancaires", branch: "Agence",
   },
   en: {
     title: "Invoice", invoiceNo: "Invoice No.", date: "Date", billTo: "Bill To",
@@ -58,7 +57,7 @@ const T = {
     tripDetails: "Trip Details", period: "Period", duration: "Duration", days: "days",
     pax: "Travelers", program: "Program", notesLabel: "Notes",
     purchased: "Program / Service Purchased",
-    bank: "Bank Transfer Details",
+    bank: "Bank Transfer Details", branch: "Branch",
   },
 } as const;
 
@@ -129,15 +128,12 @@ export async function renderInvoicePdf(
   // الـ PDF كله بخطأ خادم، لأن Prisma يرفض علاقة إلزامية سجلها مفقود.
   const trip = invoice.tripId ? await findTripWithNames(invoice.tripId) : null;
 
-  const agencySettings = await prisma.settings.findUnique({ where: { id: 1 } });
-  // الفرع المُصدِّر: ترويسة الفاتورة وبياناتها تتبعه، وما يتركه فارغاً يرثه من الوكالة الأم
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  // الفرع يُذكَر في الفاتورة فقط — الترويسة والشعار والختم تبقى للوكالة كما هي
   const branch = invoice.branchId
-    ? await prisma.branch.findUnique({ where: { id: invoice.branchId } })
+    ? await prisma.branch.findUnique({ where: { id: invoice.branchId }, select: { name: true } })
     : null;
-  const settings = branchLetterhead(agencySettings, branch);
-  const bankText = invoice.showBankDetails
-    ? bankDetailsText(invoice.bankDetails, branch, agencySettings)
-    : "";
+  const bankText = invoice.bankDetails?.trim() ?? "";
   const st = docStyle(settingsDocStyle(settings));
   const styles = makeStyles(lang, st);
   const stampBuffer = invoice.showStamp ? loadPublicImage(settings?.stampPath) : null;
@@ -178,6 +174,13 @@ export async function renderInvoicePdf(
             <View style={styles.partyBox}>
               <Text style={styles.partyLabel}>{t.forTrip}</Text>
               <MixedText text={nameOr(trip.programName)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+            </View>
+          ) : null}
+          {/* الفرع — يظهر فقط إن اختير، ولا يغيّر شيئاً آخر في الفاتورة */}
+          {branch ? (
+            <View style={styles.partyBox}>
+              <Text style={styles.partyLabel}>{t.branch}</Text>
+              <MixedText text={branch.name} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
             </View>
           ) : null}
         </View>
