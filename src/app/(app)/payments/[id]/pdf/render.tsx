@@ -4,7 +4,7 @@ import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/
 import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
-import { nameOr } from "@/lib/format";
+import { nameOr, websiteList } from "@/lib/format";
 import { makeQrPng, docQrText } from "@/lib/qr";
 
 registerArabicFonts();
@@ -162,7 +162,8 @@ export async function renderReceiptPdf(
       type: "Reçu",
       number: payment.receiptNumber,
       date: fmt(payment.paidAt),
-      website: settings?.agencyWebsite,
+      // رمز التحقق يحمل موقعاً واحداً فقط حتى لا يتضخّم
+      website: websiteList(settings?.agencyWebsite)[0] ?? null,
     })
   );
 

@@ -77,8 +77,13 @@ export default async function SettingsPage({
             <Field label="العنوان">
               <Input name="agencyAddress" defaultValue={settings?.agencyAddress ?? ""} />
             </Field>
-            <Field label="الموقع الإلكتروني">
-              <Input name="agencyWebsite" dir="ltr" placeholder="www.example.com" defaultValue={settings?.agencyWebsite ?? ""} />
+            <Field label="المواقع الإلكترونية (تظهر في تذييل كل المستندات — اكتب أكثر من موقع مفصولة بفاصلة)">
+              <Input
+                name="agencyWebsite"
+                dir="ltr"
+                placeholder="rozatour.com, algeriacompass.com, kemet-travel.com"
+                defaultValue={settings?.agencyWebsite ?? ""}
+              />
             </Field>
             <Field label="رقم السجل التجاري N° RC (يظهر في ملفات الفيزا الصحراوية)">
               <Input name="agencyRC" dir="ltr" defaultValue={settings?.agencyRC ?? ""} />

@@ -5,6 +5,22 @@ export function roundMoney(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+// مواقع الوكالة في تذييل المستندات.
+// الحقل يقبل أكثر من موقع مفصولة بفاصلة أو سطر أو مسافة، وتُعرض بلا
+// https:// ولا شرطة أخيرة — الرابط الكامل يطيل السطر ولا يضيف شيئاً مطبوعاً.
+export function websiteList(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(/[\s,;|]+/)) {
+    const clean = part.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+    if (clean === "" || seen.has(clean.toLowerCase())) continue;
+    seen.add(clean.toLowerCase());
+    out.push(clean);
+  }
+  return out;
+}
+
 export function formatCurrency(amount: number, currency = "DZD") {
   return `${amount.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }

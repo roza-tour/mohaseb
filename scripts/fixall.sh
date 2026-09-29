@@ -69,6 +69,7 @@ step "تحديث قاعدة البيانات"
 npm run db:deploy || fail "هجرة قاعدة البيانات"
 npx tsx prisma/add-programs.ts || true
 npx tsx prisma/add-branches.ts || true
+npx tsx prisma/add-websites.ts || true
 
 # ── 5) البناء ──────────────────────────────────
 step "بناء التطبيق"

@@ -7,6 +7,7 @@ import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/
 import { MixedText } from "@/lib/pdf/MixedText";
 import { parseBodyLines, parseDocStyle, settingsDocStyle, PAGE_BREAK } from "@/lib/documents";
 import { makeQrPng, docQrText } from "@/lib/qr";
+import { websiteList } from "@/lib/format";
 import { RefBar, DocTitle } from "@/lib/pdf/chrome";
 
 function formatDate(date: Date) {
@@ -29,7 +30,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stampBuffer = doc.showStamp ? loadPublicImage(settings?.stampPath) : null;
   const qr = await makeQrPng(
-    docQrText({ agency: settings?.agencyName, type: "Document", number: doc.docNumber, date: formatDate(doc.docDate), website: settings?.agencyWebsite })
+    docQrText({ agency: settings?.agencyName, type: "Document", number: doc.docNumber, date: formatDate(doc.docDate), website: websiteList(settings?.agencyWebsite)[0] ?? null })
   );
 
   // تنسيق المستند: ما اختير له تحديداً، وإلا التنسيق العام من الإعدادات

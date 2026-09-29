@@ -6,7 +6,7 @@ import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/c
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng, docQrText } from "@/lib/qr";
-import { nameOr } from "@/lib/format";
+import { nameOr, websiteList } from "@/lib/format";
 import { findTaskOrder } from "@/lib/taskOrderView";
 
 registerArabicFonts();
@@ -172,7 +172,8 @@ export async function renderTaskOrderPdf(
       type: "Ordre de mission",
       number: ref,
       date: fmt(taskOrder.taskDate),
-      website: settings?.agencyWebsite,
+      // رمز التحقق يحمل موقعاً واحداً فقط حتى لا يتضخّم
+      website: websiteList(settings?.agencyWebsite)[0] ?? null,
     })
   );
 

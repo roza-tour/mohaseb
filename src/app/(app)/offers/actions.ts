@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { websiteList } from "@/lib/format";
 
 const schema = z.object({
   subject: z.string().min(1, "اكتب عنوان العرض"),
@@ -69,7 +70,7 @@ export async function sendOffer(id: string) {
     agencyName: settings?.agencyName?.trim() || "Roza Tour",
     color: settings?.letterheadColor || "#1f3864",
     body: offer.body,
-    website: settings?.agencyWebsite,
+    website: websiteList(settings?.agencyWebsite).join("  ·  ") || null,
     phone: settings?.agencyPhone,
   });
 

@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { Page, Text, View, Image, Font, StyleSheet } from "@react-pdf/renderer";
 import type { Settings } from "@prisma/client";
+import { websiteList } from "@/lib/format";
 import { MixedText } from "./MixedText";
 
 const DEFAULT_COLOR = "#1f3864";
@@ -172,7 +173,10 @@ function Footer({ settings, qr }: { settings: Settings | null; qr?: Buffer | nul
   const address = settings?.agencyAddress || "";
   const phone = settings?.agencyPhone || "";
   const email = settings?.agencyEmail || "";
-  const website = settings?.agencyWebsite || "";
+  // مواقع الوكالة: أكثر من موقع تُعرض على سطر كامل أسفل العمودين حتى تتسع،
+  // والموقع الواحد يبقى في مكانه المعتاد داخل العمود.
+  const websites = websiteList(settings?.agencyWebsite);
+  const manySites = websites.length > 1;
 
   return (
     <View style={styles.footer} fixed>
@@ -184,13 +188,14 @@ function Footer({ settings, qr }: { settings: Settings | null; qr?: Buffer | nul
         </View>
         <View style={styles.footerColLeft}>
           {phone ? <FooterLine label="Tel" value={phone} /> : null}
-          {website ? <FooterLine label="Web" value={website} /> : null}
+          {!manySites && websites.length === 1 ? <FooterLine label="Web" value={websites[0]} /> : null}
         </View>
         {qr ? (
           // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image
           <Image src={qr} style={styles.footerQr} />
         ) : null}
       </View>
+      {manySites ? <FooterLine label="Web" value={websites.join("   •   ")} /> : null}
     </View>
   );
 }
