@@ -1,6 +1,6 @@
 #!/bin/bash
 # تفعيل المهام التلقائية على الاستضافة (cPanel):
-# التذكير اليومي بالبريد + النسخة الاحتياطية + التنظيف التلقائي للجداول.
+# تذكير قبل كل رحلة بالبريد + النسخة الاحتياطية + التنظيف التلقائي للجداول.
 # يضيف المتغيّرات الناقصة في .env، ويسجّل مهمتَي cron، ثم يعيد تشغيل التطبيق.
 # آمن للتشغيل أكثر من مرة — لا يكرّر شيئاً موجوداً.
 #
@@ -50,7 +50,7 @@ if [ -z "$CRON_SECRET" ]; then
     CRON_SECRET="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
   fi
 fi
-add_env_if_missing CRON_SECRET "$CRON_SECRET" "رمز سري لتشغيل التذكير اليومي عبر cron"
+add_env_if_missing CRON_SECRET "$CRON_SECRET" "رمز سري لتشغيل مهام cron (تذكير الرحلات والتنظيف)"
 
 # عنوان التطبيق (يُستعمل في روابط QR للتحقق من المستندات)
 APP_URL="$(get_env APP_URL)"
@@ -66,10 +66,10 @@ AUTH_URL="$(get_env AUTH_URL)"
 [ -z "$AUTH_URL" ] && AUTH_URL="${APP_URL%/}"
 add_env_if_missing AUTH_URL "$AUTH_URL" "عنوان التطبيق لتسجيل الدخول (يمنع خطأ Invalid URL خلف البروكسي)"
 
-# بريد استقبال التذكير اليومي
+# بريد استقبال تذكيرات الرحلات
 REMINDER_TO="$(get_env REMINDER_TO)"
 [ -z "$REMINDER_TO" ] && REMINDER_TO="agence.rozatour@gmail.com"
-add_env_if_missing REMINDER_TO "$REMINDER_TO" "بريد استقبال التذكير اليومي"
+add_env_if_missing REMINDER_TO "$REMINDER_TO" "بريد استقبال تذكيرات الرحلات"
 
 # نقرأ القيم النهائية من الملف (سواء كانت موجودة أصلاً أو أُضيفت الآن)
 CRON_SECRET="$(get_env CRON_SECRET)"
@@ -109,7 +109,7 @@ NEW="$(printf '%s\n' "$CURRENT" | grep -v 'MOHASEB_REMINDER' | grep -v 'MOHASEB_
 NEW="$(printf '%s\n0 7 * * * %s\n0 3 * * * %s\n30 3 * * * %s\n*/10 * * * * %s\n' "$NEW" "$REMINDER_CMD" "$BACKUP_CMD" "$CLEANUP_CMD" "$KEEPALIVE_CMD" | sed '/^$/d')"
 
 if printf '%s\n' "$NEW" | crontab - 2>/dev/null; then
-  echo "   ✓ التذكير اليومي: كل يوم الساعة 7:00 صباحاً"
+  echo "   ✓ تذكير الرحلات: يُفحص كل صباح 7:00 — رسالة لكل رحلة تقترب فقط، ولا شيء غير ذلك"
   echo "   ✓ النسخة الاحتياطية: كل يوم الساعة 3:00 فجراً"
   echo "   ✓ التنظيف التلقائي: كل يوم الساعة 3:30 فجراً (بعد الباك أب، ولا يعمل إلا إن فعّلته من الإعدادات)"
   echo "   ✓ إبقاء التطبيق مستيقظاً: كل 10 دقائق (يمنع بطء أول زيارة بعد الخمول)"
@@ -152,7 +152,7 @@ echo "════════════════════════�
 echo "✅ تم التفعيل."
 echo
 echo "للتجربة الآن بدون انتظار:"
-echo "  • التذكير:  اضغطي زر «✉️ أرسل تذكيراً الآن» في لوحة التحكم"
+echo "  • التذكير:  اضغطي «✉️ أرسل التذكيرات الآن» في لوحة التحكم (يرسل تذكير الرحلات القريبة فقط)"
 echo "  • الباك أب: $NODE_BIN $APP_DIR/scripts/backup.mjs"
 echo "  • التنظيف:  الإعدادات ← التنظيف التلقائي (يعرض كم سيُحذف قبل التفعيل)"
 echo "════════════════════════════════════"

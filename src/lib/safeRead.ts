@@ -97,26 +97,3 @@ export function tripLabel(trip: TripWithNames | null | undefined, fallback = MIS
 export function tripProgramName(trip: TripWithNames | null | undefined, fallback = MISSING_TRIP): string {
   return trip?.programName ?? fallback;
 }
-
-// أسماء البرامج والعملاء لمجموعة معرّفات — لقوائم لا تقرأ صفوف الرحلات كاملة
-// (مثل قائمة المستحقات التي تأتي مجمَّعة من قاعدة البيانات).
-export async function lookupNames(
-  rows: { programId: string; customerId: string }[]
-): Promise<{ programName: (id: string) => string; customerName: (id: string) => string }> {
-  const [programs, customers] = await Promise.all([
-    prisma.tourProgram.findMany({
-      where: { id: { in: [...new Set(rows.map((r) => r.programId))] } },
-      select: { id: true, name: true },
-    }),
-    prisma.customer.findMany({
-      where: { id: { in: [...new Set(rows.map((r) => r.customerId))] } },
-      select: { id: true, name: true },
-    }),
-  ]);
-  const byProgram = new Map(programs.map((p) => [p.id, p.name]));
-  const byCustomer = new Map(customers.map((c) => [c.id, c.name]));
-  return {
-    programName: (id) => byProgram.get(id) ?? MISSING_PROGRAM,
-    customerName: (id) => byCustomer.get(id) ?? MISSING_CUSTOMER,
-  };
-}

@@ -147,6 +147,8 @@ model Trip {
   currency      String   @default("DZD")
   status        String   @default("PLANNED") // PLANNED | CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED
   notes         String? @db.Text
+  // متى أُرسل تذكير هذه الرحلة بالبريد — تذكير واحد لكل رحلة، ويُصفَّر إن تغيّر تاريخ بدايتها
+  reminderSentAt DateTime?
   createdAt     DateTime @default(now())
 
   hotelBookings  HotelBooking[]

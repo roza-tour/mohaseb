@@ -78,7 +78,13 @@ export async function updateTrip(id: string, formData: FormData) {
   await requireUser();
   const result = parseTripForm(formData);
   if ("error" in result) redirect(withError(`/trips/${id}/edit`, result.error));
-  await prisma.trip.update({ where: { id }, data: result.data });
+  // تغيّر تاريخ البداية = موعد جديد يستحق تذكيراً جديداً
+  const before = await prisma.trip.findUnique({ where: { id }, select: { startDate: true } });
+  const dateChanged = before?.startDate.getTime() !== result.data.startDate.getTime();
+  await prisma.trip.update({
+    where: { id },
+    data: { ...result.data, ...(dateChanged && { reminderSentAt: null }) },
+  });
   await logActivity("update", "Trip", "تعديل بيانات رحلة");
   revalidatePath("/trips");
   revalidatePath(`/trips/${id}`);

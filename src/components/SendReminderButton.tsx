@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-// زر «أرسل تذكيراً الآن» — يستدعي نقطة النهاية ويعرض النتيجة
+// زر «أرسل التذكيرات الآن» — يرسل تذكير كل رحلة حان موعدها ولم يُرسَل لها بعد
 export function SendReminderButton() {
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
@@ -15,7 +15,11 @@ export function SendReminderButton() {
       const data = await res.json();
       if (data.ok) {
         setState("done");
-        setMsg(data.to ? `أُرسل إلى ${data.to}` : "تم الإرسال");
+        setMsg(
+          data.sent > 0
+            ? `أُرسل تذكير ${data.sent === 1 ? "رحلة واحدة" : `${data.sent} رحلات`} إلى ${data.to}`
+            : data.message || "لا توجد رحلات حان تذكيرها الآن"
+        );
       } else {
         setState("error");
         setMsg(data.error || "تعذّر الإرسال");
@@ -35,9 +39,9 @@ export function SendReminderButton() {
         onClick={send}
         disabled={state === "sending"}
         className="text-xs rounded-lg bg-slate-100 text-slate-700 px-3 py-1.5 hover:bg-slate-200 disabled:opacity-50"
-        title="إرسال ملخّص الرحلات القادمة والمستحقات إلى بريد الوكالة"
+        title="رسالة لكل رحلة قادمة حان تذكيرها ولم يُرسَل لها تذكير بعد"
       >
-        {state === "sending" ? "⏳ جارٍ الإرسال..." : "✉️ أرسل تذكيراً الآن"}
+        {state === "sending" ? "⏳ جارٍ الإرسال..." : "✉️ أرسل التذكيرات الآن"}
       </button>
     </div>
   );

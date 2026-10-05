@@ -105,7 +105,7 @@ export default async function SettingsPage({
                 className="h-10 w-24 p-1 cursor-pointer"
               />
             </Field>
-            <Field label="عدد الأيام قبل موعد الرحلة لإظهار التنبيه">
+            <Field label="قبل كم يوم من الرحلة يصلك تذكيرها بالبريد (وتظهر في «رحلات قادمة»)">
               <Input
                 name="reminderDaysAhead"
                 type="number"

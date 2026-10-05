@@ -8,7 +8,7 @@ export default auth((req) => {
   // صفحة التحقق من المستند (رمز QR) عامة بطبيعتها — يفتحها القنصل أو العميل
   // من خارج الوكالة بلا حساب، فلا تمر بفحص تسجيل الدخول.
   const isPublicVerify = req.nextUrl.pathname.startsWith("/verify/");
-  // مهام cron (التذكير اليومي والتنظيف التلقائي) تُستدعى بالرمز السري بلا جلسة،
+  // مهام cron (فحص تذكيرات الرحلات والتنظيف التلقائي) تُستدعى بالرمز السري بلا جلسة،
   // وكل مسار منهما يتحقق من الرمز بنفسه — فلو حجبناهما هنا لما عملا أبداً.
   const isCronTask =
     req.nextUrl.pathname === "/api/reminders/email" || req.nextUrl.pathname === "/api/cleanup";
