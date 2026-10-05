@@ -42,7 +42,7 @@ export default async function VisaPage({
     <div>
       <PageHeader
         title="الفيزا الصحراوية"
-        description="أنشئ طلب الفيزا مرة واحدة، وحمّل الملفين الرسميين (قائمة طالبي الفيزا Excel والبرنامج المفصل Word) معبأين تلقائياً"
+        description="أنشئ طلب الفيزا مرة واحدة، وحمّل الملفين الرسميين (قائمة طالبي الفيزا Excel والبرنامج المفصل PDF) معبأين تلقائياً"
         action={<LinkButton href="/visa/new">+ إنشاء فيزا</LinkButton>}
       />
 
@@ -93,8 +93,8 @@ export default async function VisaPage({
                       <Link href={`/visa/${a.id}/excel`} className="text-emerald-700 text-sm hover:underline">
                         📊 قائمة Excel
                       </Link>
-                      <Link href={`/visa/${a.id}/word`} className="text-sky-700 text-sm hover:underline">
-                        📄 برنامج Word (مختوم)
+                      <Link href={`/visa/${a.id}/pdf`} target="_blank" className="text-sky-700 text-sm hover:underline">
+                        📄 برنامج PDF (مختوم)
                       </Link>
                       <Link href={`/visa/${a.id}`} className="text-sky-600 text-sm hover:underline whitespace-nowrap">
                         ✎ تعديل

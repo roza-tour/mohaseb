@@ -36,8 +36,8 @@ export default async function EditVisaPage({
             <Link href={`/visa/${app.id}/excel`} className={fileLink}>
               📊 Excel
             </Link>
-            <Link href={`/visa/${app.id}/word`} className={fileLink}>
-              📄 Word
+            <Link href={`/visa/${app.id}/pdf`} target="_blank" className={fileLink}>
+              📄 البرنامج PDF
             </Link>
           </div>
         }

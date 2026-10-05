@@ -1,11 +1,9 @@
 // توليد ملفَي الفيزا الصحراوية الرسميين:
-//  1) قائمة طالبي الفيزا (Excel) بنفس تخطيط نموذج مديرية السياحة
-//  2) البرنامج المفصل (Word) بتعبئة قالب المديرية الأصلي نفسه
+//  1) قائمة طالبي الفيزا (Excel) بنفس تخطيط نموذج مديرية السياحة — هنا
+//  2) البرنامج المفصل (PDF) بتخطيط قالب المديرية نفسه — src/lib/pdf/visaProgramme.tsx
 import fs from "fs";
 import path from "path";
 import ExcelJS from "exceljs";
-import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
 import type { Settings, VisaApplication, VisaTraveler } from "@prisma/client";
 
 export function fmtFr(date: Date | null | undefined): string {
@@ -279,120 +277,4 @@ async function buildVisaExcelFromScratch(app: App, settings: Settings | null): P
 
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);
-}
-
-// أبعاد صورة PNG من ترويسة IHDR (العرض عند الإزاحة 16، الارتفاع عند 20)
-function pngSize(buf: Buffer): { w: number; h: number } {
-  try {
-    if (buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47) {
-      return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
-    }
-  } catch {
-    /* تجاهل */
-  }
-  return { w: 1, h: 1 };
-}
-
-// إدراج ختم الوكالة كصورة مضمّنة في أسفل ملف البرنامج (بدون وحدات إضافية)
-function injectStamp(zip: PizZip, stamp: Buffer) {
-  // 1) نضيف صورة الختم إلى وسائط المستند
-  zip.file("word/media/cachet_agency.png", stamp);
-
-  // 2) نضيف علاقة للصورة في document.xml.rels
-  const relsPath = "word/_rels/document.xml.rels";
-  const relsFile = zip.file(relsPath);
-  if (!relsFile) return;
-  let rels = relsFile.asText();
-  const relId = "rIdCachetAgency";
-  if (!rels.includes(relId)) {
-    rels = rels.replace(
-      "</Relationships>",
-      `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/cachet_agency.png"/></Relationships>`
-    );
-    zip.file(relsPath, rels);
-  }
-
-  // 3) نتأكد أن نوع محتوى png معرّف
-  const ctPath = "[Content_Types].xml";
-  const ctFile = zip.file(ctPath);
-  if (ctFile) {
-    let ct = ctFile.asText();
-    if (!/Extension="png"/i.test(ct)) {
-      ct = ct.replace("</Types>", '<Default Extension="png" ContentType="image/png"/></Types>');
-      zip.file(ctPath, ct);
-    }
-  }
-
-  // 4) الختم كصورة عائمة أعلى يمين الصفحة فوق النصوص (لا يزيح تخطيط المستند)
-  const docPath = "word/document.xml";
-  const docFile = zip.file(docPath);
-  if (!docFile) return;
-  let xml = docFile.asText();
-  const { w, h } = pngSize(stamp);
-  const maxEmu = 1260000; // ~3.3 سم كحد أقصى (حجم طبيعي للختم)
-  const scale = maxEmu / Math.max(w, h);
-  const cx = Math.round(w * scale);
-  const cy = Math.round(h * scale);
-  const A = "http://schemas.openxmlformats.org/drawingml/2006/main";
-  const PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture";
-  // مرساة عائمة: يمين الهامش، أعلى الهامش، أمام النص (behindDoc=0) بلا التفاف
-  const run =
-    `<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>` +
-    `<wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251680000" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">` +
-    `<wp:simplePos x="0" y="0"/>` +
-    `<wp:positionH relativeFrom="margin"><wp:align>right</wp:align></wp:positionH>` +
-    `<wp:positionV relativeFrom="margin"><wp:posOffset>0</wp:posOffset></wp:positionV>` +
-    `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>` +
-    `<wp:docPr id="778" name="CachetTop"/>` +
-    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="${A}" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
-    `<a:graphic xmlns:a="${A}"><a:graphicData uri="${PIC}">` +
-    `<pic:pic xmlns:pic="${PIC}">` +
-    `<pic:nvPicPr><pic:cNvPr id="778" name="CachetTop"/><pic:cNvPicPr/></pic:nvPicPr>` +
-    `<pic:blipFill><a:blip r:embed="rIdCachetAgency"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
-    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
-    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
-    `</pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;
-  // ندرج المرساة داخل أول فقرة في الجسم (قبل أول </w:p>) حتى لا نضيف سطراً جديداً
-  const bodyIdx = xml.indexOf("<w:body>");
-  const firstPClose = bodyIdx !== -1 ? xml.indexOf("</w:p>", bodyIdx) : -1;
-  if (firstPClose !== -1) {
-    xml = xml.slice(0, firstPClose) + run + xml.slice(firstPClose);
-    zip.file(docPath, xml);
-  }
-}
-
-// ---------- Word: Programme détaillé ----------
-export function buildVisaWord(app: App, stamp?: Buffer | null): Buffer {
-  const templatePath = path.join(process.cwd(), "templates", "programme-template.docx");
-  const zip = new PizZip(fs.readFileSync(templatePath));
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true, // يحول أسطر البرنامج إلى أسطر فعلية داخل الوورد
-    delimiters: { start: "{", end: "}" },
-  });
-
-  const nights = Math.max(
-    Math.round((app.departureDate.getTime() - app.arrivalDate.getTime()) / 86400000),
-    0
-  );
-
-  doc.render({
-    WILAYA: app.wilaya,
-    ARRIVEE: fmtFr(app.arrivalDate),
-    DEPART: fmtFr(app.departureDate),
-    WILAYAS: app.wilayasConcernees,
-    NB_TOURISTES: String(app.travelers.length),
-    DUREE: `${nights + 1} jours / ${nights} nuits`,
-    PROGRAMME: app.programDetail,
-  });
-
-  const outZip = doc.getZip();
-  if (stamp && stamp.length) {
-    try {
-      injectStamp(outZip, stamp);
-    } catch {
-      // لو تعذّر إدراج الختم لأي سبب نُصدر الملف بدونه بدل تعطيله
-    }
-  }
-  return outZip.generate({ type: "nodebuffer" });
 }

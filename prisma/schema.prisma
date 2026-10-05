@@ -353,7 +353,7 @@ model VisaApplication {
   wilayasConcernees String @default("") // الولايات المعنية بالبرنامج
   arrivalDate  DateTime
   departureDate DateTime
-  programDetail String  @db.Text // تفاصيل البرنامج يوم بيوم (يُملأ في ملف الوورد)
+  programDetail String  @db.Text // تفاصيل البرنامج يوم بيوم (يظهر في ملف البرنامج PDF)
   notes        String?  @db.Text
   // رسم الخدمة لكل مسافر (يُسجَّل كإيراد تلقائياً عند الإنشاء)
   feePerPerson Float    @default(40)
