@@ -264,6 +264,18 @@ if (prisma) {
 
   // ============ 5) إعدادات الوكالة والملفات ============
   head("الإعدادات والملفات");
+// نموذج الوزارة لبرنامج الفيزا، وهل يقدر الخادم على طباعته PDF
+const visaTpl = path.join(ROOT, "templates", "programme-template.docx");
+if (fs.existsSync(visaTpl)) ok("نموذج الوزارة لبرنامج الفيزا موجود");
+else bad("نموذج الوزارة لبرنامج الفيزا مفقود", "templates/programme-template.docx");
+const soffice = ["/usr/bin/soffice", "/usr/local/bin/soffice", "/opt/libreoffice/program/soffice", "/usr/lib/libreoffice/program/soffice", "/usr/bin/libreoffice"]
+  .find((p) => { try { fs.accessSync(p, fs.constants.X_OK); return true; } catch { return false; } })
+  ?? (sh("command -v soffice || command -v libreoffice") || null);
+if (soffice) ok("تحويل برنامج الفيزا إلى PDF متاح", soffice);
+else {
+  warn("تحويل برنامج الفيزا إلى PDF غير متاح (LibreOffice غير مثبّت)");
+  console.log("     البرنامج يُنزَّل Word — احفظه PDF من Word نفسه ليبقى نموذج الوزارة حرفياً.");
+}
   let settings = null;
   try {
     settings = await prisma.settings.findUnique({ where: { id: 1 } });

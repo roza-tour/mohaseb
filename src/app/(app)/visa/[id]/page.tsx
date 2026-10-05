@@ -5,6 +5,7 @@ import { PageHeader, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { updateVisaApplication } from "../actions";
 import { VisaFields } from "../VisaFields";
+import { canConvertToPdf } from "@/lib/docxToPdf";
 
 const d = (v: Date | null) => (v ? formatDateForInput(v) : "");
 
@@ -36,9 +37,14 @@ export default async function EditVisaPage({
             <Link href={`/visa/${app.id}/excel`} className={fileLink}>
               📊 Excel
             </Link>
-            <Link href={`/visa/${app.id}/pdf`} target="_blank" className={fileLink}>
-              📄 البرنامج PDF
+            <Link href={`/visa/${app.id}/word`} className={fileLink}>
+              📄 البرنامج Word
             </Link>
+            {canConvertToPdf() ? (
+              <Link href={`/visa/${app.id}/pdf`} target="_blank" className={fileLink}>
+                📕 البرنامج PDF
+              </Link>
+            ) : null}
           </div>
         }
       />
