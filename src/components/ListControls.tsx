@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { Button } from "@/components/ui";
 
 // صندوق بحث GET بسيط يحافظ على بقية معاملات الرابط

@@ -17,6 +17,7 @@ import {
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDate } from "@/lib/format";
 import { createUser, deleteUser, resetUserPassword } from "./actions";
+import { FormButton } from "@/components/FormButton";
 
 export default async function UsersPage({
   searchParams,
@@ -87,9 +88,9 @@ export default async function UsersPage({
                       placeholder="كلمة مرور جديدة"
                       className="w-36 rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
                     />
-                    <button type="submit" className="text-xs text-sky-600 hover:underline">
+                    <FormButton className="text-xs text-sky-600 hover:underline">
                       تعيين
-                    </button>
+                    </FormButton>
                   </form>
                 </Td>
                 <Td>

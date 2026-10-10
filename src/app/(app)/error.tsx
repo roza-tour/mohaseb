@@ -4,7 +4,7 @@
 // بدل الرسالة الإنجليزية الافتراضية «A server error occurred» التي لا تقول شيئاً،
 // نعرض رسالة عربية واضحة وزر إعادة محاولة، ورمز الخطأ لتسهيل تتبّعه في السجل.
 import { useEffect } from "react";
-import Link from "next/link";
+import Link from "@/components/AppLink";
 
 export default function AppError({
   error,

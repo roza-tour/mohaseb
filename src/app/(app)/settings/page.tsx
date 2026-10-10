@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format";
 import { StyleFields } from "../documents/StyleFields";
 import { settingsDocStyle } from "@/lib/documents";
 import { CURRENCIES, currencyLabel } from "@/lib/currencies";
+import { FormButton } from "@/components/FormButton";
 
 export default async function SettingsPage({
   searchParams,
@@ -209,12 +210,9 @@ export default async function SettingsPage({
         </form>
 
         <form action={runCleanupNow}>
-          <button
-            type="submit"
-            className="text-sm text-red-600 hover:underline"
-          >
+          <FormButton className="text-sm text-red-600 hover:underline">
             🗑️ تشغيل التنظيف الآن
-          </button>
+          </FormButton>
         </form>
 
         <p className="text-xs text-slate-400">

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -6,6 +6,7 @@ import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListCon
 import { formatDate } from "@/lib/format";
 import { deleteVisaApplication, duplicateVisaApplication } from "./actions";
 import { canConvertToPdf } from "@/lib/docxToPdf";
+import { FormButton } from "@/components/FormButton";
 
 export default async function VisaPage({
   searchParams,
@@ -108,7 +109,7 @@ export default async function VisaPage({
                         ✎ تعديل
                       </Link>
                       <form action={duplicateVisaApplication.bind(null, a.id)}>
-                        <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
+                        <FormButton className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</FormButton>
                       </form>
                     </div>
                   </Td>

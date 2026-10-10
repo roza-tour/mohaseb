@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 
 export function PageHeader({
   title,
@@ -52,28 +52,8 @@ export function LinkButton({
   );
 }
 
-export function Button({
-  children,
-  variant = "primary",
-  type = "submit",
-  className = "",
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger" }) {
-  const styles = {
-    primary: "bg-sky-600 text-white hover:bg-sky-700",
-    secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200",
-    danger: "bg-red-600 text-white hover:bg-red-700",
-  };
-  return (
-    <button
-      type={type}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-60 ${styles[variant]} ${className}`}
-      {...rest}
-    >
-      {children}
-    </button>
-  );
-}
+// الزر الأساسي — يُقفل ويُظهر مؤشراً دوّاراً أثناء تنفيذ النموذج (انظر FormButton.tsx)
+export { Button } from "@/components/FormButton";
 
 export function Field({
   label,

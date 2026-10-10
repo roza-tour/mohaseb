@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { loadTripsById, tripProgramName } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner, ErrorBanner } from "@/components/ui";
@@ -10,6 +10,7 @@ import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListCon
 import { formatDate, formatCurrency } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
 import { deleteInvoice, toggleInvoicePaid, duplicateInvoice, emailInvoice, type InvoiceItem } from "./actions";
+import { FormButton } from "@/components/FormButton";
 
 export default async function InvoicesPage({
   searchParams,
@@ -97,9 +98,9 @@ export default async function InvoicesPage({
                     </Td>
                     <Td>
                       <form action={toggleInvoicePaid.bind(null, inv.id)}>
-                        <button type="submit" title="اضغط لتغيير الحالة">
+                        <FormButton title="اضغط لتغيير الحالة">
                           {inv.paid ? <Badge color="green">مدفوعة</Badge> : <Badge color="amber">غير مدفوعة</Badge>}
-                        </button>
+                        </FormButton>
                       </form>
                     </Td>
                     <Td>
@@ -112,7 +113,7 @@ export default async function InvoicesPage({
                     </Td>
                     <Td>
                       <form action={duplicateInvoice.bind(null, inv.id)}>
-                        <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
+                        <FormButton className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</FormButton>
                       </form>
                     </Td>
                     <Td>

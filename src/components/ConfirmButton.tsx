@@ -1,5 +1,7 @@
 "use client";
 
+import { FormButton } from "@/components/FormButton";
+
 // زر يشغّل server action بعد تأكيد المستخدم (للإجراءات المؤثّرة مثل إرسال العروض)
 export function ConfirmButton({
   action,
@@ -19,9 +21,9 @@ export function ConfirmButton({
         if (!confirm(confirmMessage)) e.preventDefault();
       }}
     >
-      <button type="submit" className={className}>
+      <FormButton className={className}>
         {label}
-      </button>
+      </FormButton>
     </form>
   );
 }

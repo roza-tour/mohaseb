@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, Button, Badge, EmptyState } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
+import { closingDetailed } from "@/lib/closing";
 
 function startOfYear() {
   return new Date(new Date().getFullYear(), 0, 1);
@@ -20,61 +20,8 @@ export default async function ClosingDetailedPage({
   const from = isNaN(fromRaw.getTime()) ? startOfYear() : fromRaw;
   const to = isNaN(toRaw.getTime()) ? endOfYear() : toRaw;
 
-  const programs = await prisma.tourProgram.findMany({
-    include: {
-      trips: {
-        where: { startDate: { gte: from, lte: to } },
-        include: { hotelBookings: true, flightBookings: true, otherBookings: true },
-      },
-    },
-  });
-
-  const relevantPrograms = programs.filter((p) => p.trips.length > 0);
-  const allTripIds = relevantPrograms.flatMap((p) => p.trips.map((t) => t.id));
-
-  // نفلتر القيود بنفس فترة التقرير حتى يتطابق مع الميزانية المجملة
-  const linkedTransactions = allTripIds.length
-    ? await prisma.transaction.findMany({
-        where: { tripId: { in: allTripIds }, date: { gte: from, lte: to } },
-      })
-    : [];
-
-  // صف لكل (برنامج، عملة) حتى لا تُجمع مبالغ بعملات مختلفة كرقم واحد
-  const rows = relevantPrograms
-    .flatMap((p) => {
-      const pTripIds = new Set(p.trips.map((t) => t.id));
-      // العملات = عملات الرحلات + عملات القيود المرتبطة بها (قد يُسجَّل مصروف بعملة مختلفة عن الرحلة)
-      const pTxCurrencies = linkedTransactions
-        .filter((tx) => tx.tripId && pTripIds.has(tx.tripId))
-        .map((tx) => tx.currency);
-      const currencies = [...new Set([...p.trips.map((t) => t.currency), ...pTxCurrencies])];
-      return currencies.map((currency) => {
-        const trips = p.trips.filter((t) => t.currency === currency);
-        const tripAgreedRevenue = trips.reduce((s, t) => s + t.agreedPrice, 0);
-        const bookingCost = trips.reduce(
-          (s, t) =>
-            s +
-            t.hotelBookings.reduce((a, b) => a + b.cost, 0) +
-            t.flightBookings.reduce((a, b) => a + b.cost, 0) +
-            t.otherBookings.reduce((a, b) => a + b.cost, 0),
-          0
-        );
-        // القيود تُنسب للبرنامج (كل رحلاته) وتُطابَق بالعملة — حتى لا يسقط مصروف بعملة مختلفة عن الرحلة.
-        // قيود الإيراد المرتبطة برحلة لا تُضاف للإيراد: هي تحصيل من السعر المتفق عليه
-        // المحسوب أصلاً، وجمعها معه كان يضاعف إيراد البرنامج.
-        const txExpense = linkedTransactions
-          .filter((tx) => tx.tripId && pTripIds.has(tx.tripId) && tx.type === "EXPENSE" && tx.currency === currency)
-          .reduce((s, tx) => s + tx.amount, 0);
-
-        const revenue = tripAgreedRevenue;
-        const cost = bookingCost + txExpense;
-        const profit = revenue - cost;
-        const marginPct = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-        return { program: p, currency, tripCount: trips.length, revenue, cost, profit, marginPct };
-      });
-    })
-    .sort((a, b) => b.profit - a.profit);
+  // صف لكل (برنامج، عملة) مرتّب بالربح — المجاميع داخل قاعدة البيانات (src/lib/closing.ts)
+  const rows = await closingDetailed({ gte: from, lte: to });
 
   // إجمالي لكل عملة على حدة
   const totalsByCurrency = new Map<string, { tripCount: number; revenue: number; cost: number; profit: number }>();

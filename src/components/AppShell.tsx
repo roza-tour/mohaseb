@@ -2,8 +2,10 @@
 
 // هيكل التطبيق المتجاوب: قائمة جانبية ثابتة على الشاشات الكبيرة،
 // وقائمة منسدلة (drawer) بزر ☰ على الهواتف والأجهزة اللوحية.
-import { useState } from "react";
-import Link from "next/link";
+import { Suspense, useState } from "react";
+import Link from "@/components/AppLink";
+import { useLinkStatus } from "next/link";
+import NavProgress from "@/components/NavProgress";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import ReminderBell from "@/components/ReminderBell";
@@ -58,6 +60,17 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
   },
 ];
 
+// نقطة نابضة في بند القائمة الذي ضُغط حتى تصل صفحته (حجم ثابت؛ يتبدّل ظهوره فقط)
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={`ms-auto h-2 w-2 rounded-full bg-sky-400 transition-opacity ${pending ? "opacity-100 animate-pulse" : "opacity-0"}`}
+    />
+  );
+}
+
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
@@ -91,6 +104,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 >
                   <span>{item.icon}</span>
                   <span>{item.label}</span>
+                  <PendingDot />
                 </Link>
               );
             })}
@@ -121,6 +135,10 @@ export default function AppShell({
 
   return (
     <div className="flex min-h-screen">
+      {/* شريط التقدّم أعلى الصفحة عند الضغط على أي رابط */}
+      <Suspense fallback={null}>
+        <NavProgress />
+      </Suspense>
       {/* القائمة الجانبية الثابتة — شاشات كبيرة فقط */}
       <aside className="no-print hidden lg:block shrink-0 sticky top-0 h-screen">
         <SidebarNav />

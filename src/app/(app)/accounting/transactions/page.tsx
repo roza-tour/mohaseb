@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { loadTripsById, tripLabel } from "@/lib/safeRead";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, ErrorBanner } from "@/components/ui";
@@ -8,6 +8,7 @@ import { formatDate, formatCurrency } from "@/lib/format";
 import { deleteTransaction } from "./actions";
 import { Pagination, parsePage } from "@/components/ListControls";
 import type { Prisma } from "@prisma/client";
+import { FormButton } from "@/components/FormButton";
 
 export default async function TransactionsPage({
   searchParams,
@@ -133,9 +134,9 @@ export default async function TransactionsPage({
           <label className="block text-xs font-medium text-slate-600 mb-1">إلى تاريخ</label>
           <input type="date" name="to" defaultValue={to ?? ""} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
         </div>
-        <button type="submit" className="rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 text-sm font-medium">
+        <FormButton className="rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 text-sm font-medium">
           تطبيق
-        </button>
+        </FormButton>
       </form>
 
       <div className="flex items-center gap-2 mb-4">

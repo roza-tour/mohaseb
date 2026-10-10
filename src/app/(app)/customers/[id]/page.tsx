@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { loadTripsById, tripProgramName } from "@/lib/safeRead";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";

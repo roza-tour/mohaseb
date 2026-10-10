@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Td, Button } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
+import { closingSummary } from "@/lib/closing";
 
 function startOfYear() {
   return new Date(new Date().getFullYear(), 0, 1);
@@ -8,14 +8,6 @@ function startOfYear() {
 function endOfYear() {
   return new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
 }
-
-type CurrencyTotals = {
-  tripRevenue: number;
-  tripCost: number;
-  incomeTx: number;
-  expenseTx: number;
-  collected: number;
-};
 
 export default async function ClosingSummaryPage({
   searchParams,
@@ -28,48 +20,8 @@ export default async function ClosingSummaryPage({
   const from = isNaN(fromRaw.getTime()) ? startOfYear() : fromRaw;
   const to = isNaN(toRaw.getTime()) ? endOfYear() : toRaw;
 
-  const [trips, transactions, payments] = await Promise.all([
-    prisma.trip.findMany({
-      where: { startDate: { gte: from, lte: to } },
-      include: { hotelBookings: true, flightBookings: true, otherBookings: true },
-    }),
-    prisma.transaction.findMany({ where: { date: { gte: from, lte: to } } }),
-    // المحصَّل فعلاً من العملاء خلال الفترة (أساس نقدي — يُعرض للعلم ولا يُجمع مع الإيراد)
-    prisma.payment.findMany({
-      where: { paidAt: { gte: from, lte: to } },
-      include: { trip: { select: { currency: true } } },
-    }),
-  ]);
-
-  // فصل المجاميع حسب العملة حتى لا تُجمع مبالغ بعملات مختلفة كرقم واحد
-  const byCurrency = new Map<string, CurrencyTotals>();
-  const get = (c: string) => {
-    if (!byCurrency.has(c))
-      byCurrency.set(c, { tripRevenue: 0, tripCost: 0, incomeTx: 0, expenseTx: 0, collected: 0 });
-    return byCurrency.get(c)!;
-  };
-
-  for (const t of trips) {
-    const bucket = get(t.currency);
-    bucket.tripRevenue += t.agreedPrice;
-    bucket.tripCost +=
-      t.hotelBookings.reduce((a, b) => a + b.cost, 0) +
-      t.flightBookings.reduce((a, b) => a + b.cost, 0) +
-      t.otherBookings.reduce((a, b) => a + b.cost, 0);
-  }
-  for (const tx of transactions) {
-    const bucket = get(tx.currency);
-    // قيود الإيراد المرتبطة برحلة = تحصيل من سعرها المتفق عليه، لا إيراد إضافي.
-    // جمعها مع سعر الرحلة كان يضاعف الإيراد لمن يسجّل دفعات العملاء كقيود.
-    if (tx.type === "INCOME") {
-      if (!tx.tripId) bucket.incomeTx += tx.amount;
-    } else {
-      bucket.expenseTx += tx.amount;
-    }
-  }
-  for (const p of payments) {
-    get(p.trip.currency).collected += p.amount;
-  }
+  // المجاميع تُحسب داخل قاعدة البيانات (src/lib/closing.ts)
+  const byCurrency = await closingSummary({ gte: from, lte: to });
 
   const currencies = [...byCurrency.keys()].sort();
   const fromStr = from.toISOString().slice(0, 10);

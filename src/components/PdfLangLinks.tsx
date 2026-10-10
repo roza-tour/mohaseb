@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 
 type LangOpt = { code: "ar" | "fr" | "en"; label: string };
 const ALL: LangOpt[] = [

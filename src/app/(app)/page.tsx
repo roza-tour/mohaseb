@@ -4,7 +4,7 @@ import { getOutstandingByCurrency } from "@/lib/outstanding";
 import { getMonthlyTotals } from "@/lib/stats";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { formatDate, formatCurrency } from "@/lib/format";
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { MonthlyChart, type MonthPoint } from "@/components/MonthlyChart";
 import { SendReminderButton } from "@/components/SendReminderButton";
 

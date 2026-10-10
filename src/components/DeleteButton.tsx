@@ -1,5 +1,7 @@
 "use client";
 
+import { FormButton } from "@/components/FormButton";
+
 export function DeleteButton({
   action,
   confirmMessage = "هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذا الإجراء.",
@@ -16,9 +18,9 @@ export function DeleteButton({
         if (!confirm(confirmMessage)) e.preventDefault();
       }}
     >
-      <button type="submit" className="text-xs text-red-600 hover:underline">
+      <FormButton className="text-xs text-red-600 hover:underline">
         {label}
-      </button>
+      </FormButton>
     </form>
   );
 }

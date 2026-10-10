@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import { formatDate } from "@/lib/format";

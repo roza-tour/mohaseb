@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/AppLink";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Table, Th, Td, EmptyState, LinkButton, Badge, SuccessBanner, ErrorBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -6,6 +6,7 @@ import { EmailDocButton } from "@/components/EmailDocButton";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { deleteInvitation, toggleInvitationPaid, duplicateInvitation, emailInvitation } from "./actions";
+import { FormButton } from "@/components/FormButton";
 
 const LANG_LABEL: Record<string, string> = { ar: "عربي", fr: "Français", en: "English" };
 
@@ -79,9 +80,9 @@ export default async function InvitationsPage({
                     <Td className="font-medium text-slate-800">{formatCurrency(inv.fee, inv.feeCurrency)}</Td>
                     <Td>
                       <form action={toggleInvitationPaid.bind(null, inv.id)}>
-                        <button type="submit" title="اضغط لتغيير الحالة">
+                        <FormButton title="اضغط لتغيير الحالة">
                           {inv.paid ? <Badge color="green">محصّلة</Badge> : <Badge color="amber">غير محصّلة</Badge>}
-                        </button>
+                        </FormButton>
                       </form>
                     </Td>
                     <Td>{formatDate(inv.docDate)}</Td>
@@ -97,7 +98,7 @@ export default async function InvitationsPage({
                     </Td>
                     <Td>
                       <form action={duplicateInvitation.bind(null, inv.id)}>
-                        <button type="submit" className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</button>
+                        <FormButton className="text-slate-500 text-sm hover:underline whitespace-nowrap">⧉ نسخة</FormButton>
                       </form>
                     </Td>
                     <Td>
