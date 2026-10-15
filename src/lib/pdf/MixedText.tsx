@@ -106,7 +106,6 @@ export function MixedText({
   containerStyle?: Style;
 }) {
   const base = baseDir === "auto" ? detectBaseDir(text) : baseDir;
-  const segments = segment(text, base);
   const textStyles = Array.isArray(style) ? style : style ? [style] : [];
 
   let justifyContent: "flex-start" | "flex-end" | "center" = "flex-start";
@@ -114,23 +113,44 @@ export function MixedText({
   else if (align === "right") justifyContent = base === "rtl" ? "flex-start" : "flex-end";
   else if (align === "left") justifyContent = base === "rtl" ? "flex-end" : "flex-start";
 
+  const rowStyle = {
+    flexDirection: base === "rtl" ? ("row-reverse" as const) : ("row" as const),
+    flexWrap: "wrap" as const,
+    justifyContent,
+    columnGap: size * 0.26,
+  };
+  const renderLine = (line: string) =>
+    segment(line, base).map((seg, i) => (
+      <Text key={i} style={textStyles}>
+        {base === "rtl" && seg.isBase ? fixRtlEdgePunct(seg.text) : seg.text}
+      </Text>
+    ));
+
+  // الأسطر كما كتبها المستخدم: كان التقسيم على أي مسافة يعامل السطر الجديد
+  // كمسافة، فيلتصق البرنامج المكتوب يوماً يوماً في فقرة واحدة. الآن كل سطر صف
+  // مستقل، والسطر الفارغ مسافة بين الفقرات. النص ذو السطر الواحد كما كان تماماً.
+  const lines = text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l) => l.trim());
+  while (lines.length > 1 && lines[0] === "") lines.shift();
+  while (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+
+  if (lines.length <= 1) {
+    return <View style={[rowStyle, ...(containerStyle ? [containerStyle] : [])]}>{renderLine(text)}</View>;
+  }
+
   return (
-    <View
-      style={[
-        {
-          flexDirection: base === "rtl" ? "row-reverse" : "row",
-          flexWrap: "wrap",
-          justifyContent,
-          columnGap: size * 0.26,
-        },
-        ...(containerStyle ? [containerStyle] : []),
-      ]}
-    >
-      {segments.map((seg, i) => (
-        <Text key={i} style={textStyles}>
-          {base === "rtl" && seg.isBase ? fixRtlEdgePunct(seg.text) : seg.text}
-        </Text>
-      ))}
+    <View style={containerStyle}>
+      {lines.map((line, i) =>
+        line === "" ? (
+          <View key={i} style={{ height: size * 0.7 }} />
+        ) : (
+          <View key={i} style={rowStyle}>
+            {renderLine(line)}
+          </View>
+        )
+      )}
     </View>
   );
 }
