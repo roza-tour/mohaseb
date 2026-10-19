@@ -2,12 +2,22 @@ import { Document, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer"
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
-import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, SectionTitle, GridTable, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng, docQrText } from "@/lib/qr";
 import { nameOr, websiteList } from "@/lib/format";
 import { findTaskOrder } from "@/lib/taskOrderView";
+import {
+  TASK_FIELDS,
+  GROUP_TITLES,
+  displayValue,
+  readFields,
+  readExtraRows,
+  type FieldGroup,
+  type FieldValues,
+  type ExtraRow,
+} from "@/lib/taskOrderFields";
 
 registerArabicFonts();
 
@@ -40,7 +50,6 @@ const T = {
     phone: "رقم الهاتف",
     taskDate: "تاريخ المهمة",
     detailsTitle: "تفاصيل المهمة",
-    noDetails: "لا توجد تفاصيل إضافية",
     GUIDE: "مرشد سياحي",
     DRIVER: "سائق",
   },
@@ -60,7 +69,6 @@ const T = {
     phone: "Téléphone",
     taskDate: "Date de la mission",
     detailsTitle: "Détails de la mission",
-    noDetails: "Aucun détail supplémentaire",
     GUIDE: "Guide touristique",
     DRIVER: "Chauffeur",
   },
@@ -82,7 +90,16 @@ export type TaskOrderDocData = {
   numPax: number;
   tripStart: Date;
   tripEnd: Date;
+  fields: FieldValues;
+  extraRows: ExtraRow[];
 };
+
+// صفوف مجموعة من الخانات الاختيارية — الفارغ منها لا يظهر
+function groupRows(group: FieldGroup, fields: FieldValues, lang: "ar" | "fr"): [string, string][] {
+  return TASK_FIELDS.filter((f) => f.group === group && fields[f.key]?.trim()).map(
+    (f) => [f[lang], displayValue(f, fields[f.key].trim())] as [string, string],
+  );
+}
 
 export function buildTaskOrderDoc({
   order,
@@ -114,10 +131,19 @@ export function buildTaskOrderDoc({
   ];
   const assigneeRows: [string, string][] = [
     [t.assignee, nameOr(order.assigneeName)],
-    [t.role, order.assigneeType === "GUIDE" ? t.GUIDE : order.assigneeType === "DRIVER" ? t.DRIVER : order.assigneeType],
+    [
+      t.role,
+      order.assigneeType === "GUIDE" ? t.GUIDE : order.assigneeType === "DRIVER" ? t.DRIVER : order.assigneeType,
+    ],
     [t.phone, order.assigneePhone || "—"],
     [t.taskDate, fmt(order.taskDate)],
   ];
+  // بيانات المركبة للسائق، وبيانات الاعتماد للمرشد
+  const roleGroup: FieldGroup = order.assigneeType === "DRIVER" ? "vehicle" : "guide";
+  const roleRows = groupRows(roleGroup, order.fields, lang);
+  const missionRows = groupRows("mission", order.fields, lang);
+  const details = order.details.trim();
+  const extraRows: [string, string][] = order.extraRows.map((r) => [r.label.trim() || "—", r.value.trim()]);
 
   return (
     <Document>
@@ -126,29 +152,60 @@ export function buildTaskOrderDoc({
         <DocTitle text={t.title} rtl={rtl} style={style} />
 
         <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />
-        <InfoTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} style={style} />
+        <GridTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} style={style} />
+
+        {roleRows.length > 0 && (
+          // wrap={false}: العنوان لا ينفصل عن جدوله في آخر الصفحة
+          <View wrap={false}>
+            <SectionTitle text={GROUP_TITLES[roleGroup][lang]} rtl={rtl} style={style} />
+            <GridTable rows={roleRows} rtl={rtl} baseDir={baseDir} style={style} />
+          </View>
+        )}
 
         <SectionTitle text={t.tripSection} rtl={rtl} style={style} />
-        <InfoTable rows={tripRows} rtl={rtl} baseDir={baseDir} style={style} />
+        <GridTable rows={tripRows} rtl={rtl} baseDir={baseDir} style={style} />
 
-        <SectionTitle text={t.detailsTitle} rtl={rtl} style={style} />
-        <View style={styles.detailsBox}>
-          {(order.details.trim() || t.noDetails)
-            .split(/\r?\n/)
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map((line, i) => (
-              <MixedText
-                key={i}
-                text={line}
-                size={st.fontSize}
-                align={align}
-                baseDir={baseDir}
-                containerStyle={{ marginBottom: 3 }}
-                style={{ fontSize: st.fontSize, lineHeight: st.lineHeight, color: st.textColor }}
-              />
-            ))}
-        </View>
+        {missionRows.length > 0 && (
+          <View wrap={false}>
+            <SectionTitle text={GROUP_TITLES.mission[lang]} rtl={rtl} style={style} />
+            <GridTable rows={missionRows} rtl={rtl} baseDir={baseDir} style={style} />
+          </View>
+        )}
+
+        {extraRows.length > 0 && (
+          <View wrap={false}>
+            <SectionTitle text={GROUP_TITLES.extra[lang]} rtl={rtl} style={style} />
+            <GridTable rows={extraRows} rtl={rtl} baseDir={baseDir} style={style} />
+          </View>
+        )}
+
+        {/* تفاصيل المهمة تظهر فقط إن كُتبت — والقصيرة منها لا تنقسم بين صفحتين */}
+        {details && (
+          <View wrap={details.length > 800}>
+            <SectionTitle text={t.detailsTitle} rtl={rtl} style={style} />
+            <View style={styles.detailsBox}>
+              {details
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, i) => (
+                  <MixedText
+                    key={i}
+                    text={line}
+                    size={st.fontSize}
+                    align={align}
+                    baseDir={baseDir}
+                    containerStyle={{ marginBottom: 3 }}
+                    style={{
+                      fontSize: st.fontSize,
+                      lineHeight: st.lineHeight,
+                      color: st.textColor,
+                    }}
+                  />
+                ))}
+            </View>
+          </View>
+        )}
       </LetterheadPage>
     </Document>
   );
@@ -156,7 +213,7 @@ export function buildTaskOrderDoc({
 
 export async function renderTaskOrderPdf(
   id: string,
-  lang: "ar" | "fr"
+  lang: "ar" | "fr",
 ): Promise<{ buffer: Buffer; ref: string } | null> {
   // قراءة لا تنكسر: أمر تكليف يشير إلى رحلة محذوفة كان يُفشل توليد الـ PDF بخطأ خادم
   const taskOrder = await findTaskOrder(id);
@@ -174,7 +231,7 @@ export async function renderTaskOrderPdf(
       date: fmt(taskOrder.taskDate),
       // رمز التحقق يحمل موقعاً واحداً فقط حتى لا يتضخّم
       website: websiteList(settings?.agencyWebsite)[0] ?? null,
-    })
+    }),
   );
 
   const buffer = await renderToBuffer(
@@ -191,13 +248,15 @@ export async function renderTaskOrderPdf(
         numPax: trip?.numPax ?? 0,
         tripStart: trip?.startDate ?? taskOrder.taskDate,
         tripEnd: trip?.endDate ?? taskOrder.taskDate,
+        fields: readFields(taskOrder.fields),
+        extraRows: readExtraRows(taskOrder.extraRows),
       },
       settings,
       stamp,
       qr,
       lang,
       style: settingsDocStyle(settings),
-    })
+    }),
   );
   return { buffer, ref };
 }

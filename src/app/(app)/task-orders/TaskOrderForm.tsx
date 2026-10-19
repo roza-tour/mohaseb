@@ -1,6 +1,9 @@
 import { Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { AssigneeFields } from "./AssigneeFields";
+import { FieldGroupInputs } from "./FieldGroupInputs";
+import { ExtraRowsEditor } from "./ExtraRowsEditor";
+import type { FieldValues, ExtraRow } from "@/lib/taskOrderFields";
 
 export type TaskOrderInitial = {
   tripId: string;
@@ -9,6 +12,8 @@ export type TaskOrderInitial = {
   driverId: string;
   taskDate: string;
   details: string;
+  fields: FieldValues;
+  extraRows: ExtraRow[];
 };
 
 // نموذج أمر التكليف المشترك بين الإنشاء والتعديل
@@ -28,7 +33,7 @@ export function TaskOrderForm({
   submitLabel?: string;
 }) {
   return (
-    <Card className="p-5 max-w-2xl">
+    <Card className="p-5 max-w-3xl">
       <form action={action} className="space-y-4">
         <Field label="الرحلة" required>
           <Select name="tripId" required defaultValue={initial.tripId}>
@@ -47,11 +52,16 @@ export function TaskOrderForm({
           initialType={initial.assigneeType}
           initialGuideId={initial.guideId}
           initialDriverId={initial.driverId}
+          initialFields={initial.fields}
         />
 
         <Field label="تاريخ المهمة" required>
           <Input type="date" name="taskDate" required defaultValue={initial.taskDate} />
         </Field>
+
+        <FieldGroupInputs group="mission" initial={initial.fields} />
+
+        <ExtraRowsEditor initial={initial.extraRows} />
 
         <Field label="تفاصيل المهمة">
           <Textarea

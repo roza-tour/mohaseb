@@ -42,7 +42,7 @@ export default async function NewTaskOrderPage({
         trips={trips}
         guides={guides}
         drivers={drivers}
-        initial={{ tripId, assigneeType: "GUIDE", guideId: "", driverId: "", taskDate: "", details: "" }}
+        initial={{ tripId, assigneeType: "GUIDE", guideId: "", driverId: "", taskDate: "", details: "", fields: {}, extraRows: [] }}
       />
     </div>
   );

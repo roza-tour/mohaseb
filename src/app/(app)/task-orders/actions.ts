@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { logActivity } from "@/lib/activity";
+import { fieldsFromForm, extraRowsFromForm } from "@/lib/taskOrderFields";
+import { Prisma } from "@prisma/client";
 
 const taskOrderSchema = z
   .object({
@@ -35,6 +37,26 @@ function readForm(formData: FormData) {
     taskDate: formData.get("taskDate"),
     details: formData.get("details") || undefined,
   });
+}
+
+// الخانات الاختيارية والبنود الإضافية — تُحفظ JSON، والفارغ منها لا يُحفظ أصلاً
+function readExtras(formData: FormData, data: TaskOrderData) {
+  const fields = fieldsFromForm(formData, data.assigneeType);
+  const extraRows = extraRowsFromForm(formData);
+  let error: string | null = null;
+  if (fields?.endDate) {
+    const end = new Date(`${fields.endDate}T00:00:00Z`);
+    const start = new Date(data.taskDate);
+    start.setUTCHours(0, 0, 0, 0);
+    if (!isNaN(end.getTime()) && end < start) error = "تاريخ نهاية المهمة لا يمكن أن يسبق تاريخ المهمة";
+  }
+  return {
+    error,
+    values: {
+      fields: fields ?? Prisma.DbNull,
+      extraRows: extraRows ?? Prisma.DbNull,
+    },
+  };
 }
 
 // كشف تعارض المواعيد: نفس المكلَّف لا يُكلَّف بمهمتين في نفس اليوم.
@@ -80,13 +102,16 @@ export async function createTaskOrder(formData: FormData) {
   const missing = missingAssigneeMessage(data);
   if (missing) redirect(withError("/task-orders/new", missing));
 
+  const extras = readExtras(formData, data);
+  if (extras.error) redirect(withError("/task-orders/new", extras.error));
+
   const conflict = await conflictMessage(data);
   if (conflict) redirect(withError("/task-orders/new", conflict));
 
   // نسجّل مُصدِر الأمر (حقل createdById في الجدول كان يبقى فارغاً دائماً)
   const creator = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   const created = await prisma.taskOrder.create({
-    data: { ...data, createdById: creator?.id ?? null },
+    data: { ...data, ...extras.values, createdById: creator?.id ?? null },
     include: { guide: true, driver: true, trip: { include: { program: true } } },
   });
 
@@ -116,11 +141,14 @@ export async function updateTaskOrder(id: string, formData: FormData) {
   const missing = missingAssigneeMessage(data);
   if (missing) redirect(withError(back, missing));
 
+  const extras = readExtras(formData, data);
+  if (extras.error) redirect(withError(back, extras.error));
+
   // كشف التعارض مع استثناء الأمر الجاري تعديله نفسه
   const conflict = await conflictMessage(data, id);
   if (conflict) redirect(withError(back, conflict));
 
-  await prisma.taskOrder.update({ where: { id }, data });
+  await prisma.taskOrder.update({ where: { id }, data: { ...data, ...extras.values } });
   await logActivity("update", "TaskOrder", "تعديل أمر تكليف");
   revalidatePath("/task-orders");
   revalidatePath("/schedule");

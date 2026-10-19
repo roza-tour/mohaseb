@@ -257,6 +257,10 @@ model TaskOrder {
   driverId     String?
   taskDate     DateTime
   details      String? @db.Text
+  // خانات اختيارية (المركبة، الاعتماد، التنقّل) — تعريفها في src/lib/taskOrderFields.ts
+  fields       Json?
+  // بنود إضافية حرة: [{ label, value }]
+  extraRows    Json?
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdById  String?
   createdAt    DateTime @default(now())

@@ -148,3 +148,63 @@ export function InfoTable({
     </View>
   );
 }
+
+// جدول مضغوط: خانتان (اسم + قيمة) في كل سطر — للبيانات الاختيارية القصيرة
+// مثل بيانات المركبة، حتى لا يطول المستند. لو كان العدد فردياً يمتد الأخير بعرض السطر.
+export function GridTable({
+  rows,
+  rtl,
+  baseDir,
+  style,
+}: {
+  rows: [string, string][];
+  rtl: boolean;
+  baseDir: "auto" | "ltr";
+} & Styled) {
+  const st = docStyle(style);
+  const dir = rtl ? ("row-reverse" as const) : ("row" as const);
+  const align = rtl ? ("right" as const) : ("left" as const);
+  const fontSize = st.fontSize - 1;
+  const lines: [string, string][][] = [];
+  for (let i = 0; i < rows.length; i += 2) lines.push(rows.slice(i, i + 2));
+  const divider = rtl ? { borderLeft: "1px solid #e2e8f0" } : { borderRight: "1px solid #e2e8f0" };
+
+  const cell = ([label, value]: [string, string], key: number, full: boolean, last: boolean) => (
+    <View key={key} style={[{ flexDirection: dir, width: full ? "100%" : "50%" }, ...(last ? [] : [divider])]}>
+      <Text
+        // بلا تقطيع للكلمات بشرطة (Nombre de person-nes)
+        hyphenationCallback={(word) => [word]}
+        style={{
+          fontWeight: "bold",
+          color: "#334155",
+          backgroundColor: "#f8fafc",
+          padding: 6,
+          width: 120,
+          textAlign: align,
+          fontSize,
+        }}
+      >
+        {label}
+      </Text>
+      <View style={{ flex: 1, padding: 6 }}>
+        <MixedText
+          text={value}
+          size={fontSize}
+          align={align}
+          baseDir={baseDir}
+          style={{ fontSize, color: st.textColor }}
+        />
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={s.table}>
+      {lines.map((pair, i) => (
+        <View key={i} style={[s.row, { flexDirection: dir }, ...(i === 0 ? [{ borderTop: "none" }] : [])]}>
+          {pair.map((r, j) => cell(r, j, pair.length === 1, j === pair.length - 1))}
+        </View>
+      ))}
+    </View>
+  );
+}

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Field, Select } from "@/components/ui";
+import type { FieldValues } from "@/lib/taskOrderFields";
+import { FieldGroupInputs } from "./FieldGroupInputs";
 
 type Option = { id: string; name: string };
 
@@ -11,12 +13,14 @@ export function AssigneeFields({
   initialType = "GUIDE",
   initialGuideId = "",
   initialDriverId = "",
+  initialFields = {},
 }: {
   guides: Option[];
   drivers: Option[];
   initialType?: "GUIDE" | "DRIVER";
   initialGuideId?: string;
   initialDriverId?: string;
+  initialFields?: FieldValues;
 }) {
   const [assigneeType, setAssigneeType] = useState<"GUIDE" | "DRIVER">(initialType);
 
@@ -70,6 +74,9 @@ export function AssigneeFields({
           </Select>
         </Field>
       )}
+
+      {/* خانات تخص نوع المكلَّف: المركبة للسائق، والاعتماد للمرشد */}
+      <FieldGroupInputs group={assigneeType === "DRIVER" ? "vehicle" : "guide"} initial={initialFields} />
     </div>
   );
 }

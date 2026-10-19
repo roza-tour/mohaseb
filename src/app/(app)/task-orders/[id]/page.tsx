@@ -6,6 +6,7 @@ import { PageHeader, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { updateTaskOrder } from "../actions";
 import { TaskOrderForm } from "../TaskOrderForm";
+import { readFields, readExtraRows } from "@/lib/taskOrderFields";
 
 export default async function EditTaskOrderPage({
   params,
@@ -58,6 +59,8 @@ export default async function EditTaskOrderPage({
           driverId: order.driverId ?? "",
           taskDate: formatDateForInput(order.taskDate),
           details: order.details ?? "",
+          fields: readFields(order.fields),
+          extraRows: readExtraRows(order.extraRows),
         }}
       />
     </div>
