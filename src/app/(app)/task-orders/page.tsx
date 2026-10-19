@@ -5,7 +5,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
 import { formatDate } from "@/lib/format";
-import { findTaskOrders } from "@/lib/taskOrderView";
+import { findTaskOrders, taskOrderTripLabel } from "@/lib/taskOrderView";
 import { deleteTaskOrder } from "./actions";
 
 export default async function TaskOrdersPage({
@@ -15,14 +15,18 @@ export default async function TaskOrdersPage({
 }) {
   const sp = await searchParams;
   const page = parsePage(sp.page);
+  // أوامر المرشدين وأوامر السائقين منفصلة: تبويب لكل صفة
+  const type = sp.type === "DRIVER" ? "DRIVER" : sp.type === "GUIDE" ? "GUIDE" : null;
+  const where = type ? { assigneeType: type } : {};
   // قراءة لا تنكسر: أمر تكليف يشير إلى رحلة محذوفة كان يُسقط الصفحة كلها بخطأ خادم
   const [taskOrders, total] = await Promise.all([
     findTaskOrders({
+      where,
       orderBy: { taskDate: "desc" },
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
     }),
-    prisma.taskOrder.count(),
+    prisma.taskOrder.count({ where }),
   ]);
 
   return (
@@ -30,8 +34,33 @@ export default async function TaskOrdersPage({
       <PageHeader
         title="أوامر التكليف بمهمة"
         description="إصدار أوامر تكليف للمرشدين والسائقين بصيغة PDF جاهزة للطباعة"
-        action={<LinkButton href="/task-orders/new">+ أمر تكليف جديد</LinkButton>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/task-orders/new?type=GUIDE">+ أمر تكليف مرشد</LinkButton>
+            <LinkButton href="/task-orders/new?type=DRIVER">+ أمر تكليف سائق</LinkButton>
+          </div>
+        }
       />
+
+      <div className="mb-4 flex gap-2 text-sm">
+        {[
+          { key: null, label: "الكل" },
+          { key: "GUIDE", label: "🧭 أوامر المرشدين" },
+          { key: "DRIVER", label: "🚐 أوامر السائقين" },
+        ].map((tab) => (
+          <Link
+            key={tab.label}
+            href={tab.key ? `/task-orders?type=${tab.key}` : "/task-orders"}
+            className={`rounded-full px-4 py-1.5 border transition ${
+              type === tab.key
+                ? "bg-sky-600 text-white border-sky-600"
+                : "bg-white text-slate-600 border-slate-200 hover:border-sky-300"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
 
       {sp.updated && <SuccessBanner message="تم حفظ تعديلات أمر التكليف — أعِد تنزيل الـ PDF ليظهر بالبيانات الجديدة" />}
 
@@ -55,12 +84,12 @@ export default async function TaskOrdersPage({
               {taskOrders.map((to) => (
                 <tr key={to.id}>
                   <Td>
-                    {to.tripInfo ? (
-                      `${to.tripInfo.programName} — ${to.tripInfo.customerName}`
-                    ) : (
+                    {taskOrderTripLabel(to).deleted ? (
                       <span className="text-red-600" title="الرحلة المرتبطة غير موجودة في قاعدة البيانات">
                         ⚠️ رحلة محذوفة — عدّل الأمر أو احذفه
                       </span>
+                    ) : (
+                      taskOrderTripLabel(to).text
                     )}
                   </Td>
                   <Td className="font-medium text-slate-800">
@@ -96,7 +125,7 @@ export default async function TaskOrdersPage({
         )}
       </Card>
 
-      <Pagination page={page} total={total} basePath="/task-orders" />
+      <Pagination page={page} total={total} basePath="/task-orders" params={{ type: type ?? undefined }} />
     </div>
   );
 }

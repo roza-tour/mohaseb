@@ -5,7 +5,7 @@
 // فإضافة خانة جديدة لاحقاً سطر هنا، بلا هجرة لقاعدة البيانات.
 // وما لا تغطيه هذه الخانات يُكتب في «بنود إضافية» (TaskOrder.extraRows).
 
-export type FieldGroup = "vehicle" | "guide" | "mission";
+export type FieldGroup = "trip" | "vehicle" | "guide" | "mission";
 
 export type TaskField = {
   key: string;
@@ -17,6 +17,13 @@ export type TaskField = {
 };
 
 export const TASK_FIELDS: TaskField[] = [
+  // بيانات الرحلة اليدوية — تُستعمل فقط إن لم يُربط الأمر برحلة مسجّلة
+  { key: "tripProgram", group: "trip", type: "text", ar: "البرنامج / الخدمة", fr: "Programme", placeholder: "مثال: جولة في الصحراء" },
+  { key: "tripCustomer", group: "trip", type: "text", ar: "العميل", fr: "Client", placeholder: "اسم العميل أو المجموعة" },
+  { key: "tripPax", group: "trip", type: "text", ar: "عدد الأشخاص", fr: "Nombre de personnes" },
+  { key: "tripStart", group: "trip", type: "date", ar: "تاريخ بداية الرحلة", fr: "Date de début" },
+  { key: "tripEnd", group: "trip", type: "date", ar: "تاريخ نهاية الرحلة", fr: "Date de fin" },
+
   // المركبة — تظهر في النموذج عند تكليف سائق
   { key: "vehicleType", group: "vehicle", type: "text", ar: "نوع المركبة", fr: "Type de véhicule", placeholder: "مثال: تويوتا لاند كروزر" },
   { key: "vehiclePlate", group: "vehicle", type: "text", ar: "رقم التسجيل (اللوحة)", fr: "Immatriculation", placeholder: "مثال: 12345-120-33" },
@@ -38,6 +45,7 @@ export const TASK_FIELDS: TaskField[] = [
 ];
 
 export const GROUP_TITLES: Record<FieldGroup | "extra", { ar: string; fr: string }> = {
+  trip: { ar: "بيانات الرحلة", fr: "Informations du voyage" },
   vehicle: { ar: "بيانات المركبة", fr: "Véhicule" },
   guide: { ar: "بيانات الاعتماد", fr: "Accréditation du guide" },
   mission: { ar: "تفاصيل التنقّل", fr: "Déplacement" },
@@ -53,9 +61,15 @@ const MAX_EXTRA = 20;
 const clean = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, MAX_LEN) : "");
 
 // قراءة الخانات من النموذج: الفارغ لا يُحفظ، وخانات مجموعة لا تخص المكلَّف تُهمل
-export function fieldsFromForm(formData: FormData, assigneeType: "GUIDE" | "DRIVER"): FieldValues | null {
+// وبيانات الرحلة اليدوية تُهمل إن اختير الأمر لرحلة مسجّلة
+export function fieldsFromForm(
+  formData: FormData,
+  assigneeType: "GUIDE" | "DRIVER",
+  hasTrip: boolean
+): FieldValues | null {
   const out: FieldValues = {};
   for (const f of TASK_FIELDS) {
+    if (f.group === "trip" && hasTrip) continue;
     if (f.group === "vehicle" && assigneeType !== "DRIVER") continue;
     if (f.group === "guide" && assigneeType !== "GUIDE") continue;
     const v = clean(formData.get(`f_${f.key}`));
@@ -104,4 +118,10 @@ export function displayValue(f: TaskField, raw: string): string {
     if (m) return `${m[3]}/${m[2]}/${m[1]}`;
   }
   return raw;
+}
+
+// وصف قصير للرحلة المكتوبة يدوياً (للقوائم): «البرنامج — العميل»، أو null إن لم يُكتب شيء
+export function manualTripText(fields: FieldValues): string | null {
+  const parts = [fields.tripProgram, fields.tripCustomer].map((v) => v?.trim()).filter(Boolean);
+  return parts.length ? parts.join(" — ") : null;
 }

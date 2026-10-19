@@ -36,6 +36,8 @@ export function taskOrderRef(id: string, taskDate: Date): string {
 const T = {
   ar: {
     title: "أمر تكليف بمهمة",
+    titleGUIDE: "أمر تكليف مرشد سياحي",
+    titleDRIVER: "أمر تكليف سائق",
     orderNo: "رقم الأمر",
     date: "التاريخ",
     tripSection: "بيانات الرحلة",
@@ -55,6 +57,8 @@ const T = {
   },
   fr: {
     title: "Ordre de Mission",
+    titleGUIDE: "Ordre de Mission — Guide touristique",
+    titleDRIVER: "Ordre de Mission — Chauffeur",
     orderNo: "N° d'ordre",
     date: "Date",
     tripSection: "Informations du voyage",
@@ -85,11 +89,8 @@ export type TaskOrderDocData = {
   assigneeName: string;
   assigneePhone: string;
   details: string;
-  programName: string;
-  customerName: string;
-  numPax: number;
-  tripStart: Date;
-  tripEnd: Date;
+  // الرحلة المسجّلة المرتبطة، أو null إن كُتبت بياناتها يدوياً (في fields)
+  trip: { programName: string; customerName: string; numPax: number; start: Date; end: Date } | null;
   fields: FieldValues;
   extraRows: ExtraRow[];
 };
@@ -122,13 +123,17 @@ export function buildTaskOrderDoc({
   const align = rtl ? ("right" as const) : ("left" as const);
   const baseDir = rtl ? ("auto" as const) : ("ltr" as const);
 
-  const tripRows: [string, string][] = [
-    [t.program, nameOr(order.programName)],
-    [t.client, nameOr(order.customerName)],
-    [t.pax, String(order.numPax)],
-    [t.tripStart, fmt(order.tripStart)],
-    [t.tripEnd, fmt(order.tripEnd)],
-  ];
+  const tripRows: [string, string][] = order.trip
+    ? [
+        [t.program, nameOr(order.trip.programName)],
+        [t.client, nameOr(order.trip.customerName)],
+        [t.pax, String(order.trip.numPax)],
+        [t.tripStart, fmt(order.trip.start)],
+        [t.tripEnd, fmt(order.trip.end)],
+      ]
+    : groupRows("trip", order.fields, lang); // يدوي: ما كُتب فقط
+  const title =
+    order.assigneeType === "DRIVER" ? t.titleDRIVER : order.assigneeType === "GUIDE" ? t.titleGUIDE : t.title;
   const assigneeRows: [string, string][] = [
     [t.assignee, nameOr(order.assigneeName)],
     [
@@ -149,7 +154,7 @@ export function buildTaskOrderDoc({
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
         <RefBar number={`${t.orderNo} ${order.ref}`} date={fmt(order.taskDate)} rtl={rtl} style={style} />
-        <DocTitle text={t.title} rtl={rtl} style={style} />
+        <DocTitle text={title} rtl={rtl} style={style} />
 
         <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />
         <GridTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} style={style} />
@@ -162,8 +167,12 @@ export function buildTaskOrderDoc({
           </View>
         )}
 
-        <SectionTitle text={t.tripSection} rtl={rtl} style={style} />
-        <GridTable rows={tripRows} rtl={rtl} baseDir={baseDir} style={style} />
+        {tripRows.length > 0 && (
+          <View wrap={false}>
+            <SectionTitle text={t.tripSection} rtl={rtl} style={style} />
+            <GridTable rows={tripRows} rtl={rtl} baseDir={baseDir} style={style} />
+          </View>
+        )}
 
         {missionRows.length > 0 && (
           <View wrap={false}>
@@ -243,11 +252,15 @@ export async function renderTaskOrderPdf(
         assigneeName: taskOrder.guide?.name ?? taskOrder.driver?.name ?? "",
         assigneePhone: taskOrder.guide?.phone ?? taskOrder.driver?.phone ?? "",
         details: taskOrder.details ?? "",
-        programName: trip?.programName ?? "—",
-        customerName: trip?.customerName ?? "—",
-        numPax: trip?.numPax ?? 0,
-        tripStart: trip?.startDate ?? taskOrder.taskDate,
-        tripEnd: trip?.endDate ?? taskOrder.taskDate,
+        trip: trip
+          ? {
+              programName: trip.programName,
+              customerName: trip.customerName,
+              numPax: trip.numPax,
+              start: trip.startDate,
+              end: trip.endDate,
+            }
+          : null,
         fields: readFields(taskOrder.fields),
         extraRows: readExtraRows(taskOrder.extraRows),
       },

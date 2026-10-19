@@ -248,8 +248,9 @@ model OpeningBalance {
 // ---------- أوامر التكليف بمهمة ----------
 model TaskOrder {
   id           String   @id @default(cuid())
-  trip         Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  tripId       String
+  // الرحلة اختيارية: الأمر قد يُكتب يدوياً (البرنامج والعميل في fields)
+  trip         Trip?    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId       String?
   assigneeType String   // GUIDE | DRIVER
   guide        Guide?   @relation(fields: [guideId], references: [id])
   guideId      String?

@@ -2,7 +2,7 @@ import Link from "@/components/AppLink";
 import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import { formatDate } from "@/lib/format";
-import { findTaskOrders } from "@/lib/taskOrderView";
+import { findTaskOrders, taskOrderTripLabel } from "@/lib/taskOrderView";
 
 const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
@@ -94,9 +94,7 @@ export default async function SchedulePage() {
                       {to.assigneeType === "GUIDE" ? "مرشد" : "سائق"}
                     </Badge>
                     <span className="text-slate-500">
-                      {to.tripInfo
-                        ? `رحلة ${to.tripInfo.programName} — ${to.tripInfo.customerName}`
-                        : "⚠️ رحلة محذوفة"}
+                      {taskOrderTripLabel(to).deleted ? "⚠️ رحلة محذوفة" : taskOrderTripLabel(to).text}
                     </span>
                     <Link
                       href={`/task-orders/${to.id}/pdf`}

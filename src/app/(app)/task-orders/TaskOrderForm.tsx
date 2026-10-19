@@ -1,6 +1,5 @@
 import { Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
-import { formatDate } from "@/lib/format";
-import { AssigneeFields } from "./AssigneeFields";
+import { TripPicker } from "./TripPicker";
 import { FieldGroupInputs } from "./FieldGroupInputs";
 import { ExtraRowsEditor } from "./ExtraRowsEditor";
 import type { FieldValues, ExtraRow } from "@/lib/taskOrderFields";
@@ -16,7 +15,7 @@ export type TaskOrderInitial = {
   extraRows: ExtraRow[];
 };
 
-// نموذج أمر التكليف المشترك بين الإنشاء والتعديل
+// نموذج أمر التكليف — لكل صفة نموذجها: أمر المرشد غير أمر السائق
 export function TaskOrderForm({
   action,
   trips,
@@ -32,28 +31,32 @@ export function TaskOrderForm({
   initial: TaskOrderInitial;
   submitLabel?: string;
 }) {
+  const isDriver = initial.assigneeType === "DRIVER";
+  const people = isDriver ? drivers : guides;
   return (
     <Card className="p-5 max-w-3xl">
       <form action={action} className="space-y-4">
-        <Field label="الرحلة" required>
-          <Select name="tripId" required defaultValue={initial.tripId}>
-            <option value="">اختر الرحلة...</option>
-            {trips.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.programName} — {t.customerName} — {formatDate(t.startDate)}
+        <input type="hidden" name="assigneeType" value={initial.assigneeType} />
+
+        <Field label={isDriver ? "السائق" : "المرشد السياحي"} required>
+          <Select
+            name={isDriver ? "driverId" : "guideId"}
+            required
+            defaultValue={isDriver ? initial.driverId : initial.guideId}
+          >
+            <option value="">{isDriver ? "اختر السائق..." : "اختر المرشد..."}</option>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </Select>
         </Field>
 
-        <AssigneeFields
-          guides={guides}
-          drivers={drivers}
-          initialType={initial.assigneeType}
-          initialGuideId={initial.guideId}
-          initialDriverId={initial.driverId}
-          initialFields={initial.fields}
-        />
+        {/* بيانات المركبة للسائق، وبيانات الاعتماد للمرشد */}
+        <FieldGroupInputs group={isDriver ? "vehicle" : "guide"} initial={initial.fields} />
+
+        <TripPicker trips={trips} initialTripId={initial.tripId} initialFields={initial.fields} />
 
         <Field label="تاريخ المهمة" required>
           <Input type="date" name="taskDate" required defaultValue={initial.taskDate} />
@@ -63,7 +66,7 @@ export function TaskOrderForm({
 
         <ExtraRowsEditor initial={initial.extraRows} />
 
-        <Field label="تفاصيل المهمة">
+        <Field label="تفاصيل المهمة (اختياري)">
           <Textarea
             name="details"
             rows={4}

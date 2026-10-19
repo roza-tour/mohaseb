@@ -29,7 +29,7 @@ export default async function EditTaskOrderPage({
   return (
     <div>
       <PageHeader
-        title="تعديل أمر التكليف"
+        title={order.assigneeType === "DRIVER" ? "تعديل أمر تكليف سائق" : "تعديل أمر تكليف مرشد سياحي"}
         description="عدّل بيانات المهمة ثم احفظ — وأعِد تنزيل الـ PDF بعد الحفظ"
         action={
           <Link
@@ -51,7 +51,8 @@ export default async function EditTaskOrderPage({
         drivers={drivers}
         submitLabel="حفظ التعديلات"
         initial={{
-          tripId: order.tripId,
+          // رحلة محذوفة = بلا رحلة، فتظهر خانات الكتابة اليدوية
+          tripId: order.tripId && trips.some((t) => t.id === order.tripId) ? order.tripId : "",
           // نعتمد الصفة المخزَّنة لا وجود المرشد، حتى لا تنقلب صفة الأمر
           // إلى "سائق" لو حُذف المرشد المكلَّف من قاعدة البيانات
           assigneeType: order.assigneeType === "DRIVER" ? "DRIVER" : "GUIDE",

@@ -9,6 +9,7 @@
 // «رحلة محذوفة» ويمكن حذفه أو تصحيحه، بدل أن تسقط الصفحة.
 import { prisma } from "./prisma";
 import type { Prisma, TaskOrder, Guide, Driver } from "@prisma/client";
+import { readFields, manualTripText } from "./taskOrderFields";
 
 export type TripSummary = {
   id: string;
@@ -22,13 +23,13 @@ export type TripSummary = {
 export type TaskOrderView = TaskOrder & {
   guide: Guide | null;
   driver: Driver | null;
-  // null تعني أن الرحلة المرتبطة غير موجودة في قاعدة البيانات
+  // null: الأمر بلا رحلة (مكتوب يدوياً)، أو رحلته المرتبطة محذوفة
   tripInfo: TripSummary | null;
 };
 
 // يبني خريطة ملخّصات الرحلات المطلوبة دون الاعتماد على العلاقات الإلزامية
-export async function loadTripSummaries(tripIds: string[]): Promise<Map<string, TripSummary>> {
-  const ids = [...new Set(tripIds.filter(Boolean))];
+export async function loadTripSummaries(tripIds: (string | null)[]): Promise<Map<string, TripSummary>> {
+  const ids = [...new Set(tripIds.filter((x): x is string => !!x))];
   const map = new Map<string, TripSummary>();
   if (ids.length === 0) return map;
 
@@ -74,7 +75,7 @@ export async function findTaskOrders(args: {
     include: { guide: true, driver: true }, // علاقتان اختياريتان — آمنتان
   });
   const trips = await loadTripSummaries(orders.map((o) => o.tripId));
-  return orders.map((o) => ({ ...o, tripInfo: trips.get(o.tripId) ?? null }));
+  return orders.map((o) => ({ ...o, tripInfo: (o.tripId && trips.get(o.tripId)) || null }));
 }
 
 // أمر تكليف واحد بنفس الضمانة (للـ PDF وصفحة التعديل)
@@ -85,5 +86,13 @@ export async function findTaskOrder(id: string): Promise<TaskOrderView | null> {
   });
   if (!order) return null;
   const trips = await loadTripSummaries([order.tripId]);
-  return { ...order, tripInfo: trips.get(order.tripId) ?? null };
+  return { ...order, tripInfo: (order.tripId && trips.get(order.tripId)) || null };
+}
+
+// وصف رحلة الأمر للقوائم: الرحلة المسجّلة، أو ما كُتب يدوياً.
+// deleted=true فقط إن كان الأمر مربوطاً برحلة لم تعد موجودة.
+export function taskOrderTripLabel(o: TaskOrderView): { text: string; deleted: boolean } {
+  if (o.tripInfo) return { text: `${o.tripInfo.programName} — ${o.tripInfo.customerName}`, deleted: false };
+  if (o.tripId) return { text: "رحلة محذوفة", deleted: true };
+  return { text: manualTripText(readFields(o.fields)) ?? "—", deleted: false };
 }

@@ -1,6 +1,7 @@
+import Link from "@/components/AppLink";
 import { prisma } from "@/lib/prisma";
 import { findTripsWithNames } from "@/lib/safeRead";
-import { PageHeader, ErrorBanner } from "@/components/ui";
+import { PageHeader, ErrorBanner, Card } from "@/components/ui";
 import { createTaskOrder } from "../actions";
 import { TaskOrderForm } from "../TaskOrderForm";
 
@@ -11,38 +12,72 @@ export default async function NewTaskOrderPage({
 }) {
   const sp = await searchParams;
   const tripId = typeof sp.tripId === "string" ? sp.tripId : "";
+  const type = sp.type === "DRIVER" ? "DRIVER" : sp.type === "GUIDE" ? "GUIDE" : null;
 
-  const [trips, guides, drivers] = await Promise.all([
-    findTripsWithNames({ orderBy: { startDate: "desc" }, }),
-    prisma.guide.findMany({ orderBy: { name: "asc" } }),
-    prisma.driver.findMany({ orderBy: { name: "asc" } }),
+  // أمر المرشد وأمر السائق منفصلان: نسأل أولاً أيّهما
+  if (!type) {
+    const q = tripId ? `&tripId=${encodeURIComponent(tripId)}` : "";
+    return (
+      <div>
+        <PageHeader title="أمر تكليف جديد" description="اختر نوع الأمر" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+          <Link href={`/task-orders/new?type=GUIDE${q}`}>
+            <Card className="p-6 text-center hover:border-sky-400 transition">
+              <div className="text-3xl mb-2">🧭</div>
+              <div className="font-semibold text-slate-800">أمر تكليف مرشد سياحي</div>
+            </Card>
+          </Link>
+          <Link href={`/task-orders/new?type=DRIVER${q}`}>
+            <Card className="p-6 text-center hover:border-amber-400 transition">
+              <div className="text-3xl mb-2">🚐</div>
+              <div className="font-semibold text-slate-800">أمر تكليف سائق</div>
+            </Card>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const isDriver = type === "DRIVER";
+  const [trips, people] = await Promise.all([
+    findTripsWithNames({ orderBy: { startDate: "desc" } }),
+    isDriver
+      ? prisma.driver.findMany({ orderBy: { name: "asc" } })
+      : prisma.guide.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
     <div>
-      <PageHeader title="أمر تكليف جديد" description="إصدار أمر تكليف بمهمة لمرشد سياحي أو سائق" />
+      <PageHeader
+        title={isDriver ? "أمر تكليف سائق جديد" : "أمر تكليف مرشد سياحي جديد"}
+        description="ربط الأمر برحلة اختياري — ويمكن كتابة البرنامج والعميل يدوياً"
+      />
 
       <ErrorBanner message={sp.error} />
 
-      {trips.length === 0 && (
+      {people.length === 0 && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 max-w-2xl">
-          لا توجد رحلات بعد — أمر التكليف يرتبط برحلة. أنشئ رحلة أولاً من صفحة الرحلات.
-        </div>
-      )}
-
-      {guides.length === 0 && drivers.length === 0 && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 max-w-2xl">
-          لا يوجد مرشدون ولا سائقون مسجَّلون — لن تستطيع اختيار مكلَّف بالمهمة. أضف مرشداً من صفحة المرشدين
-          أو سائقاً من صفحة السائقين أولاً.
+          {isDriver
+            ? "لا يوجد سائقون مسجَّلون — أضف سائقاً أولاً من صفحة السائقين."
+            : "لا يوجد مرشدون مسجَّلون — أضف مرشداً أولاً من صفحة المرشدين."}
         </div>
       )}
 
       <TaskOrderForm
         action={createTaskOrder}
         trips={trips}
-        guides={guides}
-        drivers={drivers}
-        initial={{ tripId, assigneeType: "GUIDE", guideId: "", driverId: "", taskDate: "", details: "", fields: {}, extraRows: [] }}
+        guides={isDriver ? [] : people}
+        drivers={isDriver ? people : []}
+        initial={{
+          tripId,
+          assigneeType: type,
+          guideId: "",
+          driverId: "",
+          taskDate: "",
+          details: "",
+          fields: {},
+          extraRows: [],
+        }}
       />
     </div>
   );

@@ -197,7 +197,7 @@ if (prisma) {
       prisma.trip.count(),
     ]);
     console.log(`  العدد: ${orders} أمر تكليف · ${trips} رحلة · ${guides} مرشد · ${drivers} سائق`);
-    if (trips === 0) bad("لا توجد رحلات", "أمر التكليف يرتبط برحلة — أنشئ رحلة أولاً");
+    if (trips === 0) warn("لا توجد رحلات", "لا بأس — أمر التكليف يمكن كتابة بياناته يدوياً بلا رحلة");
     if (guides === 0 && drivers === 0) {
       bad("لا يوجد مرشدون ولا سائقون", "لن تستطيع اختيار مكلَّف — أضفهم أولاً من صفحتي المرشدين والسائقين");
     }
@@ -250,12 +250,15 @@ if (prisma) {
       orderBy: { taskDate: "desc" },
     });
     if (sample) {
-      const tripRow = await prisma.trip.findUnique({ where: { id: sample.tripId }, select: { programId: true } });
+      // أمر بلا رحلة (مكتوب يدوياً) مسموح
+      const tripRow = sample.tripId
+        ? await prisma.trip.findUnique({ where: { id: sample.tripId }, select: { programId: true } })
+        : null;
       const prog = tripRow
         ? await prisma.tourProgram.findUnique({ where: { id: tripRow.programId }, select: { name: true } })
         : null;
       console.log(
-        `  أحدث أمر: ${prog?.name ?? "رحلة/برنامج محذوف"} — ${sample.guide?.name ?? sample.driver?.name ?? "بلا مكلَّف"} — ${new Date(sample.taskDate).toISOString().slice(0, 10)}`
+        `  أحدث أمر: ${prog?.name ?? (sample.tripId ? "رحلة/برنامج محذوف" : "بلا رحلة (يدوي)")} — ${sample.guide?.name ?? sample.driver?.name ?? "بلا مكلَّف"} — ${new Date(sample.taskDate).toISOString().slice(0, 10)}`
       );
     }
   } catch (e) {

@@ -7,12 +7,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { logActivity } from "@/lib/activity";
-import { fieldsFromForm, extraRowsFromForm } from "@/lib/taskOrderFields";
+import { fieldsFromForm, extraRowsFromForm, manualTripText, readFields } from "@/lib/taskOrderFields";
 import { Prisma } from "@prisma/client";
 
 const taskOrderSchema = z
   .object({
-    tripId: z.string().min(1),
+    // الرحلة اختيارية: بدونها يُكتب البرنامج والعميل يدوياً
+    tripId: z.string().optional(),
     assigneeType: z.enum(["GUIDE", "DRIVER"]),
     guideId: z.string().optional(),
     driverId: z.string().optional(),
@@ -21,6 +22,7 @@ const taskOrderSchema = z
   })
   .transform((data) => ({
     ...data,
+    tripId: data.tripId || null,
     guideId: data.assigneeType === "GUIDE" ? data.guideId || null : null,
     driverId: data.assigneeType === "DRIVER" ? data.driverId || null : null,
     details: data.details && data.details.trim() !== "" ? data.details : null,
@@ -30,7 +32,7 @@ type TaskOrderData = z.infer<typeof taskOrderSchema>;
 
 function readForm(formData: FormData) {
   return taskOrderSchema.safeParse({
-    tripId: formData.get("tripId"),
+    tripId: formData.get("tripId") || undefined,
     assigneeType: formData.get("assigneeType"),
     guideId: formData.get("guideId") || undefined,
     driverId: formData.get("driverId") || undefined,
@@ -41,9 +43,12 @@ function readForm(formData: FormData) {
 
 // الخانات الاختيارية والبنود الإضافية — تُحفظ JSON، والفارغ منها لا يُحفظ أصلاً
 function readExtras(formData: FormData, data: TaskOrderData) {
-  const fields = fieldsFromForm(formData, data.assigneeType);
+  const fields = fieldsFromForm(formData, data.assigneeType, !!data.tripId);
   const extraRows = extraRowsFromForm(formData);
   let error: string | null = null;
+  if (fields?.tripStart && fields?.tripEnd && fields.tripEnd < fields.tripStart) {
+    error = "تاريخ نهاية الرحلة لا يمكن أن يسبق تاريخ بدايتها";
+  }
   if (fields?.endDate) {
     const end = new Date(`${fields.endDate}T00:00:00Z`);
     const start = new Date(data.taskDate);
@@ -76,7 +81,8 @@ async function conflictMessage(data: TaskOrderData, exceptId?: string): Promise<
   });
   if (!conflict) return null;
   const who = conflict.guide?.name ?? conflict.driver?.name ?? "المكلَّف";
-  return `تعارض في المواعيد: ${who} مكلَّف بمهمة أخرى في نفس اليوم (رحلة ${conflict.trip.program.name}) — غيّر التاريخ أو اختر مكلَّفاً آخر`;
+  const what = conflict.trip?.program.name ?? manualTripText(readFields(conflict.fields));
+  return `تعارض في المواعيد: ${who} مكلَّف بمهمة أخرى في نفس اليوم${what ? ` (${what})` : ""} — غيّر التاريخ أو اختر مكلَّفاً آخر`;
 }
 
 // التحقق من اختيار المكلَّف فعلياً (القائمة قد تكون فارغة إن لم يُسجَّل أي مرشد/سائق)
@@ -90,23 +96,31 @@ function missingAssigneeMessage(data: TaskOrderData): string | null {
   return null;
 }
 
+function newOrderPath(formData: FormData): string {
+  const type = formData.get("assigneeType") === "DRIVER" ? "DRIVER" : "GUIDE";
+  const tripId = formData.get("tripId");
+  return `/task-orders/new?type=${type}${typeof tripId === "string" && tripId ? `&tripId=${encodeURIComponent(tripId)}` : ""}`;
+}
+
 export async function createTaskOrder(formData: FormData) {
   const session = await auth();
   const email = session?.user?.email;
   if (!email) redirect("/login");
 
+  // عند الخطأ نعود لنفس النموذج (أمر مرشد أو أمر سائق) ونفس الرحلة
+  const back = newOrderPath(formData);
   const parsed = readForm(formData);
-  if (!parsed.success) redirect(withError("/task-orders/new", firstErrorMessage(parsed.error)));
+  if (!parsed.success) redirect(withError(back, firstErrorMessage(parsed.error)));
   const data = parsed.data;
 
   const missing = missingAssigneeMessage(data);
-  if (missing) redirect(withError("/task-orders/new", missing));
+  if (missing) redirect(withError(back, missing));
 
   const extras = readExtras(formData, data);
-  if (extras.error) redirect(withError("/task-orders/new", extras.error));
+  if (extras.error) redirect(withError(back, extras.error));
 
   const conflict = await conflictMessage(data);
-  if (conflict) redirect(withError("/task-orders/new", conflict));
+  if (conflict) redirect(withError(back, conflict));
 
   // نسجّل مُصدِر الأمر (حقل createdById في الجدول كان يبقى فارغاً دائماً)
   const creator = await prisma.user.findUnique({ where: { email }, select: { id: true } });
@@ -118,7 +132,9 @@ export async function createTaskOrder(formData: FormData) {
   await logActivity(
     "create",
     "TaskOrder",
-    `أمر تكليف لـ ${created.guide?.name ?? created.driver?.name ?? "—"} — رحلة ${created.trip.program.name}`
+    `أمر تكليف لـ ${created.guide?.name ?? created.driver?.name ?? "—"} — ${
+      created.trip?.program.name ?? manualTripText(readFields(created.fields)) ?? "بلا رحلة"
+    }`
   );
   revalidatePath("/task-orders");
   revalidatePath("/schedule");

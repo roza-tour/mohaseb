@@ -591,7 +591,8 @@ export default async function TripDetailPage({
         )}
 
         <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
-          <LinkButton href={`/task-orders/new?tripId=${id}`}>+ إصدار أمر تكليف جديد</LinkButton>
+          <LinkButton href={`/task-orders/new?type=GUIDE&tripId=${id}`}>+ أمر تكليف مرشد</LinkButton>
+          <LinkButton href={`/task-orders/new?type=DRIVER&tripId=${id}`}>+ أمر تكليف سائق</LinkButton>
           <LinkButton href={`/documents/new?tripId=${id}`} variant="secondary">
             + إصدار مستند (دعوة، تصريح...)
           </LinkButton>
