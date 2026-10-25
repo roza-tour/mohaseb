@@ -50,7 +50,7 @@ export default async function NewTaskOrderPage({
     <div>
       <PageHeader
         title={isDriver ? "أمر تكليف سائق جديد" : "أمر تكليف مرشد سياحي جديد"}
-        description="ربط الأمر برحلة اختياري — ويمكن كتابة البرنامج والعميل يدوياً"
+        description="اختر رحلة مسجّلة، أو أدخل الرحلة واسم المسافر وجنسيته يدوياً"
       />
 
       <ErrorBanner message={sp.error} />

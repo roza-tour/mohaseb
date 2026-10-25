@@ -14,12 +14,15 @@ export type TaskField = {
   ar: string;
   fr: string;
   placeholder?: string;
+  // خانة من مجموعة الرحلة تبقى متاحة حتى مع اختيار رحلة مسجّلة (الرحلة لا تحمل هذه المعلومة)
+  withTrip?: boolean;
 };
 
 export const TASK_FIELDS: TaskField[] = [
   // بيانات الرحلة اليدوية — تُستعمل فقط إن لم يُربط الأمر برحلة مسجّلة
-  { key: "tripProgram", group: "trip", type: "text", ar: "البرنامج / الخدمة", fr: "Programme", placeholder: "مثال: جولة في الصحراء" },
-  { key: "tripCustomer", group: "trip", type: "text", ar: "العميل", fr: "Client", placeholder: "اسم العميل أو المجموعة" },
+  { key: "tripProgram", group: "trip", type: "text", ar: "الرحلة / البرنامج", fr: "Programme", placeholder: "مثال: جولة في الصحراء" },
+  { key: "tripCustomer", group: "trip", type: "text", ar: "اسم المسافر", fr: "Nom du voyageur", placeholder: "اسم المسافر أو المجموعة" },
+  { key: "travelerNationality", group: "trip", type: "text", ar: "الجنسية", fr: "Nationalité", placeholder: "مثال: فرنسية", withTrip: true },
   { key: "tripPax", group: "trip", type: "text", ar: "عدد الأشخاص", fr: "Nombre de personnes" },
   { key: "tripStart", group: "trip", type: "date", ar: "تاريخ بداية الرحلة", fr: "Date de début" },
   { key: "tripEnd", group: "trip", type: "date", ar: "تاريخ نهاية الرحلة", fr: "Date de fin" },
@@ -69,7 +72,7 @@ export function fieldsFromForm(
 ): FieldValues | null {
   const out: FieldValues = {};
   for (const f of TASK_FIELDS) {
-    if (f.group === "trip" && hasTrip) continue;
+    if (f.group === "trip" && hasTrip && !f.withTrip) continue;
     if (f.group === "vehicle" && assigneeType !== "DRIVER") continue;
     if (f.group === "guide" && assigneeType !== "GUIDE") continue;
     const v = clean(formData.get(`f_${f.key}`));

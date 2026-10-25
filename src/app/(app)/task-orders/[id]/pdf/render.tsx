@@ -130,6 +130,10 @@ export function buildTaskOrderDoc({
         [t.pax, String(order.trip.numPax)],
         [t.tripStart, fmt(order.trip.start)],
         [t.tripEnd, fmt(order.trip.end)],
+        // الجنسية تُكتب في الأمر نفسه (الرحلة المسجّلة لا تحملها)
+        ...groupRows("trip", order.fields, lang).filter(([label]) =>
+          TASK_FIELDS.some((f) => f.withTrip && f[lang] === label)
+        ),
       ]
     : groupRows("trip", order.fields, lang); // يدوي: ما كُتب فقط
   const title =
