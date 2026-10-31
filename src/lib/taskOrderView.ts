@@ -9,7 +9,7 @@
 // «رحلة محذوفة» ويمكن حذفه أو تصحيحه، بدل أن تسقط الصفحة.
 import { prisma } from "./prisma";
 import type { Prisma, TaskOrder, Guide, Driver } from "@prisma/client";
-import { readFields, manualTripText } from "./taskOrderFields";
+import { readFields, manualTripText, driverProfile, guideProfile, type FieldValues } from "./taskOrderFields";
 
 export type TripSummary = {
   id: string;
@@ -95,4 +95,16 @@ export function taskOrderTripLabel(o: TaskOrderView): { text: string; deleted: b
   if (o.tripInfo) return { text: `${o.tripInfo.programName} — ${o.tripInfo.customerName}`, deleted: false };
   if (o.tripId) return { text: "رحلة محذوفة", deleted: true };
   return { text: manualTripText(readFields(o.fields)) ?? "—", deleted: false };
+}
+
+// المرشدون أو السائقون مع بياناتهم المحفوظة — لملء أمر التكليف تلقائياً
+export async function loadAssignees(
+  type: "GUIDE" | "DRIVER"
+): Promise<{ id: string; name: string; profile: FieldValues }[]> {
+  if (type === "DRIVER") {
+    const drivers = await prisma.driver.findMany({ orderBy: { name: "asc" } });
+    return drivers.map((d) => ({ id: d.id, name: d.name, profile: driverProfile(d) }));
+  }
+  const guides = await prisma.guide.findMany({ orderBy: { name: "asc" } });
+  return guides.map((g) => ({ id: g.id, name: g.name, profile: guideProfile(g) }));
 }

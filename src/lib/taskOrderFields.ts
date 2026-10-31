@@ -27,15 +27,18 @@ export const TASK_FIELDS: TaskField[] = [
   { key: "tripStart", group: "trip", type: "date", ar: "تاريخ بداية الرحلة", fr: "Date de début" },
   { key: "tripEnd", group: "trip", type: "date", ar: "تاريخ نهاية الرحلة", fr: "Date de fin" },
 
-  // المركبة — تظهر في النموذج عند تكليف سائق
+  // السائق والمركبة — تُحفظ في ملف السائق وتُملأ تلقائياً في كل أمر تكليف له
+  { key: "driverIdNumber", group: "vehicle", type: "text", ar: "رقم بطاقة التعريف", fr: "N° de pièce d'identité" },
   { key: "vehicleType", group: "vehicle", type: "text", ar: "نوع المركبة", fr: "Type de véhicule", placeholder: "مثال: تويوتا لاند كروزر" },
   { key: "vehiclePlate", group: "vehicle", type: "text", ar: "رقم التسجيل (اللوحة)", fr: "Immatriculation", placeholder: "مثال: 12345-120-33" },
+  { key: "vehicleColor", group: "vehicle", type: "text", ar: "لون المركبة", fr: "Couleur du véhicule" },
   { key: "vehicleSeats", group: "vehicle", type: "text", ar: "عدد المقاعد", fr: "Nombre de places" },
   { key: "licenseCategory", group: "vehicle", type: "text", ar: "صنف رخصة السياقة", fr: "Catégorie du permis", placeholder: "B / C / D" },
   { key: "licenseNumber", group: "vehicle", type: "text", ar: "رقم رخصة السياقة", fr: "N° du permis de conduire" },
   { key: "transportPermit", group: "vehicle", type: "text", ar: "رخصة النقل السياحي", fr: "Agrément de transport touristique" },
 
-  // الاعتماد — تظهر في النموذج عند تكليف مرشد
+  // المرشد — تُحفظ في ملف المرشد وتُملأ تلقائياً في كل أمر تكليف له
+  { key: "guideIdNumber", group: "guide", type: "text", ar: "رقم بطاقة التعريف", fr: "N° de pièce d'identité" },
   { key: "guideCard", group: "guide", type: "text", ar: "رقم بطاقة المرشد / الاعتماد", fr: "N° de carte de guide" },
   { key: "guideLanguages", group: "guide", type: "text", ar: "لغات الإرشاد", fr: "Langues", placeholder: "مثال: العربية، الفرنسية" },
 
@@ -49,8 +52,8 @@ export const TASK_FIELDS: TaskField[] = [
 
 export const GROUP_TITLES: Record<FieldGroup | "extra", { ar: string; fr: string }> = {
   trip: { ar: "بيانات الرحلة", fr: "Informations du voyage" },
-  vehicle: { ar: "بيانات المركبة", fr: "Véhicule" },
-  guide: { ar: "بيانات الاعتماد", fr: "Accréditation du guide" },
+  vehicle: { ar: "بيانات السائق والمركبة", fr: "Chauffeur et véhicule" },
+  guide: { ar: "بيانات المرشد والاعتماد", fr: "Guide et accréditation" },
   mission: { ar: "تفاصيل التنقّل", fr: "Déplacement" },
   extra: { ar: "بيانات إضافية", fr: "Informations complémentaires" },
 };
@@ -79,6 +82,38 @@ export function fieldsFromForm(
     if (v) out[f.key] = v;
   }
   return Object.keys(out).length ? out : null;
+}
+
+// خانات مجموعة واحدة فقط (ملف السائق أو المرشد)
+export function groupFromForm(formData: FormData, group: FieldGroup): FieldValues | null {
+  const out: FieldValues = {};
+  for (const f of TASK_FIELDS) {
+    if (f.group !== group) continue;
+    const v = clean(formData.get(`f_${f.key}`));
+    if (v) out[f.key] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// ملف السائق: الخانات المحفوظة، ومع سائق قديم كُتبت مركبته نصاً حراً
+// (vehicleInfo) قبل وجود الخانات نضع النص في «نوع المركبة» حتى لا يضيع
+export function driverProfile(d: { fields: unknown; vehicleInfo: string | null }): FieldValues {
+  const f = readFields(d.fields);
+  if (Object.keys(f).length === 0 && d.vehicleInfo?.trim()) f.vehicleType = d.vehicleInfo.trim();
+  return f;
+}
+
+// ملف المرشد: اللغات محفوظة في عمودها القديم (languages)
+export function guideProfile(g: { fields: unknown; languages: string | null }): FieldValues {
+  const f = readFields(g.fields);
+  if (!f.guideLanguages && g.languages?.trim()) f.guideLanguages = g.languages.trim();
+  return f;
+}
+
+// ملخّص المركبة لقائمة السائقين والبحث فيها: «النوع — اللوحة»
+export function vehicleSummary(f: FieldValues): string | null {
+  const parts = [f.vehicleType, f.vehiclePlate].map((v) => v?.trim()).filter(Boolean);
+  return parts.length ? parts.join(" — ") : null;
 }
 
 // البنود الإضافية: صف بلا اسم وبلا قيمة يُهمل، وصف بقيمة بلا اسم يُحفظ بلا اسم

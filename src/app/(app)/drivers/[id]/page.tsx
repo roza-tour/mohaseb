@@ -1,3 +1,5 @@
+import { FieldGroupInputs } from "@/app/(app)/task-orders/FieldGroupInputs";
+import { driverProfile } from "@/lib/taskOrderFields";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Textarea, LinkButton, Button } from "@/components/ui";
@@ -13,13 +15,10 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
     <div>
       <PageHeader title="تعديل بيانات سائق" description={driver.name} />
 
-      <Card className="p-5 max-w-2xl">
+      <Card className="p-5 max-w-3xl">
         <form action={updateDriver.bind(null, id)} className="space-y-4">
           <Field label="الاسم">
             <Input name="name" defaultValue={driver.name} />
-          </Field>
-          <Field label="بيانات المركبة">
-            <Input name="vehicleInfo" placeholder="نوع السيارة ورقم اللوحة" defaultValue={driver.vehicleInfo ?? ""} />
           </Field>
           <Field label="رقم الهاتف">
             <Input name="phone" defaultValue={driver.phone ?? ""} />
@@ -27,6 +26,7 @@ export default async function EditDriverPage({ params }: { params: Promise<{ id:
           <Field label="البريد الإلكتروني">
             <Input name="email" type="email" defaultValue={driver.email ?? ""} />
           </Field>
+          <FieldGroupInputs group="vehicle" initial={driverProfile(driver)} title="بيانات السائق والمركبة" hint="اختياري — تُملأ تلقائياً في كل أمر تكليف" />
           <Field label="ملاحظات">
             <Textarea name="notes" rows={3} defaultValue={driver.notes ?? ""} />
           </Field>

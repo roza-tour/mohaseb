@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { withError } from "@/lib/formErrors";
+import { Prisma } from "@prisma/client";
+import { groupFromForm, vehicleSummary } from "@/lib/taskOrderFields";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -19,11 +21,14 @@ function orNull(value: string) {
 function buildDriverData(formData: FormData) {
   // الاسم اختياري — يُحفظ فارغاً إن لم يُدخل
   const name = str(formData, "name");
+  // بيانات السائق والمركبة — كلها اختيارية، وتُملأ تلقائياً في أوامر التكليف
+  const fields = groupFromForm(formData, "vehicle");
   return {
     name,
     phone: orNull(str(formData, "phone")),
     email: orNull(str(formData, "email")),
-    vehicleInfo: orNull(str(formData, "vehicleInfo")),
+    vehicleInfo: fields ? vehicleSummary(fields) : null,
+    fields: fields ?? Prisma.DbNull,
     notes: orNull(str(formData, "notes")),
   };
 }

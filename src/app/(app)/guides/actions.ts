@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { withError } from "@/lib/formErrors";
+import { Prisma } from "@prisma/client";
+import { groupFromForm } from "@/lib/taskOrderFields";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -19,11 +21,16 @@ function orNull(value: string) {
 function buildGuideData(formData: FormData) {
   // الاسم اختياري — يُحفظ فارغاً إن لم يُدخل
   const name = str(formData, "name");
+  // بيانات المرشد — كلها اختيارية، وتُملأ تلقائياً في أوامر التكليف.
+  // اللغات تبقى في عمودها القديم (languages) لقائمة المرشدين
+  const fields = groupFromForm(formData, "guide");
+  const { guideLanguages, ...rest } = fields ?? {};
   return {
     name,
     phone: orNull(str(formData, "phone")),
     email: orNull(str(formData, "email")),
-    languages: orNull(str(formData, "languages")),
+    languages: guideLanguages ?? null,
+    fields: Object.keys(rest).length ? rest : Prisma.DbNull,
     notes: orNull(str(formData, "notes")),
   };
 }

@@ -1,5 +1,6 @@
-import { Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
+import { Card, Field, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { TripPicker } from "./TripPicker";
+import { AssigneePicker, type Assignee } from "./AssigneePicker";
 import { FieldGroupInputs } from "./FieldGroupInputs";
 import { ExtraRowsEditor } from "./ExtraRowsEditor";
 import type { FieldValues, ExtraRow } from "@/lib/taskOrderFields";
@@ -26,35 +27,23 @@ export function TaskOrderForm({
 }: {
   action: (formData: FormData) => void;
   trips: { id: string; startDate: Date; programName: string; customerName: string }[];
-  guides: { id: string; name: string }[];
-  drivers: { id: string; name: string }[];
+  guides: Assignee[];
+  drivers: Assignee[];
   initial: TaskOrderInitial;
   submitLabel?: string;
 }) {
   const isDriver = initial.assigneeType === "DRIVER";
-  const people = isDriver ? drivers : guides;
   return (
     <Card className="p-5 max-w-3xl">
       <form action={action} className="space-y-4">
         <input type="hidden" name="assigneeType" value={initial.assigneeType} />
 
-        <Field label={isDriver ? "السائق" : "المرشد السياحي"} required>
-          <Select
-            name={isDriver ? "driverId" : "guideId"}
-            required
-            defaultValue={isDriver ? initial.driverId : initial.guideId}
-          >
-            <option value="">{isDriver ? "اختر السائق..." : "اختر المرشد..."}</option>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        {/* بيانات المركبة للسائق، وبيانات الاعتماد للمرشد */}
-        <FieldGroupInputs group={isDriver ? "vehicle" : "guide"} initial={initial.fields} />
+        <AssigneePicker
+          isDriver={isDriver}
+          people={isDriver ? drivers : guides}
+          initialId={isDriver ? initial.driverId : initial.guideId}
+          initialFields={initial.fields}
+        />
 
         <TripPicker trips={trips} initialTripId={initial.tripId} initialFields={initial.fields} />
 

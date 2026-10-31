@@ -98,6 +98,8 @@ model Guide {
   email     String?
   languages String?
   notes     String? @db.Text
+  // بيانات المرشد (بطاقة التعريف، الاعتماد...) — تُملأ تلقائياً في أوامر التكليف
+  fields    Json?
   createdAt DateTime @default(now())
   taskOrders TaskOrder[]
 }
@@ -108,8 +110,11 @@ model Driver {
   name        String
   phone       String?
   email       String?
+  // ملخّص المركبة «النوع — اللوحة» يُشتق من fields عند الحفظ (للقائمة والبحث)
   vehicleInfo String?
   notes       String? @db.Text
+  // بيانات السائق والمركبة (اللوحة، الرخصة...) — تُملأ تلقائياً في أوامر التكليف
+  fields      Json?
   createdAt   DateTime @default(now())
   taskOrders  TaskOrder[]
 }

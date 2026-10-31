@@ -6,6 +6,7 @@ import { PageHeader, ErrorBanner } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import { updateTaskOrder } from "../actions";
 import { TaskOrderForm } from "../TaskOrderForm";
+import { loadAssignees } from "@/lib/taskOrderView";
 import { readFields, readExtraRows } from "@/lib/taskOrderFields";
 
 export default async function EditTaskOrderPage({
@@ -21,8 +22,8 @@ export default async function EditTaskOrderPage({
   const [order, trips, guides, drivers] = await Promise.all([
     prisma.taskOrder.findUnique({ where: { id } }),
     findTripsWithNames({ orderBy: { startDate: "desc" } }),
-    prisma.guide.findMany({ orderBy: { name: "asc" } }),
-    prisma.driver.findMany({ orderBy: { name: "asc" } }),
+    loadAssignees("GUIDE"),
+    loadAssignees("DRIVER"),
   ]);
   if (!order) notFound();
 

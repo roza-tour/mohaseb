@@ -8,17 +8,19 @@ export function FieldGroupInputs({
   initial,
   onlyWithTrip = false,
   title,
+  hint = "اختياري — الفارغ لا يظهر في الأمر",
 }: {
   group: FieldGroup;
   initial: FieldValues;
   onlyWithTrip?: boolean;
   title?: string;
+  hint?: string;
 }) {
   const fields = TASK_FIELDS.filter((f) => f.group === group && (!onlyWithTrip || f.withTrip));
   return (
     <fieldset className="rounded-lg border border-slate-200 p-4">
       <legend className="px-1 text-sm font-medium text-slate-700">
-        {title ?? GROUP_TITLES[group].ar} <span className="text-xs font-normal text-slate-400">(اختياري — الفارغ لا يظهر في الأمر)</span>
+        {title ?? GROUP_TITLES[group].ar} <span className="text-xs font-normal text-slate-400">({hint})</span>
       </legend>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {fields.map((f) => (

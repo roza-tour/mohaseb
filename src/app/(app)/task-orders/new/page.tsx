@@ -1,5 +1,5 @@
 import Link from "@/components/AppLink";
-import { prisma } from "@/lib/prisma";
+import { loadAssignees } from "@/lib/taskOrderView";
 import { findTripsWithNames } from "@/lib/safeRead";
 import { PageHeader, ErrorBanner, Card } from "@/components/ui";
 import { createTaskOrder } from "../actions";
@@ -41,9 +41,7 @@ export default async function NewTaskOrderPage({
   const isDriver = type === "DRIVER";
   const [trips, people] = await Promise.all([
     findTripsWithNames({ orderBy: { startDate: "desc" } }),
-    isDriver
-      ? prisma.driver.findMany({ orderBy: { name: "asc" } })
-      : prisma.guide.findMany({ orderBy: { name: "asc" } }),
+    loadAssignees(type),
   ]);
 
   return (

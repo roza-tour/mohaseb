@@ -1,3 +1,4 @@
+import { FieldGroupInputs } from "@/app/(app)/task-orders/FieldGroupInputs";
 import { PageHeader, Card, Field, Input, Textarea, LinkButton, Button } from "@/components/ui";
 import { createGuide } from "../actions";
 
@@ -6,13 +7,10 @@ export default function NewGuidePage() {
     <div>
       <PageHeader title="إضافة مرشد سياحي" description="إدخال بيانات مرشد سياحي جديد" />
 
-      <Card className="p-5 max-w-2xl">
+      <Card className="p-5 max-w-3xl">
         <form action={createGuide} className="space-y-4">
           <Field label="الاسم">
             <Input name="name" />
-          </Field>
-          <Field label="اللغات">
-            <Input name="languages" placeholder="مثال: عربي، إنجليزي" />
           </Field>
           <Field label="رقم الهاتف">
             <Input name="phone" />
@@ -20,6 +18,7 @@ export default function NewGuidePage() {
           <Field label="البريد الإلكتروني">
             <Input name="email" type="email" />
           </Field>
+          <FieldGroupInputs group="guide" initial={{}} title="بيانات المرشد والاعتماد" hint="اختياري — تُملأ تلقائياً في كل أمر تكليف" />
           <Field label="ملاحظات">
             <Textarea name="notes" rows={3} />
           </Field>
