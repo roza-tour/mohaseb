@@ -5,8 +5,9 @@ import { MixedText } from "@/lib/pdf/MixedText";
 import { RefBar, DocTitle, SectionTitle, GridTable, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { type Lang } from "@/lib/pdf/docLang";
-import { makeQrPng, docQrText } from "@/lib/qr";
-import { nameOr, websiteList } from "@/lib/format";
+import { makeQrPng } from "@/lib/qr";
+import { genToken, verifyUrl } from "@/lib/share";
+import { nameOr } from "@/lib/format";
 import { findTaskOrder } from "@/lib/taskOrderView";
 import {
   TASK_FIELDS,
@@ -236,16 +237,14 @@ export async function renderTaskOrderPdf(
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stamp = loadPublicImage(settings?.stampPath);
   const ref = taskOrderRef(taskOrder.id, taskOrder.taskDate);
-  const qr = await makeQrPng(
-    docQrText({
-      agency: settings?.agencyName,
-      type: "Ordre de mission",
-      number: ref,
-      date: fmt(taskOrder.taskDate),
-      // رمز التحقق يحمل موقعاً واحداً فقط حتى لا يتضخّم
-      website: websiteList(settings?.agencyWebsite)[0] ?? null,
-    }),
-  );
+  // رمز رابط عام ثابت للتحقق (يُنشأ مرة واحدة ويُحفظ) — الـ QR يفتح صفحة «CONFIRMED»
+  let token = taskOrder.publicToken;
+  if (!token) {
+    token = genToken();
+    await prisma.taskOrder.update({ where: { id: taskOrder.id }, data: { publicToken: token } });
+  }
+  const qr = await makeQrPng(verifyUrl("task-order", token));
+
 
   const buffer = await renderToBuffer(
     buildTaskOrderDoc({

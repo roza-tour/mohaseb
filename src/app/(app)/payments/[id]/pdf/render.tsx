@@ -4,8 +4,9 @@ import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/
 import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
-import { nameOr, websiteList } from "@/lib/format";
-import { makeQrPng, docQrText } from "@/lib/qr";
+import { nameOr } from "@/lib/format";
+import { makeQrPng } from "@/lib/qr";
+import { genToken, verifyUrl } from "@/lib/share";
 
 registerArabicFonts();
 
@@ -156,16 +157,13 @@ export async function renderReceiptPdf(
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const stamp = loadPublicImage(settings?.stampPath);
-  const qr = await makeQrPng(
-    docQrText({
-      agency: settings?.agencyName,
-      type: "Reçu",
-      number: payment.receiptNumber,
-      date: fmt(payment.paidAt),
-      // رمز التحقق يحمل موقعاً واحداً فقط حتى لا يتضخّم
-      website: websiteList(settings?.agencyWebsite)[0] ?? null,
-    })
-  );
+  // رمز رابط عام ثابت للتحقق (يُنشأ مرة واحدة ويُحفظ) — الـ QR يفتح صفحة «CONFIRMED»
+  let token = payment.publicToken;
+  if (!token) {
+    token = genToken();
+    await prisma.payment.update({ where: { id: payment.id }, data: { publicToken: token } });
+  }
+  const qr = await makeQrPng(verifyUrl("receipt", token));
 
   const trip = payment.trip;
   // المدفوع حتى هذا السند (شاملاً إياه) — نرتّب زمنياً بـ createdAt ثم بالمعرّف عند التساوي

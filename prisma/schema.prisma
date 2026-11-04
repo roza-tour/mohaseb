@@ -269,6 +269,7 @@ model TaskOrder {
   extraRows    Json?
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdById  String?
+  publicToken  String?  @unique // رمز رابط عام للتحقق من الأمر عبر QR
   createdAt    DateTime @default(now())
 
   @@index([taskDate])
@@ -313,6 +314,7 @@ model Payment {
   reference     String?  // رقم الشيك أو التحويل البنكي
   notes         String?  @db.Text
   paidAt        DateTime @default(now())
+  publicToken   String?  @unique // رمز رابط عام للتحقق من السند عبر QR
   createdAt     DateTime @default(now())
 
   @@index([paidAt])

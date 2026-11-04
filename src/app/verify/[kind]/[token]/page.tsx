@@ -3,6 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { websiteList } from "@/lib/format";
 import type { InvoiceItem } from "@/app/(app)/invoices/actions";
 import type { Person } from "@/lib/invitation";
+import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
+import { findTaskOrder, taskOrderTripLabel } from "@/lib/taskOrderView";
+import { TASK_FIELDS, displayValue, readFields, type FieldGroup } from "@/lib/taskOrderFields";
+import { taskOrderRef } from "@/app/(app)/task-orders/[id]/pdf/render";
+
+const METHOD_FR: Record<string, string> = {
+  CASH: "Espèces",
+  BANK: "Virement bancaire",
+  CHEQUE: "Chèque",
+  OTHER: "Autre",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +59,17 @@ function Shell({ agencyName, sites, children }: { agencyName: string; sites: str
   );
 }
 
-function Confirmed({ docAr, docFr, agencyName }: { docAr: string; docFr: string; agencyName: string }) {
+function Confirmed({
+  docAr,
+  docFr,
+  agencyName,
+  feminine = true,
+}: {
+  docAr: string;
+  docFr: string;
+  agencyName: string;
+  feminine?: boolean;
+}) {
   return (
     <div className="px-6 pt-6">
       <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-500 px-5 py-5 text-center">
@@ -60,10 +81,12 @@ function Confirmed({ docAr, docFr, agencyName }: { docAr: string; docFr: string;
         </p>
         <p className="text-sm font-semibold text-emerald-800 mt-1">مؤكَّد · Confirmé</p>
         <p className="text-xs text-emerald-700 mt-2 leading-relaxed">
-          {docAr} صادرة رسمياً عن {agencyName} وبياناتها مطابقة لسجلاتنا.
+          {docAr} {feminine ? "صادرة" : "صادر"} رسمياً عن {agencyName} {feminine ? "وبياناتها" : "وبياناته"} مطابقة
+          لسجلاتنا.
           <br />
           <span dir="ltr">
-            {docFr} authentique, émise par {agencyName} et conforme à nos registres.
+            {docFr} {feminine ? "authentique, émise" : "authentique, émis"} par {agencyName} et conforme à nos
+            registres.
           </span>
         </p>
         <p className="text-[11px] text-emerald-600 mt-2" dir="ltr">
@@ -292,6 +315,99 @@ export default async function VerifyPage({ params }: { params: Promise<{ kind: s
           </Section>
         )}
         <PdfButtons links={[{ href: base, label: "Invitation (PDF)" }]} />
+      </Shell>
+    );
+  }
+
+  if (kind === "receipt") {
+    const pay = await prisma.payment.findUnique({
+      where: { publicToken: token },
+      include: { trip: { include: { program: true, customer: true } } },
+    });
+    if (!pay) return <NotFound agencyName={agencyName} sites={sites} />;
+    const trip = pay.trip;
+    const rows: Row[] = [
+      { ar: "رقم السند", fr: "N° de reçu", value: pay.receiptNumber, ltr: true },
+      { ar: "تاريخ الدفع", fr: "Date de paiement", value: fmt(pay.paidAt), ltr: true },
+      { ar: "المبلغ المستلم", fr: "Montant reçu", value: money(pay.amount, trip.currency), ltr: true },
+      {
+        ar: "طريقة الدفع",
+        fr: "Mode de paiement",
+        value: `${PAYMENT_METHOD_LABELS[pay.method] ?? pay.method} · ${METHOD_FR[pay.method] ?? pay.method}`,
+      },
+    ];
+    if (pay.reference?.trim()) rows.push({ ar: "المرجع", fr: "Référence", value: pay.reference.trim(), ltr: true });
+    rows.push({ ar: "استلمنا من", fr: "Reçu de", value: trip.customer?.name?.trim() || "—" });
+    if (trip.program?.name) rows.push({ ar: "الرحلة", fr: "Voyage", value: trip.program.name });
+    rows.push({
+      ar: "تواريخ الرحلة",
+      fr: "Dates du voyage",
+      value: `${fmt(trip.startDate)} → ${fmt(trip.endDate)}`,
+      ltr: true,
+    });
+
+    return (
+      <Shell agencyName={agencyName} sites={sites}>
+        <Confirmed docAr="سند القبض هذا" docFr="Reçu" agencyName={agencyName} feminine={false} />
+        <Details rows={rows} />
+        <PdfButtons
+          links={[
+            { href: `${base}?lang=fr`, label: "Reçu (FR)" },
+            { href: `${base}?lang=ar`, label: "سند القبض (عربي)" },
+          ]}
+        />
+      </Shell>
+    );
+  }
+
+  if (kind === "task-order") {
+    const found = await prisma.taskOrder.findUnique({ where: { publicToken: token }, select: { id: true } });
+    const order = found ? await findTaskOrder(found.id) : null;
+    if (!order) return <NotFound agencyName={agencyName} sites={sites} />;
+    const fields = readFields(order.fields);
+    const isDriver = order.assigneeType === "DRIVER";
+    const person = order.guide ?? order.driver;
+    const trip = taskOrderTripLabel(order);
+
+    const rows: Row[] = [
+      { ar: "رقم الأمر", fr: "N° d'ordre", value: taskOrderRef(order.id, order.taskDate), ltr: true },
+      { ar: "تاريخ المهمة", fr: "Date de la mission", value: fmt(order.taskDate), ltr: true },
+      { ar: "المكلَّف", fr: "Chargé de mission", value: person?.name?.trim() || "—" },
+      {
+        ar: "الصفة",
+        fr: "Qualité",
+        value: isDriver ? "سائق · Chauffeur" : "مرشد سياحي · Guide touristique",
+      },
+    ];
+    if (order.tripInfo) {
+      rows.push({ ar: "الرحلة", fr: "Voyage", value: trip.text });
+      rows.push({
+        ar: "تواريخ الرحلة",
+        fr: "Dates du voyage",
+        value: `${fmt(order.tripInfo.startDate)} → ${fmt(order.tripInfo.endDate)}`,
+        ltr: true,
+      });
+    }
+    // الخانات الاختيارية المكتوبة فقط: المركبة/الاعتماد، الرحلة اليدوية، التنقّل
+    const groups: FieldGroup[] = [isDriver ? "vehicle" : "guide", "trip", "mission"];
+    for (const g of groups) {
+      for (const f of TASK_FIELDS) {
+        if (f.group !== g || !fields[f.key]?.trim()) continue;
+        if (g === "trip" && order.tripInfo && !f.withTrip) continue;
+        rows.push({ ar: f.ar, fr: f.fr, value: displayValue(f, fields[f.key].trim()) });
+      }
+    }
+
+    return (
+      <Shell agencyName={agencyName} sites={sites}>
+        <Confirmed docAr="أمر التكليف هذا" docFr="Ordre de mission" agencyName={agencyName} feminine={false} />
+        <Details rows={rows} />
+        <PdfButtons
+          links={[
+            { href: `${base}?lang=fr`, label: "Ordre de mission (FR)" },
+            { href: `${base}?lang=ar`, label: "أمر التكليف (عربي)" },
+          ]}
+        />
       </Shell>
     );
   }

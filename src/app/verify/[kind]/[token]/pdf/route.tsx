@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { pickLang } from "@/lib/pdf/docLang";
 import { renderInvoicePdf } from "@/app/(app)/invoices/[id]/pdf/render";
 import { renderInvitationPdf } from "@/app/(app)/invitations/[id]/pdf/render";
+import { renderReceiptPdf } from "@/app/(app)/payments/[id]/pdf/render";
+import { renderTaskOrderPdf } from "@/app/(app)/task-orders/[id]/pdf/render";
 
 function pdf(buffer: Buffer, name: string) {
   return new NextResponse(new Uint8Array(buffer), {
@@ -39,6 +41,25 @@ export async function GET(req: Request, context: { params: Promise<{ kind: strin
     const result = await renderInvitationPdf(inv.id);
     if (!result) return notFound();
     return pdf(result.buffer, `invitation-${result.refNumber}.pdf`);
+  }
+
+  // سند القبض وأمر التكليف: بالفرنسية أو العربية فقط
+  const lang2: "ar" | "fr" = pickLang(req.url, "fr") === "ar" ? "ar" : "fr";
+
+  if (kind === "receipt") {
+    const pay = await prisma.payment.findUnique({ where: { publicToken: token }, select: { id: true } });
+    if (!pay) return notFound();
+    const result = await renderReceiptPdf(pay.id, lang2);
+    if (!result) return notFound();
+    return pdf(result.buffer, `receipt-${result.receiptNumber}-${lang2}.pdf`);
+  }
+
+  if (kind === "task-order") {
+    const order = await prisma.taskOrder.findUnique({ where: { publicToken: token }, select: { id: true } });
+    if (!order) return notFound();
+    const result = await renderTaskOrderPdf(order.id, lang2);
+    if (!result) return notFound();
+    return pdf(result.buffer, `task-order-${result.ref}-${lang2}.pdf`);
   }
 
   return notFound();
