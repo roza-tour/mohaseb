@@ -134,6 +134,16 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#1e293b",
   },
+  footerWeb: {
+    alignItems: "flex-start",
+    paddingLeft: 6,
+    borderLeft: "1px solid #cbd5e1",
+  },
+  footerWebLine: {
+    fontSize: 7.5,
+    color: "#1e293b",
+    marginTop: 1.5,
+  },
   footerQr: {
     width: 44,
     height: 44,
@@ -173,10 +183,8 @@ function Footer({ settings, qr }: { settings: Settings | null; qr?: Buffer | nul
   const address = settings?.agencyAddress || "";
   const phone = settings?.agencyPhone || "";
   const email = settings?.agencyEmail || "";
-  // مواقع الوكالة: أكثر من موقع تُعرض على سطر كامل أسفل العمودين حتى تتسع،
-  // والموقع الواحد يبقى في مكانه المعتاد داخل العمود.
+  // مواقع الوكالة: عمود صغير بجوار رمز QR، موقع في كل سطر — بدل سطر طويل تحت التذييل
   const websites = websiteList(settings?.agencyWebsite);
-  const manySites = websites.length > 1;
 
   return (
     <View style={styles.footer} fixed>
@@ -188,14 +196,22 @@ function Footer({ settings, qr }: { settings: Settings | null; qr?: Buffer | nul
         </View>
         <View style={styles.footerColLeft}>
           {phone ? <FooterLine label="Tel" value={phone} /> : null}
-          {!manySites && websites.length === 1 ? <FooterLine label="Web" value={websites[0]} /> : null}
         </View>
+        {websites.length > 0 ? (
+          <View style={styles.footerWeb}>
+            <Text style={styles.footerLabel}>Web</Text>
+            {websites.map((w) => (
+              <Text key={w} style={styles.footerWebLine}>
+                {w}
+              </Text>
+            ))}
+          </View>
+        ) : null}
         {qr ? (
           // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image
           <Image src={qr} style={styles.footerQr} />
         ) : null}
       </View>
-      {manySites ? <FooterLine label="Web" value={websites.join("   •   ")} /> : null}
     </View>
   );
 }

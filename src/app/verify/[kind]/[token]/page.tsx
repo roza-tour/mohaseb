@@ -1,100 +1,240 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { formatDate, formatCurrency, nameOr } from "@/lib/format";
+import { websiteList } from "@/lib/format";
 import type { InvoiceItem } from "@/app/(app)/invoices/actions";
+import type { Person } from "@/lib/invitation";
 
 export const dynamic = "force-dynamic";
 
-// صفحة تحقق عامة (بدون تسجيل دخول) يفتحها من يمسح رمز QR على المستند،
-// لتأكيد أن المستند صادر فعلاً عن الوكالة ومطابق لبياناتها.
+// صفحة عامة (بدون تسجيل دخول) يفتحها من يمسح رمز QR على الفاتورة أو الدعوة.
+// تُقرأ من قاعدة البيانات لحظة الفتح، فأي تعديل على المستند يظهر هنا فوراً
+// والرمز نفسه لا يتغيّر. الرابط سري (رمز عشوائي) ولا تُفهرسه محركات البحث.
+export const metadata: Metadata = {
+  title: "Vérification du document",
+  robots: { index: false, follow: false },
+};
 
-type Row = { label: string; value: string };
+type Row = { ar: string; fr: string; value: string; ltr?: boolean };
 
-function Panel({
-  agencyName,
-  ok,
-  docType,
-  rows,
-}: {
-  agencyName: string;
-  ok: boolean;
-  docType?: string;
-  rows?: Row[];
-}) {
+// تاريخ بأرقام لاتينية (يقرؤه موظف القنصلية أياً كانت لغته)
+function fmt(d: Date | null | undefined): string {
+  if (!d) return "—";
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${d.getUTCFullYear()}`;
+}
+
+function money(n: number, currency: string): string {
+  return `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+}
+
+function Shell({ agencyName, sites, children }: { agencyName: string; sites: string[]; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-slate-100">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-lg overflow-hidden border border-slate-200">
-        <div className="bg-slate-900 text-white px-6 py-5 text-center">
-          <p className="text-lg font-bold">{agencyName}</p>
-          <p className="text-xs text-slate-300 mt-1">التحقق من صحة المستند</p>
+    <main className="min-h-screen bg-slate-100 py-6 px-4">
+      <div className="mx-auto w-full max-w-xl rounded-2xl bg-white shadow-lg overflow-hidden border border-slate-200">
+        <div className="bg-slate-900 text-white px-6 py-4 text-center">
+          <p className="text-lg font-bold tracking-wide">{agencyName}</p>
+          <p className="text-xs text-slate-300 mt-0.5">التحقق من المستند · Vérification du document</p>
         </div>
-
-        {ok ? (
-          <div className="p-6">
-            <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 mb-5">
-              <span className="text-2xl">✅</span>
-              <div>
-                <p className="font-bold text-emerald-800">مستند موثّق</p>
-                <p className="text-xs text-emerald-700">
-                  هذا {docType} صادر رسمياً عن {agencyName}.
-                </p>
-              </div>
-            </div>
-            <dl className="divide-y divide-slate-100">
-              {rows?.map((r) => (
-                <div key={r.label} className="flex items-start justify-between gap-4 py-2.5">
-                  <dt className="text-sm text-slate-500 shrink-0">{r.label}</dt>
-                  <dd className="text-sm font-medium text-slate-800 text-left" dir="auto">
-                    {r.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ) : (
-          <div className="p-8 text-center">
-            <span className="text-4xl">⚠️</span>
-            <p className="font-bold text-slate-800 mt-3">مستند غير معروف</p>
-            <p className="text-sm text-slate-500 mt-1">
-              لم يتم العثور على مستند مطابق لهذا الرمز. قد يكون الرابط غير صحيح.
-            </p>
-          </div>
-        )}
-
-        <div className="bg-slate-50 px-6 py-3 text-center text-[11px] text-slate-400 border-t border-slate-100">
-          تم التحقق عبر النظام الإلكتروني لـ {agencyName}
+        {children}
+        <div className="bg-slate-50 px-6 py-3 text-center text-[11px] text-slate-500 border-t border-slate-100 space-y-0.5">
+          <p>
+            تم التحقق عبر النظام الإلكتروني لـ {agencyName} · Vérifié par le système de {agencyName}
+          </p>
+          {sites.length > 0 && <p dir="ltr">{sites.join("  •  ")}</p>}
         </div>
       </div>
     </main>
   );
 }
 
-export default async function VerifyPage({
-  params,
-}: {
-  params: Promise<{ kind: string; token: string }>;
-}) {
+function Confirmed({ docAr, docFr, agencyName }: { docAr: string; docFr: string; agencyName: string }) {
+  return (
+    <div className="px-6 pt-6">
+      <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-500 px-5 py-5 text-center">
+        <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white text-4xl font-bold shadow">
+          ✓
+        </div>
+        <p className="text-2xl font-extrabold tracking-[0.2em] text-emerald-700" dir="ltr">
+          CONFIRMED
+        </p>
+        <p className="text-sm font-semibold text-emerald-800 mt-1">مؤكَّد · Confirmé</p>
+        <p className="text-xs text-emerald-700 mt-2 leading-relaxed">
+          {docAr} صادرة رسمياً عن {agencyName} وبياناتها مطابقة لسجلاتنا.
+          <br />
+          <span dir="ltr">
+            {docFr} authentique, émise par {agencyName} et conforme à nos registres.
+          </span>
+        </p>
+        <p className="text-[11px] text-emerald-600 mt-2" dir="ltr">
+          {/* وقت الفتح: يوضح أن البيانات حيّة ومحدَّثة */}
+          Vérifié le {fmt(new Date())} à{" "}
+          {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Algiers" })}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Details({ rows }: { rows: Row[] }) {
+  return (
+    <dl className="px-6 pt-5 divide-y divide-slate-100">
+      {rows.map((r) => (
+        <div key={r.fr} className="flex items-start justify-between gap-4 py-2.5">
+          <dt className="text-xs text-slate-500 shrink-0 leading-tight">
+            {r.ar}
+            <br />
+            <span dir="ltr">{r.fr}</span>
+          </dt>
+          <dd className="text-sm font-semibold text-slate-800 text-left break-words" dir={r.ltr ? "ltr" : "auto"}>
+            {r.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="px-6 pt-5">
+      <p className="text-xs font-bold text-slate-600 mb-2">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function PdfButtons({ links }: { links: { href: string; label: string }[] }) {
+  return (
+    <div className="px-6 py-6">
+      <p className="text-xs text-slate-500 mb-2 text-center">
+        عرض المستند كاملاً بآخر نسخة · Voir le document complet (dernière version)
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {links.map((l) => (
+          <a
+            key={l.href}
+            href={l.href}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            📄 {l.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotFound({ agencyName, sites }: { agencyName: string; sites: string[] }) {
+  return (
+    <Shell agencyName={agencyName} sites={sites}>
+      <div className="p-8 text-center">
+        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white text-4xl font-bold">
+          ✕
+        </div>
+        <p className="text-xl font-extrabold text-red-700" dir="ltr">
+          NOT VERIFIED
+        </p>
+        <p className="font-bold text-slate-800 mt-2">مستند غير معروف · Document introuvable</p>
+        <p className="text-sm text-slate-500 mt-1">
+          لم يُعثر على مستند مطابق لهذا الرمز — قد يكون أُلغي أو أن الرمز غير صحيح.
+          <br />
+          <span dir="ltr">Aucun document ne correspond à ce code : il a pu être annulé ou le code est invalide.</span>
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
+export default async function VerifyPage({ params }: { params: Promise<{ kind: string; token: string }> }) {
   const { kind, token } = await params;
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
-  const agencyName = settings?.agencyName?.trim() || "روزا تور";
+  const agencyName = settings?.agencyName?.trim() || "ROZATOUR";
+  const sites = websiteList(settings?.agencyWebsite);
+  const base = `/verify/${kind}/${encodeURIComponent(token)}/pdf`;
 
   if (kind === "invoice") {
     const inv = await prisma.invoice.findUnique({
       where: { publicToken: token },
-      include: { customer: true, trip: { include: { program: true } } },
+      include: { customer: true, trip: { include: { program: true } }, branch: true },
     });
-    if (!inv) return <Panel agencyName={agencyName} ok={false} />;
+    if (!inv) return <NotFound agencyName={agencyName} sites={sites} />;
+
     const items = Array.isArray(inv.items) ? (inv.items as InvoiceItem[]) : [];
-    const total =
-      items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0) - inv.discount;
+    const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
+    const total = subtotal - inv.discount;
     const rows: Row[] = [
-      { label: "نوع المستند", value: "فاتورة" },
-      { label: "رقم الفاتورة", value: inv.invoiceNumber },
-      { label: "التاريخ", value: formatDate(inv.docDate) },
-      { label: "العميل", value: nameOr(inv.customer?.name) },
+      { ar: "رقم الفاتورة", fr: "N° de facture", value: inv.invoiceNumber, ltr: true },
+      { ar: "التاريخ", fr: "Date", value: fmt(inv.docDate), ltr: true },
+      { ar: "العميل", fr: "Client", value: inv.customer?.name?.trim() || "—" },
     ];
-    if (inv.trip?.program?.name) rows.push({ label: "الرحلة", value: inv.trip.program.name });
-    rows.push({ label: "الإجمالي", value: formatCurrency(total, inv.currency) });
-    return <Panel agencyName={agencyName} ok docType="الفاتورة" rows={rows} />;
+    if (inv.trip?.program?.name) rows.push({ ar: "الرحلة", fr: "Voyage", value: inv.trip.program.name });
+    if (inv.trip) {
+      rows.push({
+        ar: "تواريخ الرحلة",
+        fr: "Dates du voyage",
+        value: `${fmt(inv.trip.startDate)} → ${fmt(inv.trip.endDate)}`,
+        ltr: true,
+      });
+    }
+    if (inv.purchasedItem?.trim()) {
+      rows.push({ ar: "الخدمة المشتراة", fr: "Prestation", value: inv.purchasedItem.trim().split(/\r?\n/)[0] });
+    }
+    if (inv.branch) rows.push({ ar: "الفرع", fr: "Agence", value: inv.branch.nameFr?.trim() || inv.branch.name });
+    rows.push({ ar: "الإجمالي", fr: "Total", value: money(total, inv.currency), ltr: true });
+    if (inv.paid) rows.push({ ar: "حالة الدفع", fr: "Paiement", value: "✓ مدفوعة · Payée" });
+
+    return (
+      <Shell agencyName={agencyName} sites={sites}>
+        <Confirmed docAr="هذه الفاتورة" docFr="Facture" agencyName={agencyName} />
+        <Details rows={rows} />
+        {items.length > 0 && (
+          <Section title="البنود · Détail">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs" dir="ltr">
+                <thead className="bg-slate-50 text-slate-500">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left font-medium">Désignation</th>
+                    <th className="px-2 py-1.5 text-center font-medium">Qté</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Montant</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {items.map((it, i) => (
+                    <tr key={i}>
+                      <td className="px-2 py-1.5 text-slate-800" dir="auto">
+                        {it.description || "—"}
+                      </td>
+                      <td className="px-2 py-1.5 text-center">{Number(it.qty) || 0}</td>
+                      <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                        {money((Number(it.qty) || 0) * (Number(it.unitPrice) || 0), inv.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                  {inv.discount > 0 && (
+                    <tr>
+                      <td className="px-2 py-1.5 text-slate-500" colSpan={2}>
+                        Remise
+                      </td>
+                      <td className="px-2 py-1.5 text-right whitespace-nowrap">− {money(inv.discount, inv.currency)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
+        <PdfButtons
+          links={[
+            { href: `${base}?lang=fr`, label: "Facture (FR)" },
+            { href: `${base}?lang=ar`, label: "الفاتورة (عربي)" },
+            { href: `${base}?lang=en`, label: "Invoice (EN)" },
+          ]}
+        />
+      </Shell>
+    );
   }
 
   if (kind === "invitation") {
@@ -102,20 +242,59 @@ export default async function VerifyPage({
       where: { publicToken: token },
       include: { program: true },
     });
-    if (!inv) return <Panel agencyName={agencyName} ok={false} />;
-    const people = Array.isArray(inv.people)
-      ? (inv.people as { name?: string }[]).map((p) => p?.name).filter(Boolean)
-      : [];
+    if (!inv) return <NotFound agencyName={agencyName} sites={sites} />;
+
+    const people = (Array.isArray(inv.people) ? inv.people : []) as Person[];
     const rows: Row[] = [
-      { label: "نوع المستند", value: "دعوة" },
-      { label: "الرقم المرجعي", value: inv.refNumber },
-      { label: "التاريخ", value: formatDate(inv.docDate) },
-      { label: "المقدّم", value: people[0] ? String(people[0]) : "—" },
+      { ar: "الرقم المرجعي", fr: "Référence", value: inv.refNumber, ltr: true },
+      { ar: "التاريخ", fr: "Date", value: fmt(inv.docDate), ltr: true },
     ];
-    if (people.length > 1) rows.push({ label: "عدد الأشخاص", value: String(people.length) });
-    if (inv.program?.name) rows.push({ label: "البرنامج", value: inv.program.name });
-    return <Panel agencyName={agencyName} ok docType="الدعوة" rows={rows} />;
+    if (inv.consulate.trim()) rows.push({ ar: "الجهة الموجَّهة إليها", fr: "Destinataire", value: inv.consulate.trim() });
+    if (inv.program?.name) rows.push({ ar: "البرنامج", fr: "Programme", value: inv.program.name });
+    if (inv.arrivalDate || inv.departureDate) {
+      rows.push({
+        ar: "مدة الإقامة",
+        fr: "Séjour",
+        value: `${fmt(inv.arrivalDate)} → ${fmt(inv.departureDate)}`,
+        ltr: true,
+      });
+    }
+    rows.push({ ar: "عدد الأشخاص", fr: "Nombre de personnes", value: String(people.length), ltr: true });
+
+    return (
+      <Shell agencyName={agencyName} sites={sites}>
+        <Confirmed docAr="هذه الدعوة" docFr="Invitation" agencyName={agencyName} />
+        <Details rows={rows} />
+        {people.length > 0 && (
+          <Section title="الأشخاص المدعوّون · Personnes invitées">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs" dir="ltr">
+                <thead className="bg-slate-50 text-slate-500">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left font-medium">#</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Nom</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Passeport</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {people.map((p, i) => (
+                    <tr key={i}>
+                      <td className="px-2 py-1.5 text-slate-400">{i + 1}</td>
+                      <td className="px-2 py-1.5 font-semibold text-slate-800" dir="auto">
+                        {p.name?.trim() || "—"}
+                      </td>
+                      <td className="px-2 py-1.5 font-mono">{p.passport?.trim() || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
+        <PdfButtons links={[{ href: base, label: "Invitation (PDF)" }]} />
+      </Shell>
+    );
   }
 
-  return <Panel agencyName={agencyName} ok={false} />;
+  return <NotFound agencyName={agencyName} sites={sites} />;
 }
