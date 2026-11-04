@@ -297,6 +297,7 @@ model Document {
   customerId String?
   showStamp  Boolean   @default(true)
   style      Json?     // تنسيق هذا المستند (يبدأ من تنسيق القالب ويعدَّل بحرية)
+  publicToken String?  @unique // رمز رابط عام للتحقق من المستند عبر QR
   docDate    DateTime  @default(now())
   createdAt  DateTime  @default(now())
 

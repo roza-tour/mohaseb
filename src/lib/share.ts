@@ -11,7 +11,7 @@ export function appUrl(): string {
 }
 
 // رابط التحقق العام من مستند (يُشفَّر داخل QR ويُفتح بلا تسجيل دخول)
-export type VerifyKind = "invoice" | "invitation" | "task-order" | "receipt";
+export type VerifyKind = "invoice" | "invitation" | "task-order" | "receipt" | "document";
 
 export function verifyUrl(kind: VerifyKind, token: string): string {
   return `${appUrl()}/verify/${kind}/${token}`;

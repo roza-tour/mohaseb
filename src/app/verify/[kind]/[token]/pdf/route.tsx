@@ -9,6 +9,7 @@ import { renderInvoicePdf } from "@/app/(app)/invoices/[id]/pdf/render";
 import { renderInvitationPdf } from "@/app/(app)/invitations/[id]/pdf/render";
 import { renderReceiptPdf } from "@/app/(app)/payments/[id]/pdf/render";
 import { renderTaskOrderPdf } from "@/app/(app)/task-orders/[id]/pdf/render";
+import { renderDocumentPdf } from "@/app/(app)/documents/[id]/pdf/render";
 
 function pdf(buffer: Buffer, name: string) {
   return new NextResponse(new Uint8Array(buffer), {
@@ -60,6 +61,14 @@ export async function GET(req: Request, context: { params: Promise<{ kind: strin
     const result = await renderTaskOrderPdf(order.id, lang2);
     if (!result) return notFound();
     return pdf(result.buffer, `task-order-${result.ref}-${lang2}.pdf`);
+  }
+
+  if (kind === "document") {
+    const doc = await prisma.document.findUnique({ where: { publicToken: token }, select: { id: true } });
+    if (!doc) return notFound();
+    const result = await renderDocumentPdf(doc.id);
+    if (!result) return notFound();
+    return pdf(result.buffer, `document-${result.docNumber}.pdf`);
   }
 
   return notFound();

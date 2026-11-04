@@ -412,5 +412,36 @@ export default async function VerifyPage({ params }: { params: Promise<{ kind: s
     );
   }
 
+  if (kind === "document") {
+    const doc = await prisma.document.findUnique({
+      where: { publicToken: token },
+      include: { customer: true, trip: { include: { program: true } } },
+    });
+    if (!doc) return <NotFound agencyName={agencyName} sites={sites} />;
+    const rows: Row[] = [
+      { ar: "رقم المستند", fr: "N° du document", value: doc.docNumber, ltr: true },
+      { ar: "التاريخ", fr: "Date", value: fmt(doc.docDate), ltr: true },
+    ];
+    if (doc.title.trim()) rows.push({ ar: "نوع المستند", fr: "Objet", value: doc.title.trim() });
+    if (doc.customer?.name?.trim()) rows.push({ ar: "العميل", fr: "Client", value: doc.customer.name.trim() });
+    if (doc.trip?.program?.name) rows.push({ ar: "الرحلة", fr: "Voyage", value: doc.trip.program.name });
+    if (doc.trip) {
+      rows.push({
+        ar: "تواريخ الرحلة",
+        fr: "Dates du voyage",
+        value: `${fmt(doc.trip.startDate)} → ${fmt(doc.trip.endDate)}`,
+        ltr: true,
+      });
+    }
+
+    return (
+      <Shell agencyName={agencyName} sites={sites}>
+        <Confirmed docAr="هذا المستند" docFr="Document" agencyName={agencyName} feminine={false} />
+        <Details rows={rows} />
+        <PdfButtons links={[{ href: base, label: "Document (PDF)" }]} />
+      </Shell>
+    );
+  }
+
   return <NotFound agencyName={agencyName} sites={sites} />;
 }

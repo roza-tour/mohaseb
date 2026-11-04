@@ -1,4 +1,4 @@
-// توليد رمز QR (PNG) لتضمينه في المستندات. يشفّر ملخصاً نصياً للمستند.
+// توليد رمز QR (PNG) لتضمينه في المستندات — يحمل رابط صفحة التحقق العامة.
 import QRCode from "qrcode";
 
 export async function makeQrPng(text: string): Promise<Buffer | null> {
@@ -14,17 +14,4 @@ export async function makeQrPng(text: string): Promise<Buffer | null> {
   } catch {
     return null;
   }
-}
-
-// نص موحّد داخل الـ QR: الوكالة + نوع المستند ورقمه + التاريخ + الموقع
-export function docQrText(p: {
-  agency?: string | null;
-  type: string;
-  number: string;
-  date: string;
-  website?: string | null;
-}): string {
-  return [p.agency?.trim() || "ROZATOUR", `${p.type} N° ${p.number}`, p.date, p.website?.trim()]
-    .filter(Boolean)
-    .join("\n");
 }
