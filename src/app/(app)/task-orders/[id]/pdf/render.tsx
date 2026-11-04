@@ -15,6 +15,8 @@ import {
   displayValue,
   readFields,
   readExtraRows,
+  readTravelers,
+  travelerCount,
   type FieldGroup,
   type FieldValues,
   type ExtraRow,
@@ -51,7 +53,10 @@ const T = {
     assignee: "الاسم",
     role: "الصفة",
     phone: "رقم الهاتف",
-    taskDate: "تاريخ المهمة",
+    taskDate: "تاريخ بداية المهمة",
+    travelers: "المسافرون",
+    handedOver: "سُلّمت هذه المهمة بتاريخ",
+    travelerCount: "عدد المسافرين",
     detailsTitle: "تفاصيل المهمة",
     GUIDE: "مرشد سياحي",
     DRIVER: "سائق",
@@ -72,7 +77,10 @@ const T = {
     assignee: "Nom",
     role: "Qualité",
     phone: "Téléphone",
-    taskDate: "Date de la mission",
+    taskDate: "Début de la mission",
+    travelers: "Voyageurs",
+    handedOver: "Mission remise le",
+    travelerCount: "Nombre de voyageurs",
     detailsTitle: "Détails de la mission",
     GUIDE: "Guide touristique",
     DRIVER: "Chauffeur",
@@ -85,6 +93,8 @@ const styles = StyleSheet.create({
 
 export type TaskOrderDocData = {
   ref: string;
+  // تاريخ إصدار الأمر (أعلى الصفحة) — غير تاريخ بداية المهمة
+  issueDate: Date;
   taskDate: Date;
   assigneeType: string;
   assigneeName: string;
@@ -94,6 +104,7 @@ export type TaskOrderDocData = {
   trip: { programName: string; customerName: string; numPax: number; start: Date; end: Date } | null;
   fields: FieldValues;
   extraRows: ExtraRow[];
+  travelers: string[];
 };
 
 // صفوف مجموعة من الخانات الاختيارية — الفارغ منها لا يظهر
@@ -153,12 +164,15 @@ export function buildTaskOrderDoc({
   const roleRows = groupRows(roleGroup, order.fields, lang);
   const missionRows = groupRows("mission", order.fields, lang);
   const details = order.details.trim();
+  // المسافرون: العدد المكتوب (أو عدد الأسماء) ثم الأسماء مرقّمة
+  const paxCount = travelerCount(order.fields, order.travelers);
+  const nameRows: [string, string][] = order.travelers.map((n, i) => [String(i + 1), n]);
   const extraRows: [string, string][] = order.extraRows.map((r) => [r.label.trim() || "—", r.value.trim()]);
 
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.orderNo} ${order.ref}`} date={fmt(order.taskDate)} rtl={rtl} style={style} />
+        <RefBar number={`${t.orderNo} ${order.ref}`} date={`${t.handedOver} ${fmt(order.issueDate)}`} rtl={rtl} style={style} />
         <DocTitle text={title} rtl={rtl} style={style} />
 
         <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />
@@ -176,6 +190,24 @@ export function buildTaskOrderDoc({
           <View wrap={false}>
             <SectionTitle text={t.tripSection} rtl={rtl} style={style} />
             <GridTable rows={tripRows} rtl={rtl} baseDir={baseDir} style={style} />
+          </View>
+        )}
+
+        {(paxCount || nameRows.length > 0) && (
+          <View wrap={nameRows.length > 16}>
+            <SectionTitle text={t.travelers} rtl={rtl} style={style} />
+            {paxCount ? (
+              <GridTable
+                rows={[[t.travelerCount, paxCount]]}
+                rtl={rtl}
+                baseDir={baseDir}
+                style={style}
+                tight={nameRows.length > 0}
+              />
+            ) : null}
+            {nameRows.length > 0 && (
+              <GridTable rows={nameRows} rtl={rtl} baseDir={baseDir} style={style} labelWidth={28} />
+            )}
           </View>
         )}
 
@@ -250,6 +282,7 @@ export async function renderTaskOrderPdf(
     buildTaskOrderDoc({
       order: {
         ref,
+        issueDate: taskOrder.createdAt,
         taskDate: taskOrder.taskDate,
         assigneeType: taskOrder.assigneeType,
         assigneeName: taskOrder.guide?.name ?? taskOrder.driver?.name ?? "",
@@ -266,6 +299,7 @@ export async function renderTaskOrderPdf(
           : null,
         fields: readFields(taskOrder.fields),
         extraRows: readExtraRows(taskOrder.extraRows),
+        travelers: readTravelers(taskOrder.travelers),
       },
       settings,
       stamp,

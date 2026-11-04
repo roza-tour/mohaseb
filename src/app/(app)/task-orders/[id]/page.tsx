@@ -7,7 +7,7 @@ import { formatDateForInput } from "@/lib/format";
 import { updateTaskOrder } from "../actions";
 import { TaskOrderForm } from "../TaskOrderForm";
 import { loadAssignees } from "@/lib/taskOrderView";
-import { readFields, readExtraRows } from "@/lib/taskOrderFields";
+import { readFields, readExtraRows, readTravelers } from "@/lib/taskOrderFields";
 
 export default async function EditTaskOrderPage({
   params,
@@ -63,6 +63,7 @@ export default async function EditTaskOrderPage({
           details: order.details ?? "",
           fields: readFields(order.fields),
           extraRows: readExtraRows(order.extraRows),
+          travelers: readTravelers(order.travelers),
         }}
       />
     </div>

@@ -75,6 +75,7 @@ export default async function NewTaskOrderPage({
           details: "",
           fields: {},
           extraRows: [],
+          travelers: [],
         }}
       />
     </div>

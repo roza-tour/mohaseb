@@ -1,5 +1,6 @@
 import { Card, Field, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { TripPicker } from "./TripPicker";
+import { TravelersEditor } from "./TravelersEditor";
 import { AssigneePicker, type Assignee } from "./AssigneePicker";
 import { FieldGroupInputs } from "./FieldGroupInputs";
 import { ExtraRowsEditor } from "./ExtraRowsEditor";
@@ -14,6 +15,7 @@ export type TaskOrderInitial = {
   details: string;
   fields: FieldValues;
   extraRows: ExtraRow[];
+  travelers: string[];
 };
 
 // نموذج أمر التكليف — لكل صفة نموذجها: أمر المرشد غير أمر السائق
@@ -47,7 +49,9 @@ export function TaskOrderForm({
 
         <TripPicker trips={trips} initialTripId={initial.tripId} initialFields={initial.fields} />
 
-        <Field label="تاريخ المهمة" required>
+        <TravelersEditor initialCount={initial.fields.tripPax ?? ""} initialNames={initial.travelers} />
+
+        <Field label="تاريخ بداية المهمة" required>
           <Input type="date" name="taskDate" required defaultValue={initial.taskDate} />
         </Field>
 

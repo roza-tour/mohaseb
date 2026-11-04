@@ -20,7 +20,7 @@ export function TripPicker({
   initialFields: FieldValues;
 }) {
   // الوضع الابتدائي: رحلة إن كان الأمر مربوطاً بها، ويدوي إن كُتبت بياناته يدوياً
-  const hasManual = ["tripProgram", "tripCustomer", "tripPax", "tripStart", "tripEnd"].some((k) => initialFields[k]);
+  const hasManual = ["tripProgram", "tripCustomer", "tripStart", "tripEnd"].some((k) => initialFields[k]);
   const [mode, setMode] = useState<Mode>(
     initialTripId ? "trip" : hasManual || trips.length === 0 ? "manual" : "trip"
   );

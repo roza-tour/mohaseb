@@ -5,7 +5,14 @@ import type { InvoiceItem } from "@/app/(app)/invoices/actions";
 import type { Person } from "@/lib/invitation";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { findTaskOrder, taskOrderTripLabel } from "@/lib/taskOrderView";
-import { TASK_FIELDS, displayValue, readFields, type FieldGroup } from "@/lib/taskOrderFields";
+import {
+  TASK_FIELDS,
+  displayValue,
+  readFields,
+  readTravelers,
+  travelerCount,
+  type FieldGroup,
+} from "@/lib/taskOrderFields";
 import { taskOrderRef } from "@/app/(app)/task-orders/[id]/pdf/render";
 
 const METHOD_FR: Record<string, string> = {
@@ -371,7 +378,8 @@ export default async function VerifyPage({ params }: { params: Promise<{ kind: s
 
     const rows: Row[] = [
       { ar: "رقم الأمر", fr: "N° d'ordre", value: taskOrderRef(order.id, order.taskDate), ltr: true },
-      { ar: "تاريخ المهمة", fr: "Date de la mission", value: fmt(order.taskDate), ltr: true },
+      { ar: "سُلّمت المهمة بتاريخ", fr: "Mission remise le", value: fmt(order.createdAt), ltr: true },
+      { ar: "تاريخ بداية المهمة", fr: "Début de la mission", value: fmt(order.taskDate), ltr: true },
       { ar: "المكلَّف", fr: "Chargé de mission", value: person?.name?.trim() || "—" },
       {
         ar: "الصفة",
@@ -398,10 +406,28 @@ export default async function VerifyPage({ params }: { params: Promise<{ kind: s
       }
     }
 
+    const travelers = readTravelers(order.travelers);
+    const paxCount = travelerCount(fields, travelers);
+    if (paxCount) rows.push({ ar: "عدد المسافرين", fr: "Nombre de voyageurs", value: paxCount, ltr: true });
+
     return (
       <Shell agencyName={agencyName} sites={sites}>
         <Confirmed docAr="أمر التكليف هذا" docFr="Ordre de mission" agencyName={agencyName} feminine={false} />
         <Details rows={rows} />
+        {travelers.length > 0 && (
+          <Section title="أسماء المسافرين · Voyageurs">
+            <ol className="rounded-lg border border-slate-200 divide-y divide-slate-100 text-sm">
+              {travelers.map((n, i) => (
+                <li key={i} className="flex gap-3 px-3 py-1.5">
+                  <span className="text-slate-400 w-5">{i + 1}</span>
+                  <span className="font-semibold text-slate-800" dir="auto">
+                    {n}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </Section>
+        )}
         <PdfButtons
           links={[
             { href: `${base}?lang=fr`, label: "Ordre de mission (FR)" },

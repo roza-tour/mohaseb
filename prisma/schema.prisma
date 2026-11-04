@@ -267,6 +267,8 @@ model TaskOrder {
   fields       Json?
   // بنود إضافية حرة: [{ label, value }]
   extraRows    Json?
+  // أسماء المسافرين: ["اسم", ...]
+  travelers    Json?
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdById  String?
   publicToken  String?  @unique // رمز رابط عام للتحقق من الأمر عبر QR

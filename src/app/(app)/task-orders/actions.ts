@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { firstErrorMessage, withError } from "@/lib/formErrors";
 import { logActivity } from "@/lib/activity";
-import { fieldsFromForm, extraRowsFromForm, manualTripText, readFields } from "@/lib/taskOrderFields";
+import { fieldsFromForm, extraRowsFromForm, manualTripText, readFields, travelersFromForm } from "@/lib/taskOrderFields";
 import { Prisma } from "@prisma/client";
 
 const taskOrderSchema = z
@@ -60,6 +60,7 @@ function readExtras(formData: FormData, data: TaskOrderData) {
     values: {
       fields: fields ?? Prisma.DbNull,
       extraRows: extraRows ?? Prisma.DbNull,
+      travelers: travelersFromForm(formData) ?? Prisma.DbNull,
     },
   };
 }

@@ -49,7 +49,12 @@ export function RefBar({
         baseDir={rtl ? "auto" : "ltr"}
         style={s.refText}
       />
-      <Text style={s.refText}>{date}</Text>
+      {/^[\d/.\- ]*$/.test(date) ? (
+        <Text style={s.refText}>{date}</Text>
+      ) : (
+        // نص مع التاريخ (مثل «سُلّمت هذه المهمة بتاريخ ...») يحتاج معالجة الاتجاه
+        <MixedText text={date} size={9} align={rtl ? "left" : "right"} baseDir={rtl ? "auto" : "ltr"} style={s.refText} />
+      )}
     </View>
   );
 }
@@ -156,10 +161,16 @@ export function GridTable({
   rtl,
   baseDir,
   style,
+  labelWidth = 120,
+  tight = false,
 }: {
   rows: [string, string][];
   rtl: boolean;
   baseDir: "auto" | "ltr";
+  // عرض عمود التسمية (ضيّق للترقيم 1، 2، 3...)
+  labelWidth?: number;
+  // بلا مسافة بعد الجدول (لجدولين متتاليين في قسم واحد)
+  tight?: boolean;
 } & Styled) {
   const st = docStyle(style);
   const dir = rtl ? ("row-reverse" as const) : ("row" as const);
@@ -179,7 +190,7 @@ export function GridTable({
           color: "#334155",
           backgroundColor: "#f8fafc",
           padding: 6,
-          width: 120,
+          width: labelWidth,
           textAlign: align,
           fontSize,
         }}
@@ -199,7 +210,7 @@ export function GridTable({
   );
 
   return (
-    <View style={s.table}>
+    <View style={[s.table, ...(tight ? [{ marginBottom: 0, borderBottom: "none" }] : [])]}>
       {lines.map((pair, i) => (
         <View key={i} style={[s.row, { flexDirection: dir }, ...(i === 0 ? [{ borderTop: "none" }] : [])]}>
           {pair.map((r, j) => cell(r, j, pair.length === 1, j === pair.length - 1))}

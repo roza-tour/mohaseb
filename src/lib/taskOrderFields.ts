@@ -5,7 +5,7 @@
 // فإضافة خانة جديدة لاحقاً سطر هنا، بلا هجرة لقاعدة البيانات.
 // وما لا تغطيه هذه الخانات يُكتب في «بنود إضافية» (TaskOrder.extraRows).
 
-export type FieldGroup = "trip" | "vehicle" | "guide" | "mission";
+export type FieldGroup = "trip" | "travelers" | "vehicle" | "guide" | "mission";
 
 export type TaskField = {
   key: string;
@@ -23,9 +23,11 @@ export const TASK_FIELDS: TaskField[] = [
   { key: "tripProgram", group: "trip", type: "text", ar: "الرحلة / البرنامج", fr: "Programme", placeholder: "مثال: جولة في الصحراء" },
   { key: "tripCustomer", group: "trip", type: "text", ar: "اسم المسافر", fr: "Nom du voyageur", placeholder: "اسم المسافر أو المجموعة" },
   { key: "travelerNationality", group: "trip", type: "text", ar: "الجنسية", fr: "Nationalité", placeholder: "مثال: فرنسية", withTrip: true },
-  { key: "tripPax", group: "trip", type: "text", ar: "عدد الأشخاص", fr: "Nombre de personnes" },
   { key: "tripStart", group: "trip", type: "date", ar: "تاريخ بداية الرحلة", fr: "Date de début" },
   { key: "tripEnd", group: "trip", type: "date", ar: "تاريخ نهاية الرحلة", fr: "Date de fin" },
+
+  // المسافرون — مع الرحلة المسجّلة أو اليدوية (المفتاح tripPax قديم ويُحفظ كما هو)
+  { key: "tripPax", group: "travelers", type: "text", ar: "عدد المسافرين", fr: "Nombre de voyageurs" },
 
   // السائق والمركبة — تُحفظ في ملف السائق وتُملأ تلقائياً في كل أمر تكليف له
   { key: "driverIdNumber", group: "vehicle", type: "text", ar: "رقم بطاقة التعريف", fr: "N° de pièce d'identité" },
@@ -45,13 +47,13 @@ export const TASK_FIELDS: TaskField[] = [
   // التنقّل — للمرشد والسائق معاً
   { key: "endDate", group: "mission", type: "date", ar: "تاريخ نهاية المهمة", fr: "Date de fin de mission" },
   { key: "startTime", group: "mission", type: "time", ar: "ساعة الانطلاق", fr: "Heure de départ" },
-  { key: "endTime", group: "mission", type: "time", ar: "ساعة العودة", fr: "Heure de retour" },
   { key: "departurePlace", group: "mission", type: "text", ar: "مكان الانطلاق", fr: "Lieu de départ", placeholder: "مثال: مطار جانت" },
   { key: "destination", group: "mission", type: "text", ar: "الوجهة / خط السير", fr: "Destination / Itinéraire", placeholder: "مثال: جانت ← تقرقارت ← عرق أدمر" },
 ];
 
 export const GROUP_TITLES: Record<FieldGroup | "extra", { ar: string; fr: string }> = {
   trip: { ar: "بيانات الرحلة", fr: "Informations du voyage" },
+  travelers: { ar: "المسافرون", fr: "Voyageurs" },
   vehicle: { ar: "بيانات السائق والمركبة", fr: "Chauffeur et véhicule" },
   guide: { ar: "بيانات المرشد والاعتماد", fr: "Guide et accréditation" },
   mission: { ar: "تفاصيل التنقّل", fr: "Déplacement" },
@@ -162,4 +164,26 @@ export function displayValue(f: TaskField, raw: string): string {
 export function manualTripText(fields: FieldValues): string | null {
   const parts = [fields.tripProgram, fields.tripCustomer].map((v) => v?.trim()).filter(Boolean);
   return parts.length ? parts.join(" — ") : null;
+}
+
+// أسماء المسافرين: قائمة نصوص في عمود TaskOrder.travelers — الفارغ لا يُحفظ
+const MAX_TRAVELERS = 100;
+
+export function travelersFromForm(formData: FormData): string[] | null {
+  const names = formData
+    .getAll("travelerName")
+    .map((v) => (typeof v === "string" ? v.trim().slice(0, 120) : ""))
+    .filter(Boolean)
+    .slice(0, MAX_TRAVELERS);
+  return names.length ? names : null;
+}
+
+export function readTravelers(json: unknown): string[] {
+  if (!Array.isArray(json)) return [];
+  return json.filter((v): v is string => typeof v === "string" && v.trim() !== "").map((v) => v.trim());
+}
+
+// العدد المعروض: ما كُتب، وإلا عدد الأسماء (إن وُجدت)
+export function travelerCount(fields: FieldValues, names: string[]): string {
+  return fields.tripPax?.trim() || (names.length ? String(names.length) : "");
 }
