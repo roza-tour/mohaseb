@@ -25,10 +25,61 @@ export type CertOptions = {
   agencyName: string;
   agencyAddress: string;
   signerName: string;
-  signerTitle: string;
+  signerTitle: string; // الصفة تحت التوقيع: «La Propriétaire» / «المالكة»
+  signerRole?: string; // الصفة داخل الجملة: «en qualité de propriétaire» / «بصفتي مالكة»
+  signerGender?: "M" | "F" | ""; // «Je soussignée» / «أنا الموقّعة» — فارغ = غير محدَّد
   city: string;
   date: Date;
 };
+
+// صفات الموقّع الجاهزة: الصفة تحت التوقيع (title) وصيغتها داخل الجملة (role)
+export const SIGNER_ROLES: Record<
+  string,
+  { label: string; ar: { title: string; role: string }; fr: { title: string; role: string } }
+> = {
+  owner_f: {
+    label: "المالكة — La Propriétaire",
+    ar: { title: "المالكة", role: "مالكة" },
+    fr: { title: "La Propriétaire", role: "propriétaire" },
+  },
+  owner_m: {
+    label: "المالك — Le Propriétaire",
+    ar: { title: "المالك", role: "مالك" },
+    fr: { title: "Le Propriétaire", role: "propriétaire" },
+  },
+  manager_f: {
+    label: "المسيّرة — La Gérante",
+    ar: { title: "المسيّرة", role: "مسيّرة" },
+    fr: { title: "La Gérante", role: "gérante" },
+  },
+  manager_m: {
+    label: "المسيّر — Le Gérant",
+    ar: { title: "المسيّر", role: "مسيّر" },
+    fr: { title: "Le Gérant", role: "gérant" },
+  },
+  dg_f: {
+    label: "المديرة العامة — La Directrice Générale",
+    ar: { title: "المديرة العامة", role: "المديرة العامة" },
+    fr: { title: "La Directrice Générale", role: "directrice générale" },
+  },
+  dg_m: {
+    label: "المدير العام — Le Directeur Général",
+    ar: { title: "المدير العام", role: "المدير العام" },
+    fr: { title: "Le Directeur Général", role: "directeur général" },
+  },
+};
+
+// صفة الموقّع حسب الاختيار واللغة؛ «custom» = نص حر يُستعمل كما هو في الموضعين
+export function resolveSigner(
+  key: string,
+  custom: string,
+  lang: CertLang
+): { title: string; role: string; gender: "M" | "F" | "" } {
+  const r = SIGNER_ROLES[key];
+  if (r) return { ...r[lang], gender: key.endsWith("_f") ? "F" : "M" };
+  const t = custom.trim();
+  return { title: t, role: t, gender: "" };
+}
 
 // ما يُحفظ في Document.data (التواريخ نصوص ISO)
 export type CertData = {
@@ -46,6 +97,8 @@ export type CertData = {
   };
   signerName: string;
   signerTitle: string;
+  signerRole?: string;
+  signerGender?: "M" | "F" | "";
   city: string;
 };
 
@@ -63,8 +116,7 @@ const toDate = (s: string | null | undefined) => {
 
 // المدة بالسنوات والأشهر الكاملة بين تاريخين
 export function workDuration(start: Date, end: Date): { years: number; months: number } {
-  let months =
-    (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
+  let months = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
   if (end.getUTCDate() < start.getUTCDate()) months -= 1;
   months = Math.max(0, months);
   return { years: Math.floor(months / 12), months: months % 12 };
@@ -120,6 +172,8 @@ export function certDataFrom(emp: CertEmployee, o: CertOptions): CertData {
     },
     signerName: o.signerName.trim(),
     signerTitle: o.signerTitle.trim(),
+    signerGender: o.signerGender ?? "",
+    signerRole: o.signerRole?.trim() || o.signerTitle.trim(),
     city: o.city.trim(),
   };
 }
@@ -171,13 +225,14 @@ export function certificateBody(d: CertData, o: { agencyName: string; agencyAddr
   const left = hasLeft(end, o.date);
   const duration = start ? durationText(start, left ? end! : o.date, d.lang) : "";
   const address = o.agencyAddress.trim();
-  const title = signerTitleOf(d);
+  // الصفة داخل الجملة (بلا أداة تعريف في الفرنسية: «en qualité de propriétaire»)
+  const title = d.signerRole || signerTitleOf(d);
   const job = e.jobTitle;
 
   if (d.lang === "ar") {
     const agency = `وكالة ${o.agencyName} للسياحة والأسفار${address ? `، الكائن مقرها بـ ${address}` : ""}`;
     const intro = d.signerName
-      ? `أنا الموقّع أدناه، ${d.signerName}، بصفتي ${title} لـ${agency}، أشهد بأن ${f ? "السيدة" : "السيد"} ${f ? "المذكورة" : "المذكور"} في الجدول أدناه:`
+      ? `أنا ${d.signerGender === "F" ? "الموقّعة" : "الموقّع"} أدناه، ${d.signerName}، بصفتي ${title} لـ${agency}، أشهد بأن ${f ? "السيدة" : "السيد"} ${f ? "المذكورة" : "المذكور"} في الجدول أدناه:`
       : `تشهد ${agency}، بأن ${f ? "السيدة" : "السيد"} ${f ? "المذكورة" : "المذكور"} في الجدول أدناه:`;
     let work = `${left ? (f ? "عملت" : "عمل") : f ? "تعمل" : "يعمل"} لدى وكالتنا${job ? ` بصفة ${job}` : ""}`;
     if (start) work += left ? ` من ${fmt(start)} إلى ${fmt(end!)}` : ` منذ ${fmt(start)} إلى يومنا هذا`;
@@ -190,7 +245,7 @@ export function certificateBody(d: CertData, o: { agencyName: string; agencyAddr
   const agency = `l'agence de tourisme et de voyages ${o.agencyName}${address ? `, sise à ${address}` : ""}`;
   const who = "la personne désignée ci-dessous";
   const intro = d.signerName
-    ? `Je soussigné(e), ${d.signerName}, agissant en qualité ${deFr(title)} de ${agency}, atteste par la présente que ${who} :`
+    ? `Je ${d.signerGender === "F" ? "soussignée" : d.signerGender === "M" ? "soussigné" : "soussigné(e)"}, ${d.signerName}, agissant en qualité ${deFr(title)} de ${agency}, atteste par la présente que ${who} :`
     : `${agency.charAt(0).toUpperCase()}${agency.slice(1)} atteste par la présente que ${who} :`;
   const employed = f ? "employée" : "employé";
   let work = left ? `A été ${employed} au sein de notre agence` : `Est ${employed} au sein de notre agence`;

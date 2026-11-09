@@ -11,6 +11,8 @@ import {
   certDataFrom,
   certificateBody,
   certificateTitle,
+  resolveSigner,
+  SIGNER_ROLES,
 } from "@/lib/workCertificate";
 
 function str(formData: FormData, key: string) {
@@ -76,14 +78,18 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
 
   const lang = formData.get("lang") === "ar" ? "ar" : "fr";
   const signerName = str(formData, "signerName");
-  const signerTitle = str(formData, "signerTitle");
+  // صفة الموقّع: اختيار جاهز (المالك، المسيّر...) أو نص حر
+  const signerKey = str(formData, "signerRole");
+  const signerCustom = str(formData, "signerTitleCustom");
+  const signer = resolveSigner(signerKey, signerCustom, lang);
+  const savedTitle = SIGNER_ROLES[signerKey] ? signerKey : signerCustom;
   const city = str(formData, "city");
   const docDate = date(formData, "docDate") ?? new Date();
 
   const settings = await prisma.settings.upsert({
     where: { id: 1 },
-    create: { id: 1, managerName: signerName, managerTitle: signerTitle, agencyCity: city },
-    update: { managerName: signerName, managerTitle: signerTitle, agencyCity: city },
+    create: { id: 1, managerName: signerName, managerTitle: savedTitle, agencyCity: city },
+    update: { managerName: signerName, managerTitle: savedTitle, agencyCity: city },
   });
 
   const agencyName = settings.agencyName || "ROZATOUR";
@@ -92,7 +98,9 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
     agencyName,
     agencyAddress: settings.agencyAddress,
     signerName,
-    signerTitle,
+    signerTitle: signer.title,
+    signerRole: signer.role,
+    signerGender: signer.gender,
     city,
     date: docDate,
   });

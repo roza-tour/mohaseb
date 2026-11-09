@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { formatDateForInput } from "@/lib/format";
 import { updateEmployee, deleteEmployee, issueWorkCertificate } from "../actions";
 import { EmployeeFields } from "../EmployeeFields";
+import { SignerPicker } from "../SignerPicker";
 
 export default async function EditEmployeePage({
   params,
@@ -62,15 +63,13 @@ export default async function EditEmployeePage({
                   <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
                 </Field>
                 <Field label="اسم الموقّع (اختياري)">
-                  <Input name="signerName" defaultValue={settings?.managerName ?? ""} placeholder="اسم مسيّر الوكالة" />
-                </Field>
-                <Field label="صفة الموقّع (اختياري)">
                   <Input
-                    name="signerTitle"
-                    defaultValue={settings?.managerTitle ?? ""}
-                    placeholder="المسيّر / Le Gérant"
+                    name="signerName"
+                    defaultValue={settings?.managerName ?? ""}
+                    placeholder="مثال: اسم مالكة الوكالة"
                   />
                 </Field>
+                <SignerPicker initial={settings?.managerTitle ?? ""} />
                 <Field label="مدينة التحرير (اختياري)">
                   <Input name="city" defaultValue={settings?.agencyCity ?? ""} placeholder="مثال: جانت / Djanet" />
                 </Field>
