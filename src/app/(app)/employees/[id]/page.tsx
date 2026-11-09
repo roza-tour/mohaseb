@@ -62,14 +62,18 @@ export default async function EditEmployeePage({
                 <Field label="تاريخ الشهادة">
                   <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
                 </Field>
-                <Field label="اسم الموقّع (اختياري)">
+                <SignerPicker initial={settings?.managerTitle ?? ""} />
+                <Field label="اسم الموقّع بالعربية (للشهادة العربية)">
+                  <Input name="signerName" defaultValue={settings?.managerName ?? ""} placeholder="مثال: بن يحي محمد" />
+                </Field>
+                <Field label="اسم الموقّع بالفرنسية (للشهادة الفرنسية)">
                   <Input
-                    name="signerName"
-                    defaultValue={settings?.managerName ?? ""}
-                    placeholder="مثال: اسم مالكة الوكالة"
+                    name="signerNameFr"
+                    dir="ltr"
+                    defaultValue={settings?.managerNameFr ?? ""}
+                    placeholder="Ex : BENYAHIA Mohamed"
                   />
                 </Field>
-                <SignerPicker initial={settings?.managerTitle ?? ""} />
                 <Field label="مدينة التحرير (اختياري)">
                   <Input name="city" defaultValue={settings?.agencyCity ?? ""} placeholder="مثال: جانت / Djanet" />
                 </Field>

@@ -77,7 +77,10 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
   if (!emp) redirect("/employees");
 
   const lang = formData.get("lang") === "ar" ? "ar" : "fr";
-  const signerName = str(formData, "signerName");
+  // اسم الموقّع بلغة الشهادة (بالعربية أو بالحروف اللاتينية) — وإن لم يُكتب نأخذ الآخر
+  const signerNameAr = str(formData, "signerName");
+  const signerNameFr = str(formData, "signerNameFr");
+  const signerName = lang === "ar" ? signerNameAr || signerNameFr : signerNameFr || signerNameAr;
   // صفة الموقّع: اختيار جاهز (المالك، المسيّر...) أو نص حر
   const signerKey = str(formData, "signerRole");
   const signerCustom = str(formData, "signerTitleCustom");
@@ -88,8 +91,14 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
 
   const settings = await prisma.settings.upsert({
     where: { id: 1 },
-    create: { id: 1, managerName: signerName, managerTitle: savedTitle, agencyCity: city },
-    update: { managerName: signerName, managerTitle: savedTitle, agencyCity: city },
+    create: {
+      id: 1,
+      managerName: signerNameAr,
+      managerNameFr: signerNameFr,
+      managerTitle: savedTitle,
+      agencyCity: city,
+    },
+    update: { managerName: signerNameAr, managerNameFr: signerNameFr, managerTitle: savedTitle, agencyCity: city },
   });
 
   const agencyName = settings.agencyName || "ROZATOUR";

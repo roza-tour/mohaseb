@@ -30,6 +30,7 @@ model Settings {
   agencyRC        String   @default("") // رقم السجل التجاري (N° RC) لملفات الفيزا الرسمية
   // الموقّع على شهادات العمل (يُحفظ من آخر شهادة صدرت) — اختياري
   managerName     String   @default("")
+  managerNameFr   String   @default("") // اسم الموقّع بالحروف اللاتينية للشهادات الفرنسية
   managerTitle    String   @default("")
   agencyCity      String   @default("")
   logoPath        String?

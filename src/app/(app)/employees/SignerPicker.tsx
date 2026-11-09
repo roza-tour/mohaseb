@@ -7,9 +7,9 @@ import { Field, Select, Input } from "@/components/ui";
 import { SIGNER_ROLES } from "@/lib/workCertificate";
 
 export function SignerPicker({ initial }: { initial: string }) {
-  // القيمة المحفوظة: مفتاح جاهز، أو نص حر قديم/مكتوب، أو فارغ (المسيّر افتراضياً)
+  // القيمة المحفوظة: مفتاح جاهز، أو نص حر قديم/مكتوب، أو فارغ (المالك افتراضياً)
   const isKey = initial in SIGNER_ROLES;
-  const [key, setKey] = useState(isKey ? initial : initial ? "custom" : "manager_m");
+  const [key, setKey] = useState(isKey ? initial : initial ? "custom" : "owner_m");
   return (
     <>
       <Field label="صفة الموقّع">

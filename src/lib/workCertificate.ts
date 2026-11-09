@@ -37,35 +37,35 @@ export const SIGNER_ROLES: Record<
   string,
   { label: string; ar: { title: string; role: string }; fr: { title: string; role: string } }
 > = {
-  owner_f: {
-    label: "المالكة — La Propriétaire",
-    ar: { title: "المالكة", role: "مالكة" },
-    fr: { title: "La Propriétaire", role: "propriétaire" },
-  },
   owner_m: {
     label: "المالك — Le Propriétaire",
     ar: { title: "المالك", role: "مالك" },
     fr: { title: "Le Propriétaire", role: "propriétaire" },
   },
-  manager_f: {
-    label: "المسيّرة — La Gérante",
-    ar: { title: "المسيّرة", role: "مسيّرة" },
-    fr: { title: "La Gérante", role: "gérante" },
+  owner_f: {
+    label: "المالكة — La Propriétaire",
+    ar: { title: "المالكة", role: "مالكة" },
+    fr: { title: "La Propriétaire", role: "propriétaire" },
   },
   manager_m: {
     label: "المسيّر — Le Gérant",
     ar: { title: "المسيّر", role: "مسيّر" },
     fr: { title: "Le Gérant", role: "gérant" },
   },
-  dg_f: {
-    label: "المديرة العامة — La Directrice Générale",
-    ar: { title: "المديرة العامة", role: "المديرة العامة" },
-    fr: { title: "La Directrice Générale", role: "directrice générale" },
+  manager_f: {
+    label: "المسيّرة — La Gérante",
+    ar: { title: "المسيّرة", role: "مسيّرة" },
+    fr: { title: "La Gérante", role: "gérante" },
   },
   dg_m: {
     label: "المدير العام — Le Directeur Général",
     ar: { title: "المدير العام", role: "المدير العام" },
     fr: { title: "Le Directeur Général", role: "directeur général" },
+  },
+  dg_f: {
+    label: "المديرة العامة — La Directrice Générale",
+    ar: { title: "المديرة العامة", role: "المديرة العامة" },
+    fr: { title: "La Directrice Générale", role: "directrice générale" },
   },
 };
 
