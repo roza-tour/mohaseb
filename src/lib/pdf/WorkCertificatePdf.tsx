@@ -1,5 +1,5 @@
 // تصميم شهادة العمل: إطار مزدوج بزخرفة الزوايا، علامة مائية باسم الوكالة،
-// عنوان بلغتين، جدول بيانات الموظف، وكتلة توقيع وختم في الأسفل.
+// عنوان بلغة الشهادة وحدها، جدول بيانات الموظف، وكتلة توقيع وختم في الأسفل.
 import { Document as PdfDocument, View, Text, Image } from "@react-pdf/renderer";
 import type { Settings } from "@prisma/client";
 import { LetterheadPage } from "@/lib/pdf/letterhead";
@@ -159,7 +159,7 @@ export function WorkCertificatePdf({
               <Text style={{ fontSize: 9, color: "#475569" }}>{fmt(docDate)}</Text>
             </View>
 
-            {/* العنوان بلغتين */}
+            {/* العنوان بلغة الشهادة فقط */}
             <View style={{ alignItems: "center", marginBottom: 16 }}>
               <MixedText
                 text={title.main}
@@ -181,13 +181,6 @@ export function WorkCertificatePdf({
                 />
                 <View style={{ width: 70, height: 0.8, backgroundColor: color }} />
               </View>
-              <MixedText
-                text={title.sub}
-                size={10}
-                align="center"
-                containerStyle={{ flexWrap: "nowrap" }}
-                style={{ fontSize: 10, color: "#64748b", letterSpacing: ar ? 1.5 : 0 }}
-              />
             </View>
 
             {intro ? para(intro, "intro") : null}

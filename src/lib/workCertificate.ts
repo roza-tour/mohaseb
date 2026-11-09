@@ -202,10 +202,8 @@ export function certificateBody(d: CertData, o: { agencyName: string; agencyAddr
   return [intro, work, closing].join("\n\n");
 }
 
-export function certificateTitle(lang: CertLang): { main: string; sub: string } {
-  return lang === "ar"
-    ? { main: "شهادة عمل", sub: "ATTESTATION DE TRAVAIL" }
-    : { main: "ATTESTATION DE TRAVAIL", sub: "شهادة عمل" };
+export function certificateTitle(lang: CertLang): { main: string } {
+  return { main: lang === "ar" ? "شهادة عمل" : "ATTESTATION DE TRAVAIL" };
 }
 
 // «حُرّر بـ ... في ...» / «Fait à ..., le ...»
