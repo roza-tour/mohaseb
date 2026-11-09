@@ -34,6 +34,7 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string; icon: s
       { href: "/hotels", label: "الفنادق", icon: "🏨" },
       { href: "/guides", label: "المرشدون", icon: "🧭" },
       { href: "/drivers", label: "السائقون", icon: "🚗" },
+      { href: "/employees", label: "الموظفون", icon: "👥" },
     ],
   },
   {

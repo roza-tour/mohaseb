@@ -28,6 +28,10 @@ model Settings {
   agencyEmail     String   @default("")
   agencyWebsite   String   @default("")
   agencyRC        String   @default("") // رقم السجل التجاري (N° RC) لملفات الفيزا الرسمية
+  // الموقّع على شهادات العمل (يُحفظ من آخر شهادة صدرت) — اختياري
+  managerName     String   @default("")
+  managerTitle    String   @default("")
+  agencyCity      String   @default("")
   logoPath        String?
   stampPath       String?
   letterheadColor String   @default("#1f3864") // لون اسم الوكالة والشريط في ورق الشركة
@@ -463,4 +467,20 @@ model LoginAttempt {
   count       Int       @default(0)
   lockedUntil DateTime?
   updatedAt   DateTime  @updatedAt
+}
+
+// ---------- موظفو الوكالة (لإصدار شهادات العمل) — كل الخانات اختيارية ----------
+model Employee {
+  id               String    @id @default(cuid())
+  name             String    @default("")
+  gender           String    @default("M") // M | F — لصيغة «السيد/السيدة» في الشهادة
+  birthDate        DateTime?
+  birthPlace       String?
+  idNumber         String?   // رقم بطاقة التعريف الوطنية
+  socialSecurityNo String?   // رقم الضمان الاجتماعي
+  jobTitle         String?   // الوظيفة
+  startDate        DateTime? // تاريخ بداية العمل
+  endDate          DateTime? // تاريخ نهاية العمل (فارغ = ما زال يعمل)
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
 }

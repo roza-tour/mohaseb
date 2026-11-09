@@ -67,6 +67,7 @@ async function jsonExport(): Promise<Buffer> {
     documentTemplates,
     documents,
     payments,
+    employees,
   ] = await Promise.all([
     prisma.user.findMany(),
     prisma.settings.findMany(),
@@ -85,6 +86,7 @@ async function jsonExport(): Promise<Buffer> {
     prisma.documentTemplate.findMany(),
     prisma.document.findMany(),
     prisma.payment.findMany(),
+    prisma.employee.findMany(),
   ]);
 
   return Buffer.from(
@@ -108,6 +110,7 @@ async function jsonExport(): Promise<Buffer> {
         documentTemplates,
         documents,
         payments,
+        employees,
       },
       null,
       2

@@ -45,6 +45,14 @@ export function fixRtlEdgePunct(seg: string): string {
   return flip(trail) + core + flip(lead);
 }
 
+// مقطع لاتيني داخل فقرة عربية: علامة الترقيم في آخره («Rosa TEST،» أو «Algérie.»)
+// تأخذ اتجاه الفقرة حسب خوارزمية Bidi، فموضعها الصحيح يسار المقطع لا يمينه.
+// المقطع يُرسم من اليسار لليمين، فننقلها إلى أوله. الأقواس لا تُنقل (تبقى متوازنة).
+export function fixLtrRunInRtl(seg: string): string {
+  const m = seg.match(/^([\s\S]*?[\p{L}\p{N}][\s\S]*?)([،؛؟.,:;!]+)$/u);
+  return m ? m[2] + m[1] : seg;
+}
+
 export function detectBaseDir(text: string): Dir {
   let rtl = 0;
   let ltr = 0;
@@ -122,7 +130,7 @@ export function MixedText({
   const renderLine = (line: string) =>
     segment(line, base).map((seg, i) => (
       <Text key={i} style={textStyles}>
-        {base === "rtl" && seg.isBase ? fixRtlEdgePunct(seg.text) : seg.text}
+        {base === "rtl" ? (seg.isBase ? fixRtlEdgePunct(seg.text) : fixLtrRunInRtl(seg.text)) : seg.text}
       </Text>
     ));
 
