@@ -6,7 +6,12 @@ import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { nextDocNumber } from "@/lib/docNumbers";
-import { buildWorkCertificate } from "@/lib/workCertificate";
+import {
+  WORK_CERTIFICATE,
+  certDataFrom,
+  certificateBody,
+  certificateTitle,
+} from "@/lib/workCertificate";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -81,19 +86,29 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
     update: { managerName: signerName, managerTitle: signerTitle, agencyCity: city },
   });
 
-  const { title, body } = buildWorkCertificate(emp, {
+  const agencyName = settings.agencyName || "ROZATOUR";
+  const data = certDataFrom(emp, {
     lang,
-    agencyName: settings.agencyName || "ROZATOUR",
+    agencyName,
     agencyAddress: settings.agencyAddress,
     signerName,
     signerTitle,
     city,
     date: docDate,
   });
+  const body = certificateBody(data, { agencyName, agencyAddress: settings.agencyAddress, date: docDate });
 
   const docNumber = await nextDocNumber("document", docDate.getUTCFullYear());
   const doc = await prisma.document.create({
-    data: { docNumber, title, body, docDate, showStamp: formData.get("showStamp") === "on" },
+    data: {
+      docNumber,
+      title: certificateTitle(lang).main,
+      body,
+      docDate,
+      kind: WORK_CERTIFICATE,
+      data,
+      showStamp: formData.get("showStamp") === "on",
+    },
   });
   await logActivity("create", "Document", `شهادة عمل ${docNumber} — ${emp.name || "موظف"}`);
   revalidatePath("/documents");

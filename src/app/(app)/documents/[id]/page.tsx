@@ -6,6 +6,7 @@ import { formatDateForInput } from "@/lib/format";
 import { parseDocStyle } from "@/lib/documents";
 import { updateDocument } from "../actions";
 import { DocumentForm } from "../DocumentForm";
+import { WORK_CERTIFICATE } from "@/lib/workCertificate";
 
 export default async function EditDocumentPage({
   params,
@@ -40,6 +41,13 @@ export default async function EditDocumentPage({
       />
 
       <ErrorBanner message={sp.error} />
+
+      {doc.kind === WORK_CERTIFICATE && (
+        <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 max-w-3xl">
+          📜 هذه شهادة عمل بتصميم خاص: الفقرة الأولى تظهر قبل جدول بيانات الموظف وبقية الفقرات بعده (افصل بين
+          الفقرات بسطر فارغ). لتغيير بيانات الجدول عدّل بيانات الموظف من صفحة «الموظفون» وأصدر شهادة جديدة.
+        </div>
+      )}
 
       <DocumentForm
         action={updateDocument.bind(null, id)}

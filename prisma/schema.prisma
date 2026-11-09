@@ -304,6 +304,10 @@ model Document {
   showStamp  Boolean   @default(true)
   style      Json?     // تنسيق هذا المستند (يبدأ من تنسيق القالب ويعدَّل بحرية)
   publicToken String?  @unique // رمز رابط عام للتحقق من المستند عبر QR
+  // نوع المستند الخاص بتصميمه (work-certificate = شهادة عمل) — فارغ = مستند نصي عادي
+  kind       String?
+  // بيانات منظَّمة للتصميم الخاص (بيانات الموظف، الموقّع، المدينة...)
+  data       Json?
   docDate    DateTime  @default(now())
   createdAt  DateTime  @default(now())
 

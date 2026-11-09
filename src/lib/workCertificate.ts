@@ -1,10 +1,12 @@
-// صياغة شهادة العمل (Attestation de travail) بالعربية والفرنسية.
+// شهادة العمل (Attestation de travail) بالعربية والفرنسية.
 //
-// تُبنى من بيانات الموظف المحفوظة، وكل معلومة غير مكتوبة تُحذف من الجملة
-// بدل أن تظهر فارغة. الناتج عنوان + نص يُحفظ «مستنداً صادراً» عادياً،
-// فيأخذ رقماً تسلسلياً وختماً ورمز QR للتحقق، ويمكن تعديل نصه بعد الإصدار.
+// تُحفظ «مستنداً صادراً» من نوع work-certificate: بياناتها المنظَّمة في Document.data
+// (تُرسم جدولاً في تصميم خاص)، ونصّها في Document.body ثلاث فقرات يفصلها سطر فارغ
+// (المقدمة، الإفادة، الختام) — فيبقى تعديل النص ممكناً من صفحة المستندات.
+// كل معلومة غير مكتوبة تُحذف من الجدول والجمل بدل أن تظهر فارغة.
 
 export type CertLang = "ar" | "fr";
+export const WORK_CERTIFICATE = "work-certificate";
 
 export type CertEmployee = {
   name: string;
@@ -28,11 +30,36 @@ export type CertOptions = {
   date: Date;
 };
 
+// ما يُحفظ في Document.data (التواريخ نصوص ISO)
+export type CertData = {
+  lang: CertLang;
+  employee: {
+    name: string;
+    gender: string;
+    birthDate: string | null;
+    birthPlace: string;
+    idNumber: string;
+    socialSecurityNo: string;
+    jobTitle: string;
+    startDate: string | null;
+    endDate: string | null;
+  };
+  signerName: string;
+  signerTitle: string;
+  city: string;
+};
+
 function fmt(d: Date): string {
   const day = String(d.getUTCDate()).padStart(2, "0");
   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
   return `${day}/${month}/${d.getUTCFullYear()}`;
 }
+
+const toDate = (s: string | null | undefined) => {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+};
 
 // المدة بالسنوات والأشهر الكاملة بين تاريخين
 export function workDuration(start: Date, end: Date): { years: number; months: number } {
@@ -55,17 +82,16 @@ function durationText(start: Date, end: Date, lang: CertLang): string {
   const { years, months } = workDuration(start, end);
   if (years === 0 && months === 0) return "";
   if (lang === "ar") {
-    const parts = [
+    return [
       years ? arCount(years, "سنة واحدة", "سنتين", "سنوات", "سنة") : "",
       months ? arCount(months, "شهر واحد", "شهرين", "أشهر", "شهراً") : "",
-    ].filter(Boolean);
-    return parts.join(" و");
+    ]
+      .filter(Boolean)
+      .join(" و");
   }
-  const parts = [
-    years ? `${years} ${years > 1 ? "ans" : "an"}` : "",
-    months ? `${months} mois` : "",
-  ].filter(Boolean);
-  return parts.join(" et ");
+  return [years ? `${years} ${years > 1 ? "ans" : "an"}` : "", months ? `${months} mois` : ""]
+    .filter(Boolean)
+    .join(" et ");
 }
 
 // «de» الفرنسية تُختصر قبل حرف علّة أو h: «en qualité d'Agent»
@@ -73,96 +99,117 @@ function deFr(word: string): string {
   return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(word) ? `d'${word}` : `de ${word}`;
 }
 
-export function buildWorkCertificate(emp: CertEmployee, o: CertOptions): { title: string; body: string } {
-  const f = emp.gender === "F";
-  const name = emp.name.trim() || "................";
-  const job = emp.jobTitle?.trim() ?? "";
-  const place = emp.birthPlace?.trim() ?? "";
-  const idNo = emp.idNumber?.trim() ?? "";
-  const ss = emp.socialSecurityNo?.trim() ?? "";
+// هل غادر الموظف في تاريخ الشهادة؟
+function hasLeft(end: Date | null, at: Date): boolean {
+  return !!end && end.getTime() <= at.getTime();
+}
+
+export function certDataFrom(emp: CertEmployee, o: CertOptions): CertData {
+  return {
+    lang: o.lang,
+    employee: {
+      name: emp.name.trim(),
+      gender: emp.gender === "F" ? "F" : "M",
+      birthDate: emp.birthDate?.toISOString() ?? null,
+      birthPlace: emp.birthPlace?.trim() ?? "",
+      idNumber: emp.idNumber?.trim() ?? "",
+      socialSecurityNo: emp.socialSecurityNo?.trim() ?? "",
+      jobTitle: emp.jobTitle?.trim() ?? "",
+      startDate: emp.startDate?.toISOString() ?? null,
+      endDate: emp.endDate?.toISOString() ?? null,
+    },
+    signerName: o.signerName.trim(),
+    signerTitle: o.signerTitle.trim(),
+    city: o.city.trim(),
+  };
+}
+
+export function readCertData(json: unknown): CertData | null {
+  if (!json || typeof json !== "object") return null;
+  const d = json as CertData;
+  if (!d.employee || (d.lang !== "ar" && d.lang !== "fr")) return null;
+  return d;
+}
+
+// صفة الموقّع الافتراضية حسب اللغة
+export function signerTitleOf(d: CertData): string {
+  return d.signerTitle || (d.lang === "ar" ? "المسيّر" : "Le Gérant");
+}
+
+// جدول بيانات الموظف في الشهادة — الصفوف المكتوبة فقط
+export function certificateRows(d: CertData, docDate: Date): [string, string][] {
+  const e = d.employee;
+  const ar = d.lang === "ar";
+  const birth = toDate(e.birthDate);
+  const start = toDate(e.startDate);
+  const end = toDate(e.endDate);
+  const left = hasLeft(end, docDate);
+  const duration = start ? durationText(start, left ? end! : docDate, d.lang) : "";
+  const birthText = [birth ? fmt(birth) : "", e.birthPlace].filter(Boolean).join(ar ? " بـ " : " à ");
+
+  const rows: [string, string][] = [
+    [ar ? "الاسم واللقب" : "Nom et prénom", e.name || "—"],
+    [ar ? "تاريخ ومكان الميلاد" : "Date et lieu de naissance", birthText],
+    [ar ? "رقم بطاقة التعريف الوطنية" : "N° de la carte d'identité", e.idNumber],
+    [ar ? "رقم الضمان الاجتماعي" : "N° de sécurité sociale", e.socialSecurityNo],
+    [ar ? "الوظيفة" : "Poste occupé", e.jobTitle],
+    [ar ? "تاريخ التوظيف" : "Date de recrutement", start ? fmt(start) : ""],
+    left
+      ? [ar ? "تاريخ نهاية العمل" : "Date de fin de fonction", fmt(end!)]
+      : [ar ? "الوضعية الحالية" : "Situation actuelle", start ? (ar ? "ما زال يعمل" : "En activité") : ""],
+    [ar ? "الأقدمية" : "Ancienneté", duration],
+  ];
+  return rows.filter(([, v]) => v.trim() !== "");
+}
+
+// النص: ثلاث فقرات يفصلها سطر فارغ (المقدمة، الإفادة، الختام)
+export function certificateBody(d: CertData, o: { agencyName: string; agencyAddress: string; date: Date }): string {
+  const e = d.employee;
+  const f = e.gender === "F";
+  const start = toDate(e.startDate);
+  const end = toDate(e.endDate);
+  const left = hasLeft(end, o.date);
+  const duration = start ? durationText(start, left ? end! : o.date, d.lang) : "";
   const address = o.agencyAddress.trim();
-  const signer = o.signerName.trim();
-  const city = o.city.trim();
-  // ما زال يعمل إن لم يُحدَّد تاريخ نهاية أو كان بعد تاريخ الشهادة
-  const left = !!emp.endDate && emp.endDate.getTime() <= o.date.getTime();
-  const durationEnd = left ? emp.endDate! : o.date;
-  const duration = emp.startDate ? durationText(emp.startDate, durationEnd, o.lang) : "";
+  const title = signerTitleOf(d);
+  const job = e.jobTitle;
 
-  if (o.lang === "ar") {
-    const signerTitle = o.signerTitle.trim() || "المسيّر";
+  if (d.lang === "ar") {
     const agency = `وكالة ${o.agencyName} للسياحة والأسفار${address ? `، الكائن مقرها بـ ${address}` : ""}`;
-    const intro = signer
-      ? `أنا الموقّع أدناه، ${signer}، بصفتي ${signerTitle} لـ${agency}، أشهد بأن:`
-      : `تشهد ${agency}، بأن:`;
-
-    const who = [
-      `${f ? "السيدة" : "السيد"}: ${name}`,
-      emp.birthDate ? `${f ? "المولودة" : "المولود"} بتاريخ ${fmt(emp.birthDate)}${place ? ` بـ ${place}` : ""}` : "",
-      !emp.birthDate && place ? `${f ? "المولودة" : "المولود"} بـ ${place}` : "",
-      idNo ? `${f ? "الحاملة" : "الحامل"} لبطاقة التعريف الوطنية رقم ${idNo}` : "",
-      ss ? `رقم الضمان الاجتماعي ${ss}` : "",
-    ]
-      .filter(Boolean)
-      .join("، ");
-
-    const verb = left ? (f ? "عملت" : "عمل") : f ? "تعمل" : "يعمل";
-    let work = `${verb} لدى وكالتنا${job ? ` بصفة ${job}` : ""}`;
-    if (emp.startDate) {
-      work += left
-        ? ` من ${fmt(emp.startDate)} إلى ${fmt(emp.endDate!)}`
-        : ` منذ ${fmt(emp.startDate)} إلى يومنا هذا`;
-    }
+    const intro = d.signerName
+      ? `أنا الموقّع أدناه، ${d.signerName}، بصفتي ${title} لـ${agency}، أشهد بأن ${f ? "السيدة" : "السيد"} ${f ? "المذكورة" : "المذكور"} في الجدول أدناه:`
+      : `تشهد ${agency}، بأن ${f ? "السيدة" : "السيد"} ${f ? "المذكورة" : "المذكور"} في الجدول أدناه:`;
+    let work = `${left ? (f ? "عملت" : "عمل") : f ? "تعمل" : "يعمل"} لدى وكالتنا${job ? ` بصفة ${job}` : ""}`;
+    if (start) work += left ? ` من ${fmt(start)} إلى ${fmt(end!)}` : ` منذ ${fmt(start)} إلى يومنا هذا`;
     if (duration) work += `، أي مدة ${duration}`;
     work += ".";
-
-    const body = [
-      intro,
-      `${who}،`,
-      work,
-      `سُلّمت هذه الشهادة ${f ? "للمعنية بطلب منها" : "للمعني بطلب منه"} لاستعمالها في حدود ما يسمح به القانون.`,
-      "",
-      city ? `حُرّر بـ ${city} في ${fmt(o.date)}` : `حُرّر في ${fmt(o.date)}`,
-      signer ? `${signerTitle}: ${signer}` : signerTitle,
-    ].join("\n");
-    return { title: "شهادة عمل", body };
+    const closing = `سُلّمت هذه الشهادة ${f ? "للمعنية بطلب منها" : "للمعني بطلب منه"} لاستعمالها في حدود ما يسمح به القانون.`;
+    return [intro, work, closing].join("\n\n");
   }
 
-  // الفرنسية
-  const signerTitle = o.signerTitle.trim() || "Le Gérant";
   const agency = `l'agence de tourisme et de voyages ${o.agencyName}${address ? `, sise à ${address}` : ""}`;
-  const intro = signer
-    ? `Je soussigné(e), ${signer}, agissant en qualité ${deFr(signerTitle)} de ${agency}, atteste par la présente que :`
-    : `${agency.charAt(0).toUpperCase()}${agency.slice(1)} atteste par la présente que :`;
-
-  const who = [
-    `${f ? "Mme" : "M."} ${name}`,
-    emp.birthDate ? `${f ? "née" : "né"} le ${fmt(emp.birthDate)}${place ? ` à ${place}` : ""}` : "",
-    !emp.birthDate && place ? `${f ? "née" : "né"} à ${place}` : "",
-    idNo ? `titulaire de la carte nationale d'identité N° ${idNo}` : "",
-    ss ? `N° de sécurité sociale ${ss}` : "",
-  ]
-    .filter(Boolean)
-    .join(", ");
-
+  const who = "la personne désignée ci-dessous";
+  const intro = d.signerName
+    ? `Je soussigné(e), ${d.signerName}, agissant en qualité ${deFr(title)} de ${agency}, atteste par la présente que ${who} :`
+    : `${agency.charAt(0).toUpperCase()}${agency.slice(1)} atteste par la présente que ${who} :`;
   const employed = f ? "employée" : "employé";
-  let work = left ? `a été ${employed} au sein de notre agence` : `est ${employed} au sein de notre agence`;
+  let work = left ? `A été ${employed} au sein de notre agence` : `Est ${employed} au sein de notre agence`;
   if (job) work += ` en qualité ${deFr(job)}`;
-  if (emp.startDate) {
-    work += left
-      ? ` du ${fmt(emp.startDate)} au ${fmt(emp.endDate!)}`
-      : ` depuis le ${fmt(emp.startDate)} à ce jour`;
-  }
-  if (duration) work += `, soit une durée de ${duration}`;
+  if (start) work += left ? ` du ${fmt(start)} au ${fmt(end!)}` : ` depuis le ${fmt(start)} à ce jour`;
+  if (duration) work += `, soit une ancienneté de ${duration}`;
   work += ".";
+  const closing = `La présente attestation est délivrée ${f ? "à l'intéressée" : "à l'intéressé"}, sur sa demande, pour servir et valoir ce que de droit.`;
+  return [intro, work, closing].join("\n\n");
+}
 
-  const body = [
-    intro,
-    `${who},`,
-    work,
-    `La présente attestation est délivrée ${f ? "à l'intéressée" : "à l'intéressé"}, sur sa demande, pour servir et valoir ce que de droit.`,
-    "",
-    city ? `Fait à ${city}, le ${fmt(o.date)}` : `Fait le ${fmt(o.date)}`,
-    signer ? `${signerTitle} : ${signer}` : signerTitle,
-  ].join("\n");
-  return { title: "ATTESTATION DE TRAVAIL", body };
+export function certificateTitle(lang: CertLang): { main: string; sub: string } {
+  return lang === "ar"
+    ? { main: "شهادة عمل", sub: "ATTESTATION DE TRAVAIL" }
+    : { main: "ATTESTATION DE TRAVAIL", sub: "شهادة عمل" };
+}
+
+// «حُرّر بـ ... في ...» / «Fait à ..., le ...»
+export function madeAt(d: CertData, date: Date): string {
+  if (d.lang === "ar") return d.city ? `حُرّر بـ ${d.city} في ${fmt(date)}` : `حُرّر في ${fmt(date)}`;
+  return d.city ? `Fait à ${d.city}, le ${fmt(date)}` : `Fait le ${fmt(date)}`;
 }

@@ -6,6 +6,8 @@ import { parseBodyLines, parseDocStyle, settingsDocStyle, PAGE_BREAK } from "@/l
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
 import { RefBar, DocTitle } from "@/lib/pdf/chrome";
+import { WorkCertificatePdf } from "@/lib/pdf/WorkCertificatePdf";
+import { WORK_CERTIFICATE, readCertData } from "@/lib/workCertificate";
 
 function formatDate(date: Date) {
   const day = String(date.getUTCDate()).padStart(2, "0");
@@ -29,6 +31,23 @@ export async function renderDocumentPdf(id: string): Promise<{ buffer: Buffer; d
     await prisma.document.update({ where: { id: doc.id }, data: { publicToken: token } });
   }
   const qr = await makeQrPng(verifyUrl("document", token));
+
+  // شهادة العمل لها تصميمها الخاص (إطار، جدول بيانات، كتلة توقيع وختم)
+  const cert = doc.kind === WORK_CERTIFICATE ? readCertData(doc.data) : null;
+  if (cert) {
+    const buffer = await renderToBuffer(
+      <WorkCertificatePdf
+        data={cert}
+        body={doc.body}
+        docNumber={doc.docNumber}
+        docDate={doc.docDate}
+        settings={settings}
+        stamp={stampBuffer}
+        qr={qr}
+      />
+    );
+    return { buffer, docNumber: doc.docNumber };
+  }
 
   // تنسيق المستند: ما اختير له تحديداً، وإلا التنسيق العام من الإعدادات
   const style = doc.style ? parseDocStyle(doc.style) : settingsDocStyle(settings);
