@@ -42,7 +42,7 @@ export function invitationBody(lang: InvLang, d: InvData): InvBody {
       salutation: "سيدي القنصل المحترم،",
       intro: `يشرّف وكالة ${d.agency} أن تطلب الموافقة على منح التأشيرة السياحية ${
         many ? "للأشخاص المذكورين أدناه" : "للشخص المذكور أدناه"
-      }، للقيام برحلة سياحية إلى الجزائر ضمن برنامج «${d.program}».`,
+      }، للقيام برحلة سياحية إلى الجزائر${d.program.trim() ? ` ضمن برنامج «${d.program.trim()}»` : ""}.`,
       paras: [
         `من المقرّر أن تكون الإقامة من ${d.arrival} إلى ${d.departure}.`,
         "تتكفّل وكالتنا بكامل البرنامج السياحي (الإقامة والنقل والمرافقة) طوال مدة الرحلة.",
@@ -66,7 +66,7 @@ export function invitationBody(lang: InvLang, d: InvData): InvBody {
       salutation: "Dear Sir or Madam,",
       intro: `We, ${d.agency}, have the honour to request the approval of a tourist visa for the ${
         many ? "persons" : "person"
-      } listed below, to undertake a tourist trip to Algeria under the programme "${d.program}".`,
+      } listed below, to undertake a tourist trip to Algeria${d.program.trim() ? ` under the programme "${d.program.trim()}"` : ""}.`,
       paras: [
         `The stay is scheduled from ${d.arrival} to ${d.departure}.`,
         "Our agency guarantees the full tourist programme (accommodation, transport and guidance) throughout the entire stay.",
@@ -91,7 +91,7 @@ export function invitationBody(lang: InvLang, d: InvData): InvBody {
     salutation: "Madame, Monsieur,",
     intro: `Par la présente, l'agence ${d.agency} a l'honneur de solliciter l'approbation du visa touristique au profit ${
       many ? "des personnes désignées ci-dessous" : "de la personne désignée ci-dessous"
-    }, pour effectuer un voyage touristique en Algérie dans le cadre du programme « ${d.program} ».`,
+    }, pour effectuer un voyage touristique en Algérie${d.program.trim() ? ` dans le cadre du programme « ${d.program.trim()} »` : ""}.`,
     paras: [
       `Le séjour est prévu du ${d.arrival} au ${d.departure}.`,
       "Notre agence se porte garante de la prise en charge du programme touristique (hébergement, transport et accompagnement) pendant toute la durée du séjour.",

@@ -249,7 +249,8 @@ export async function renderInvitationPdf(
         language: lang,
         consulate: inv.consulate || "",
         people: (Array.isArray(inv.people) ? inv.people : []) as Person[],
-        programName: inv.program?.name || "",
+        // الاسم المكتوب يدوياً أولاً، ثم اسم البرنامج المختار من القائمة
+        programName: inv.programName?.trim() || inv.program?.name || "",
         itinerary: (inv.itinerary || inv.program?.itinerary || "").trim(),
         arrivalDate: inv.arrivalDate,
         departureDate: inv.departureDate,

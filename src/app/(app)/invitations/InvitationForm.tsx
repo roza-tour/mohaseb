@@ -7,6 +7,7 @@ export type InvitationInitial = {
   language: string;
   consulate: string;
   programId: string;
+  programName: string;
   people: { name: string; passport: string }[];
   arrivalDate: string;
   departureDate: string;
@@ -20,6 +21,7 @@ const BLANK: InvitationInitial = {
   language: "fr",
   consulate: "",
   programId: "",
+  programName: "",
   people: [],
   arrivalDate: "",
   departureDate: "",
@@ -72,6 +74,14 @@ export function InvitationForm({
             </Select>
           </Field>
         </div>
+
+        <Field label="اسم البرنامج (إن كتبت البرنامج يدوياً — يُقدَّم على البرنامج المختار)">
+          <Input
+            name="programName"
+            defaultValue={v.programName}
+            placeholder="مثال: Circuit Tassili n'Ajjer — 8 jours"
+          />
+        </Field>
 
         <Field label="الأشخاص (المقدّم الأساسي + المرافقون)">
           <PeopleEditor customers={customers} initial={v.people} />

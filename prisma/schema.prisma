@@ -399,6 +399,8 @@ model Invitation {
   people        Json
   program       TourProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
   programId     String?
+  // اسم البرنامج المكتوب يدوياً (يُقدَّم على اسم البرنامج المختار من القائمة)
+  programName   String?
   itinerary     String?  @db.Text // مخطط الرحلة (يُنسخ من البرنامج أو يُحرَّر)
   arrivalDate   DateTime?
   departureDate DateTime?

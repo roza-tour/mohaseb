@@ -280,7 +280,8 @@ export default async function VerifyPage({ params }: { params: Promise<{ kind: s
       { ar: "التاريخ", fr: "Date", value: fmt(inv.docDate), ltr: true },
     ];
     if (inv.consulate.trim()) rows.push({ ar: "الجهة الموجَّهة إليها", fr: "Destinataire", value: inv.consulate.trim() });
-    if (inv.program?.name) rows.push({ ar: "البرنامج", fr: "Programme", value: inv.program.name });
+    const programName = inv.programName?.trim() || inv.program?.name;
+    if (programName) rows.push({ ar: "البرنامج", fr: "Programme", value: programName });
     if (inv.arrivalDate || inv.departureDate) {
       rows.push({
         ar: "مدة الإقامة",

@@ -60,6 +60,7 @@ export default async function EditInvitationPage({
           language: invitation.language,
           consulate: invitation.consulate,
           programId: invitation.programId ?? "",
+          programName: invitation.programName ?? "",
           people: Array.isArray(invitation.people)
             ? (invitation.people as { name: string; passport: string }[])
             : [],
