@@ -58,6 +58,8 @@ export default async function EditInvoicePage({
         initial={{
           tripId: invoice.tripId ?? "",
           customerId: invoice.customerId ?? "",
+          customerName: invoice.customerName ?? "",
+          customerDetails: invoice.customerDetails ?? "",
           docDate: formatDateForInput(invoice.docDate),
           currency: invoice.currency,
           items: items.map((it) => ({

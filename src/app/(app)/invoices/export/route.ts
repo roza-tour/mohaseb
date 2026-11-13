@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { rowsToXlsx, xlsxResponseHeaders } from "@/lib/exportXlsx";
 import { formatDate } from "@/lib/format";
+import { invoiceCustomerName } from "@/lib/invoiceCustomer";
 import type { InvoiceItem } from "../actions";
 
 export async function GET() {
@@ -20,7 +21,7 @@ export async function GET() {
     const total = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0) - inv.discount;
     return [
       inv.invoiceNumber,
-      inv.customer?.name ?? "",
+      invoiceCustomerName(inv),
       inv.tripId ? tripProgramName(tripsById.get(inv.tripId), "رحلة محذوفة") : "",
       formatDate(inv.docDate),
       total,

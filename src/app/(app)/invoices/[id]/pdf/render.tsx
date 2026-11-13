@@ -5,6 +5,7 @@ import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/
 import { MixedText } from "@/lib/pdf/MixedText";
 import { dirStyles, type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng } from "@/lib/qr";
+import { invoiceCustomerName } from "@/lib/invoiceCustomer";
 import { genToken, verifyUrl } from "@/lib/share";
 import { nameOr } from "@/lib/format";
 import { RefBar, DocTitle, docStyle } from "@/lib/pdf/chrome";
@@ -175,7 +176,11 @@ export async function renderInvoicePdf(
         <View style={styles.partyRow}>
           <View style={styles.partyBox}>
             <Text style={styles.partyLabel}>{t.billTo}</Text>
-            <MixedText text={nameOr(invoice.customer?.name)} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+            <MixedText text={nameOr(invoiceCustomerName(invoice))} size={11} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} style={{ fontWeight: "bold" }} />
+            {/* بيانات العميل المكتوب يدوياً (عنوان، هاتف...) إن كُتبت */}
+            {!invoice.customerId && invoice.customerDetails?.trim() ? (
+              <MixedText text={invoice.customerDetails.trim()} size={9} align={dirStyles(lang).align} baseDir={lang === "fr" ? "ltr" : "auto"} containerStyle={{ marginTop: 3 }} style={{ fontSize: 9, color: "#475569" }} />
+            ) : null}
           </View>
           {trip ? (
             <View style={styles.partyBox}>
@@ -305,6 +310,6 @@ export async function renderInvoicePdf(
     buffer,
     invoiceNumber: invoice.invoiceNumber,
     email: invoice.customer?.email ?? null,
-    customerName: invoice.customer?.name ?? null,
+    customerName: invoiceCustomerName(invoice) || null,
   };
 }

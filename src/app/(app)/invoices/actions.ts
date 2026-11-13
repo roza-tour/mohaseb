@@ -12,6 +12,15 @@ import { redirect } from "next/navigation";
 const invoiceSchema = z.object({
   tripId: z.string().optional(),
   customerId: z.string().optional(),
+  // عميل مكتوب يدوياً — يُحفظ فقط إن لم يُختر عميل مسجَّل
+  customerName: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v.trim().slice(0, 190) : null)),
+  customerDetails: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   currency: z.string().min(1).default("DZD"),
   discount: z.coerce.number().min(0).default(0),
   // البرنامج أو الخدمة المشتراة — مربع اختياري في الفاتورة
@@ -40,6 +49,8 @@ export async function createInvoice(formData: FormData) {
   const parsed = invoiceSchema.safeParse({
     tripId: formData.get("tripId") || undefined,
     customerId: formData.get("customerId") || undefined,
+    customerName: formData.get("customerName") ?? undefined,
+    customerDetails: formData.get("customerDetails") ?? undefined,
     currency: formData.get("currency") || undefined,
     discount: formData.get("discount") || undefined,
     purchasedItem: formData.get("purchasedItem") ?? undefined,
@@ -84,6 +95,8 @@ export async function createInvoice(formData: FormData) {
       invoiceNumber,
       tripId: parsed.data.tripId || null,
       customerId: parsed.data.customerId || null,
+      customerName: parsed.data.customerId ? null : parsed.data.customerName,
+      customerDetails: parsed.data.customerId ? null : parsed.data.customerDetails,
       currency: parsed.data.currency,
       discount: parsed.data.discount,
       purchasedItem: parsed.data.purchasedItem,
@@ -110,6 +123,8 @@ export async function updateInvoice(id: string, formData: FormData) {
   const parsed = invoiceSchema.safeParse({
     tripId: formData.get("tripId") || undefined,
     customerId: formData.get("customerId") || undefined,
+    customerName: formData.get("customerName") ?? undefined,
+    customerDetails: formData.get("customerDetails") ?? undefined,
     currency: formData.get("currency") || undefined,
     discount: formData.get("discount") || undefined,
     purchasedItem: formData.get("purchasedItem") ?? undefined,
@@ -147,6 +162,8 @@ export async function updateInvoice(id: string, formData: FormData) {
     data: {
       tripId: parsed.data.tripId || null,
       customerId: parsed.data.customerId || null,
+      customerName: parsed.data.customerId ? null : parsed.data.customerName,
+      customerDetails: parsed.data.customerId ? null : parsed.data.customerDetails,
       currency: parsed.data.currency,
       discount: parsed.data.discount,
       purchasedItem: parsed.data.purchasedItem,
@@ -230,6 +247,8 @@ export async function duplicateInvoice(id: string) {
       invoiceNumber,
       tripId: src.tripId,
       customerId: src.customerId,
+      customerName: src.customerName,
+      customerDetails: src.customerDetails,
       currency: src.currency,
       discount: src.discount,
       purchasedItem: src.purchasedItem,

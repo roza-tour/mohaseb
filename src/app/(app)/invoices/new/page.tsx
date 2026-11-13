@@ -41,6 +41,8 @@ export default async function NewInvoicePage({
         initial={{
           tripId,
           customerId: trip?.customerId ?? "",
+          customerName: "",
+          customerDetails: "",
           docDate: formatDateForInput(new Date()),
           currency: defaultCurrency,
           items: [],

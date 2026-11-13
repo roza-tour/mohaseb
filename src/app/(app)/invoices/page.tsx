@@ -7,6 +7,7 @@ import { EmailDocButton } from "@/components/EmailDocButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PdfLangLinks } from "@/components/PdfLangLinks";
 import { SearchBox, Pagination, parsePage, PER_PAGE } from "@/components/ListControls";
+import { invoiceCustomerName } from "@/lib/invoiceCustomer";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
 import { deleteInvoice, toggleInvoicePaid, duplicateInvoice, emailInvoice, type InvoiceItem } from "./actions";
@@ -23,7 +24,11 @@ export default async function InvoicesPage({
   const page = parsePage(sp.page);
   const where = q
     ? {
-        OR: [{ invoiceNumber: { contains: q } }, { customer: { name: { contains: q } } }],
+        OR: [
+          { invoiceNumber: { contains: q } },
+          { customer: { name: { contains: q } } },
+          { customerName: { contains: q } },
+        ],
       }
     : {};
 
@@ -90,7 +95,7 @@ export default async function InvoicesPage({
                 return (
                   <tr key={inv.id}>
                     <Td className="font-mono text-xs">{inv.invoiceNumber}</Td>
-                    <Td>{inv.customer?.name ?? "—"}</Td>
+                    <Td>{invoiceCustomerName(inv) || "—"}</Td>
                     <Td>{inv.tripId ? tripProgramName(tripsById.get(inv.tripId)) : "—"}</Td>
                     <Td>{formatDate(inv.docDate)}</Td>
                     <Td className="font-medium text-slate-800">
@@ -120,7 +125,7 @@ export default async function InvoicesPage({
                       {(() => {
                         const wa = waLink(
                           inv.customer?.phone,
-                          `مرحباً ${inv.customer?.name ?? ""}، مرفق فاتورتكم رقم ${inv.invoiceNumber} من ${agencyName}. شكراً لتعاملكم معنا.`
+                          `مرحباً ${invoiceCustomerName(inv)}، مرفق فاتورتكم رقم ${inv.invoiceNumber} من ${agencyName}. شكراً لتعاملكم معنا.`
                         );
                         return wa ? (
                           <a href={wa} target="_blank" rel="noreferrer" className="text-green-600 text-sm hover:underline whitespace-nowrap">

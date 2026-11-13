@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { websiteList } from "@/lib/format";
+import { invoiceCustomerName } from "@/lib/invoiceCustomer";
 import type { InvoiceItem } from "@/app/(app)/invoices/actions";
 import type { Person } from "@/lib/invitation";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
@@ -198,7 +199,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ kind: s
     const rows: Row[] = [
       { ar: "رقم الفاتورة", fr: "N° de facture", value: inv.invoiceNumber, ltr: true },
       { ar: "التاريخ", fr: "Date", value: fmt(inv.docDate), ltr: true },
-      { ar: "العميل", fr: "Client", value: inv.customer?.name?.trim() || "—" },
+      { ar: "العميل", fr: "Client", value: invoiceCustomerName(inv) || "—" },
     ];
     if (inv.trip?.program?.name) rows.push({ ar: "الرحلة", fr: "Voyage", value: inv.trip.program.name });
     if (inv.trip) {

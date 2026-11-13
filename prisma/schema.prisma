@@ -340,6 +340,9 @@ model Invoice {
   tripId        String?
   customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerId    String?
+  // عميل مكتوب يدوياً (بدل اختياره من العملاء المسجَّلين) — الاسم وبيانات إضافية اختيارية
+  customerName    String?
+  customerDetails String? @db.Text
   currency      String    @default("DZD")
   items         Json      // [{ description, qty, unitPrice }]
   discount      Float     @default(0)

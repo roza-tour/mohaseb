@@ -1,11 +1,14 @@
 import { Card, Field, Select, Input, Textarea, Button, LinkButton } from "@/components/ui";
 import { formatDate, formatDateForInput } from "@/lib/format";
 import { ItemsEditor } from "./ItemsEditor";
+import { CustomerPicker } from "./CustomerPicker";
 import { CURRENCIES } from "@/lib/currencies";
 
 export type InvoiceInitial = {
   tripId: string;
   customerId: string;
+  customerName: string;
+  customerDetails: string;
   docDate: string;
   currency: string;
   items: { description: string; qty: string; unitPrice: string }[];
@@ -47,16 +50,12 @@ export function InvoiceForm({
               ))}
             </Select>
           </Field>
-          <Field label="العميل">
-            <Select name="customerId" defaultValue={initial.customerId}>
-              <option value="">بدون عميل</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <CustomerPicker
+            customers={customers}
+            initialId={initial.customerId}
+            initialName={initial.customerName}
+            initialDetails={initial.customerDetails}
+          />
           <Field label="تاريخ الفاتورة">
             <Input type="date" name="docDate" defaultValue={initial.docDate || formatDateForInput(new Date())} />
           </Field>
