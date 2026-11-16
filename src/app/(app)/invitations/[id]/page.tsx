@@ -66,6 +66,7 @@ export default async function EditInvitationPage({
             : [],
           arrivalDate: invitation.arrivalDate ? formatDateForInput(invitation.arrivalDate) : "",
           departureDate: invitation.departureDate ? formatDateForInput(invitation.departureDate) : "",
+          docDate: formatDateForInput(invitation.docDate),
           fee: invitation.fee,
           feeCurrency: invitation.feeCurrency,
           itinerary: invitation.itinerary ?? "",

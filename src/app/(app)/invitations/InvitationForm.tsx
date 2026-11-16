@@ -11,6 +11,7 @@ export type InvitationInitial = {
   people: { name: string; passport: string }[];
   arrivalDate: string;
   departureDate: string;
+  docDate: string;
   fee: number;
   feeCurrency: string;
   itinerary: string;
@@ -25,6 +26,7 @@ const BLANK: InvitationInitial = {
   people: [],
   arrivalDate: "",
   departureDate: "",
+  docDate: "",
   fee: 20,
   feeCurrency: "USD",
   itinerary: "",
@@ -87,6 +89,15 @@ export function InvitationForm({
           <PeopleEditor customers={customers} initial={v.people} />
         </Field>
 
+        <Field label="تاريخ الدعوة (يظهر أعلى الدعوة: «M'Sila, le …»)">
+          <Input
+            type="date"
+            name="docDate"
+            className="max-w-xs"
+            defaultValue={v.docDate || formatDateForInput(new Date())}
+          />
+        </Field>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="تاريخ الوصول">
             <Input type="date" name="arrivalDate" defaultValue={v.arrivalDate} />
@@ -130,7 +141,6 @@ export function InvitationForm({
             : "سيُسجَّل رسم الدعوة تلقائياً كإيراد (مستحق خدمة) في الحسابات عند الإصدار."}
         </p>
 
-        {!isEdit && <input type="hidden" name="docDate" defaultValue={formatDateForInput(new Date())} />}
 
         <div className="flex items-center gap-2">
           <Button type="submit">{submitLabel}</Button>

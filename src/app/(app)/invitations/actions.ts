@@ -17,6 +17,8 @@ const schema = z.object({
   itinerary: z.string().optional().default(""),
   arrivalDate: z.coerce.date().optional(),
   departureDate: z.coerce.date().optional(),
+  // تاريخ الدعوة (يظهر في رأسها مع مكان التحرير) — الفارغ = اليوم
+  docDate: z.coerce.date().optional(),
   fee: z.coerce.number().min(0).default(20),
   feeCurrency: z.string().min(1).default("USD"),
   notes: z.string().optional().transform((v) => (v && v.trim() !== "" ? v : null)),
@@ -33,6 +35,7 @@ export async function createInvitation(formData: FormData) {
     itinerary: formData.get("itinerary") ?? "",
     arrivalDate: formData.get("arrivalDate") || undefined,
     departureDate: formData.get("departureDate") || undefined,
+    docDate: formData.get("docDate") || undefined,
     fee: formData.get("fee") || undefined,
     feeCurrency: formData.get("feeCurrency") || undefined,
     notes: formData.get("notes") ?? undefined,
@@ -53,7 +56,7 @@ export async function createInvitation(formData: FormData) {
     redirect(withError("/invitations/new", "أضِف شخصاً واحداً على الأقل للدعوة"));
   }
 
-  const docDate = new Date();
+  const docDate = d.docDate ?? new Date();
   const refNumber = await nextDocNumber("invitation", docDate.getFullYear());
 
   const created = await prisma.invitation.create({
@@ -95,7 +98,7 @@ export async function createInvitation(formData: FormData) {
   redirect(`/invitations/${created.id}/pdf`);
 }
 
-// تعديل دعوة صادرة (يحتفظ بالرقم المرجعي وتاريخ الإصدار)
+// تعديل دعوة صادرة (يحتفظ بالرقم المرجعي، والتاريخ قابل للتعديل)
 export async function updateInvitation(id: string, formData: FormData) {
   await requireUser();
 
@@ -111,6 +114,7 @@ export async function updateInvitation(id: string, formData: FormData) {
     itinerary: formData.get("itinerary") ?? "",
     arrivalDate: formData.get("arrivalDate") || undefined,
     departureDate: formData.get("departureDate") || undefined,
+    docDate: formData.get("docDate") || undefined,
     fee: formData.get("fee") || undefined,
     feeCurrency: formData.get("feeCurrency") || undefined,
     notes: formData.get("notes") ?? undefined,
@@ -142,8 +146,11 @@ export async function updateInvitation(id: string, formData: FormData) {
       fee: d.fee,
       feeCurrency: d.feeCurrency,
       notes: d.notes,
+      // التاريخ قابل للتعديل؛ الرقم المرجعي لا يتغيّر
+      docDate: d.docDate ?? existing.docDate,
     },
   });
+  const newDate = d.docDate ?? existing.docDate;
 
   // مزامنة قيد الإيراد المرتبط مع الرسم الجديد
   const linked = await prisma.transaction.findFirst({ where: { invitationId: id } });
@@ -151,7 +158,7 @@ export async function updateInvitation(id: string, formData: FormData) {
     if (linked) {
       await prisma.transaction.update({
         where: { id: linked.id },
-        data: { amount: d.fee, currency: d.feeCurrency },
+        data: { amount: d.fee, currency: d.feeCurrency, date: newDate },
       });
     } else {
       await prisma.transaction.create({
@@ -160,7 +167,7 @@ export async function updateInvitation(id: string, formData: FormData) {
           category: "خدمة دعوة",
           amount: d.fee,
           currency: d.feeCurrency,
-          date: existing.docDate,
+          date: newDate,
           description: `رسم دعوة ${existing.refNumber}`,
           invitationId: id,
         },
