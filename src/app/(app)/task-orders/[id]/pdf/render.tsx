@@ -2,7 +2,7 @@ import { Document, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer"
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
 import { MixedText } from "@/lib/pdf/MixedText";
-import { RefBar, DocTitle, SectionTitle, GridTable, docStyle } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, PlaceDateLine, SectionTitle, GridTable, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng } from "@/lib/qr";
@@ -183,8 +183,9 @@ export function buildTaskOrderDoc({
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.orderNo} ${order.ref}`} date={handedOverLine(settings, lang, fmt(order.issueDate))} rtl={rtl} style={style} />
+        <RefBar number={`${t.orderNo} ${order.ref}`} date="" rtl={rtl} style={style} />
         <DocTitle text={title} rtl={rtl} style={style} />
+        <PlaceDateLine text={handedOverLine(settings, lang, fmt(order.issueDate))} rtl={rtl} style={style} />
 
         <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />
         <GridTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} style={style} />

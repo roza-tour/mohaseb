@@ -1,5 +1,6 @@
-// مكان التحرير والتاريخ في رأس كل مستند: «المسيلة في 16/11/2026» / «M'Sila, le 16/11/2026»
-// (بدل التاريخ وحده أعلى الصفحة، وبدل «حُرّر في ...» تحت التوقيع والختم).
+// مكان التحرير والتاريخ: «حُرّر بالمسيلة في 16/11/2026» / «Fait à M'Sila, le 16/11/2026».
+// يُرسم سطراً في متن المستند تحت العنوان (PlaceDateLine) — لا أعلى يمين الصفحة،
+// لأن ختم الوكالة يُوضع هناك ويغطّيه.
 import type { Settings } from "@prisma/client";
 
 export type PlaceLang = "ar" | "fr" | "en";
@@ -7,7 +8,8 @@ export type PlaceLang = "ar" | "fr" | "en";
 export function placeDate(settings: Pick<Settings, "cityAr" | "cityFr"> | null, lang: PlaceLang, date: string): string {
   const ar = settings?.cityAr?.trim() ?? "";
   const fr = settings?.cityFr?.trim() ?? "";
-  if (lang === "ar") return ar ? `${ar} في ${date}` : date;
-  if (lang === "fr") return fr ? `${fr}, le ${date}` : date;
-  return fr ? `${fr}, ${date}` : date;
+  // «ب» + المدينة: بالمسيلة، بولاية المسيلة
+  if (lang === "ar") return ar ? `حُرّر ب${ar} في ${date}` : `حُرّر في ${date}`;
+  if (lang === "fr") return fr ? `Fait à ${fr}, le ${date}` : `Fait le ${date}`;
+  return fr ? `Issued in ${fr} on ${date}` : `Issued on ${date}`;
 }

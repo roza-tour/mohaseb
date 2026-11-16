@@ -134,7 +134,7 @@ export function buildInvitationDoc({
     <Document>
       {/* ---------- الصفحة الأولى: خطاب الدعوة ---------- */}
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`N° ${inv.refNumber}`} date={placeDate(settings, lang, fmt(inv.docDate))} rtl={rtl} style={style} />
+        <RefBar number={`N° ${inv.refNumber}`} date="" rtl={rtl} style={style} />
         <DocTitle text={t.title} rtl={rtl} style={style} />
 
         <Para text={t.recipient} bold />
@@ -197,7 +197,15 @@ export function buildInvitationDoc({
 
         {/* التوقيع — كتلة واحدة لا تنقسم بين صفحتين (وإلا ظهرت صفحة شبه فارغة) */}
         <View wrap={false} style={[styles.signBlock, { alignItems: rtl ? "flex-start" : "flex-end" }]}>
-          {/* المكان والتاريخ صارا في رأس الصفحة — لا تاريخ تحت التوقيع والختم */}
+          {/* «Fait à M'Sila, le …» / «حُرّر بالمسيلة في …» فوق اسم الوكالة في التوقيع */}
+          <MixedText
+            text={placeDate(settings, lang, fmt(inv.docDate))}
+            size={st.fontSize - 0.5}
+            align={rtl ? "right" : "left"}
+            baseDir={rtl ? "auto" : "ltr"}
+            containerStyle={{ marginBottom: 4 }}
+            style={{ fontSize: st.fontSize - 0.5, color: st.textColor }}
+          />
           <View style={styles.signRule}>
             <MixedText text={t.agency} size={11.5} align="center" baseDir={baseDir} style={{ fontWeight: "bold", color: st.accentColor }} />
           </View>
@@ -206,7 +214,7 @@ export function buildInvitationDoc({
 
       {/* ---------- الصفحة الثانية: مخطط الرحلة ---------- */}
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`N° ${inv.refNumber}`} date={placeDate(settings, lang, fmt(inv.docDate))} rtl={rtl} style={style} />
+        <RefBar number={`N° ${inv.refNumber}`} date="" rtl={rtl} style={style} />
 
         <SectionTitle text={t.itineraryTitle} rtl={rtl} style={style} />
 

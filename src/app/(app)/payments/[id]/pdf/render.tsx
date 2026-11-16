@@ -1,7 +1,7 @@
 import { Document, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
-import { RefBar, DocTitle, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, PlaceDateLine, SectionTitle, InfoTable, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { nameOr } from "@/lib/format";
@@ -107,8 +107,9 @@ export function buildReceiptDoc({
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.receiptNo} ${p.receiptNumber}`} date={placeDate(settings, lang, fmt(p.paidAt))} rtl={rtl} style={style} />
+        <RefBar number={`${t.receiptNo} ${p.receiptNumber}`} date="" rtl={rtl} style={style} />
         <DocTitle text={t.title} rtl={rtl} style={style} />
+        <PlaceDateLine text={placeDate(settings, lang, fmt(p.paidAt))} rtl={rtl} style={style} />
 
         <View style={[styles.amountBox, { border: `1.5px solid ${st.accentColor}` }]}>
           <Text style={styles.amountLabel}>{t.amountLabel}</Text>

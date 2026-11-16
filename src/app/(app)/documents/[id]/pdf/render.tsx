@@ -6,7 +6,7 @@ import { placeDate } from "@/lib/pdf/placeDate";
 import { parseBodyLines, parseDocStyle, settingsDocStyle, PAGE_BREAK } from "@/lib/documents";
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
-import { RefBar, DocTitle } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, PlaceDateLine } from "@/lib/pdf/chrome";
 import { WorkCertificatePdf } from "@/lib/pdf/WorkCertificatePdf";
 import { WORK_CERTIFICATE, readCertData } from "@/lib/workCertificate";
 
@@ -132,11 +132,16 @@ export async function renderDocumentPdf(id: string): Promise<{ buffer: Buffer; d
             <>
               <RefBar
                 number={`N° ${doc.docNumber}`}
-                date={placeDate(settings, docLang, formatDate(doc.docDate))}
+                date=""
                 rtl
                 style={style}
               />
               {doc.title.trim() ? <DocTitle text={doc.title} rtl style={style} /> : null}
+              <PlaceDateLine
+                text={placeDate(settings, docLang, formatDate(doc.docDate))}
+                rtl={docLang === "ar"}
+                style={style}
+              />
             </>
           ) : null}
           {renderBody(pageText)}

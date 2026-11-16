@@ -9,7 +9,7 @@ import { invoiceCustomerName } from "@/lib/invoiceCustomer";
 import { placeDate } from "@/lib/pdf/placeDate";
 import { genToken, verifyUrl } from "@/lib/share";
 import { nameOr } from "@/lib/format";
-import { RefBar, DocTitle, docStyle } from "@/lib/pdf/chrome";
+import { RefBar, DocTitle, PlaceDateLine, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle } from "@/lib/documents";
 import type { InvoiceItem } from "../../actions";
 
@@ -168,11 +168,12 @@ export async function renderInvoicePdf(
       <LetterheadPage settings={settings} stamp={invoice.showStamp ? stampBuffer : null} qr={qr}>
         <RefBar
           number={`${t.invoiceNo} ${invoice.invoiceNumber}`}
-          date={placeDate(settings, lang, formatDate(invoice.docDate))}
+          date=""
           rtl={lang !== "fr" && lang !== "en"}
           style={st}
         />
         <DocTitle text={t.title} rtl={lang !== "fr" && lang !== "en"} style={st} />
+        <PlaceDateLine text={placeDate(settings, lang, formatDate(invoice.docDate))} rtl={lang === "ar"} style={st} />
 
         <View style={styles.partyRow}>
           <View style={styles.partyBox}>

@@ -226,3 +226,19 @@ export function GridTable({
     </View>
   );
 }
+
+// سطر «حُرّر بالمسيلة في ...» تحت عنوان المستند: يسار الصفحة بالعربية ويمينها بالفرنسية.
+// (أعلى يمين الصفحة يحتلّه ختم الوكالة، فلا يوضع التاريخ هناك.)
+export function PlaceDateLine({ text, rtl, style }: { text: string; rtl: boolean } & Styled) {
+  const st = docStyle(style);
+  return (
+    <MixedText
+      text={text}
+      size={st.fontSize - 0.5}
+      align={rtl ? "left" : "right"}
+      baseDir={rtl ? "auto" : "ltr"}
+      containerStyle={{ marginTop: -4, marginBottom: 12 }}
+      style={{ fontSize: st.fontSize - 0.5, color: st.textColor, fontWeight: "bold" }}
+    />
+  );
+}
