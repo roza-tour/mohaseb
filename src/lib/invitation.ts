@@ -11,7 +11,6 @@ export type InvData = {
   program: string;
   arrival: string; // مُنسّق dd/mm/yyyy
   departure: string;
-  today: string;
 };
 
 export type InvBody = {
@@ -23,7 +22,6 @@ export type InvBody = {
   intro: string;
   paras: string[];
   closing: string;
-  doneOn: string;
   agency: string;
   peopleTitle: string;
   cols: { n: string; name: string; passport: string };
@@ -49,7 +47,6 @@ export function invitationBody(lang: InvLang, d: InvData): InvBody {
         `وعليه، نرجو من سيادتكم التكرّم بمنح ${many ? "المعنيّين" : "المعني"} التأشيرة اللازمة لتحقيق هذه الرحلة.`,
       ],
       closing: "وتفضّلوا بقبول فائق الاحترام والتقدير.",
-      doneOn: `حُرِّر في ${d.today}`,
       agency: d.agency,
       peopleTitle: many ? "قائمة المعنيّين بالدعوة" : "بيانات المعني بالدعوة",
       cols: { n: "م", name: "الاسم الكامل", passport: "رقم جواز السفر" },
@@ -75,7 +72,6 @@ export function invitationBody(lang: InvLang, d: InvData): InvBody {
         } concerned the visa necessary to carry out this trip.`,
       ],
       closing: "Please accept the assurance of our highest consideration.",
-      doneOn: `Done on ${d.today}`,
       agency: d.agency,
       peopleTitle: many ? "List of persons concerned" : "Person concerned",
       cols: { n: "No.", name: "Full name", passport: "Passport No." },
@@ -100,7 +96,6 @@ export function invitationBody(lang: InvLang, d: InvData): InvBody {
       } le visa nécessaire pour la réalisation de ce voyage.`,
     ],
     closing: "Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.",
-    doneOn: `Fait le ${d.today}`,
     agency: d.agency,
     peopleTitle: many ? "Liste des personnes concernées" : "Personne concernée",
     cols: { n: "N°", name: "Nom et prénom", passport: "N° de passeport" },

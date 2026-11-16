@@ -260,9 +260,3 @@ export function certificateBody(d: CertData, o: { agencyName: string; agencyAddr
 export function certificateTitle(lang: CertLang): { main: string } {
   return { main: lang === "ar" ? "شهادة عمل" : "ATTESTATION DE TRAVAIL" };
 }
-
-// «حُرّر بـ ... في ...» / «Fait à ..., le ...»
-export function madeAt(d: CertData, date: Date): string {
-  if (d.lang === "ar") return d.city ? `حُرّر بـ ${d.city} في ${fmt(date)}` : `حُرّر في ${fmt(date)}`;
-  return d.city ? `Fait à ${d.city}, le ${fmt(date)}` : `Fait le ${fmt(date)}`;
-}

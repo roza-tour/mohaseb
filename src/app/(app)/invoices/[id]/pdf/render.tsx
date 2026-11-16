@@ -6,6 +6,7 @@ import { MixedText } from "@/lib/pdf/MixedText";
 import { dirStyles, type Lang } from "@/lib/pdf/docLang";
 import { makeQrPng } from "@/lib/qr";
 import { invoiceCustomerName } from "@/lib/invoiceCustomer";
+import { placeDate } from "@/lib/pdf/placeDate";
 import { genToken, verifyUrl } from "@/lib/share";
 import { nameOr } from "@/lib/format";
 import { RefBar, DocTitle, docStyle } from "@/lib/pdf/chrome";
@@ -167,7 +168,7 @@ export async function renderInvoicePdf(
       <LetterheadPage settings={settings} stamp={invoice.showStamp ? stampBuffer : null} qr={qr}>
         <RefBar
           number={`${t.invoiceNo} ${invoice.invoiceNumber}`}
-          date={formatDate(invoice.docDate)}
+          date={placeDate(settings, lang, formatDate(invoice.docDate))}
           rtl={lang !== "fr" && lang !== "en"}
           style={st}
         />

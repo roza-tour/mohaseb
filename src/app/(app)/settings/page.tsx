@@ -78,6 +78,14 @@ export default async function SettingsPage({
             <Field label="العنوان">
               <Input name="agencyAddress" defaultValue={settings?.agencyAddress ?? ""} />
             </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="مكان التحرير بالعربية (يُكتب مع التاريخ: «المسيلة في ...»)">
+                <Input name="cityAr" defaultValue={settings?.cityAr ?? "المسيلة"} placeholder="المسيلة" />
+              </Field>
+              <Field label="مكان التحرير بالفرنسية/الإنجليزية («M'Sila, le ...»)">
+                <Input name="cityFr" dir="ltr" defaultValue={settings?.cityFr ?? "M'Sila"} placeholder="M'Sila" />
+              </Field>
+            </div>
             <Field label="المواقع الإلكترونية (تظهر في تذييل كل المستندات — اكتب أكثر من موقع مفصولة بفاصلة)">
               <Input
                 name="agencyWebsite"

@@ -7,6 +7,7 @@ import { PAYMENT_METHOD_LABELS } from "@/lib/payments";
 import { nameOr } from "@/lib/format";
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
+import { placeDate } from "@/lib/pdf/placeDate";
 
 registerArabicFonts();
 
@@ -106,7 +107,7 @@ export function buildReceiptDoc({
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.receiptNo} ${p.receiptNumber}`} date={fmt(p.paidAt)} rtl={rtl} style={style} />
+        <RefBar number={`${t.receiptNo} ${p.receiptNumber}`} date={placeDate(settings, lang, fmt(p.paidAt))} rtl={rtl} style={style} />
         <DocTitle text={t.title} rtl={rtl} style={style} />
 
         <View style={[styles.amountBox, { border: `1.5px solid ${st.accentColor}` }]}>

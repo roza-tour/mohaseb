@@ -33,6 +33,9 @@ model Settings {
   managerNameFr   String   @default("") // اسم الموقّع بالحروف اللاتينية للشهادات الفرنسية
   managerTitle    String   @default("")
   agencyCity      String   @default("")
+  // مكان التحرير بجانب التاريخ في كل المستندات: «المسيلة في ...» / «M'Sila, le ...»
+  cityAr          String   @default("المسيلة")
+  cityFr          String   @default("M'Sila")
   logoPath        String?
   stampPath       String?
   letterheadColor String   @default("#1f3864") // لون اسم الوكالة والشريط في ورق الشركة

@@ -3,11 +3,11 @@
 import { Document as PdfDocument, View, Text, Image } from "@react-pdf/renderer";
 import type { Settings } from "@prisma/client";
 import { LetterheadPage } from "@/lib/pdf/letterhead";
+import { placeDate } from "@/lib/pdf/placeDate";
 import { MixedText } from "@/lib/pdf/MixedText";
 import {
   certificateRows,
   certificateTitle,
-  madeAt,
   signerTitleOf,
   type CertData,
 } from "@/lib/workCertificate";
@@ -156,7 +156,13 @@ export function WorkCertificatePdf({
             {/* الرقم والتاريخ */}
             <View style={{ flexDirection: dir, justifyContent: "space-between", marginBottom: 8 }}>
               <Text style={{ fontSize: 9, color: "#475569" }}>{`N° ${docNumber}`}</Text>
-              <Text style={{ fontSize: 9, color: "#475569" }}>{fmt(docDate)}</Text>
+              <MixedText
+                text={placeDate(settings, data.lang, fmt(docDate))}
+                size={9}
+                align={ar ? "left" : "right"}
+                baseDir={baseDir}
+                style={{ fontSize: 9, color: "#475569" }}
+              />
             </View>
 
             {/* العنوان بلغة الشهادة فقط */}
@@ -195,18 +201,8 @@ export function WorkCertificatePdf({
 
             {/* كتلة التوقيع والختم — يمين الورقة في الفرنسية، يسارها في العربية */}
             <View style={{ flexGrow: 1 }} />
-            <View
-              style={{ flexDirection: dir, justifyContent: "space-between", alignItems: "flex-start", marginTop: 8 }}
-              wrap={false}
-            >
-              <MixedText
-                text={madeAt(data, docDate)}
-                size={10.5}
-                align={align}
-                baseDir={baseDir}
-                containerStyle={{ paddingTop: 2 }}
-                style={{ fontSize: 10.5, color: "#334155" }}
-              />
+            {/* المكان والتاريخ في رأس الشهادة — لا تاريخ تحت التوقيع والختم */}
+            <View style={{ flexDirection: dir, justifyContent: "flex-end", marginTop: 8 }} wrap={false}>
               <View style={{ width: 210, alignItems: "center" }}>
                 <MixedText
                   text={signerTitleOf(data)}

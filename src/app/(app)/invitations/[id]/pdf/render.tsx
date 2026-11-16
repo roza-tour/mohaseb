@@ -7,6 +7,7 @@ import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
 import { RefBar, DocTitle, SectionTitle, docStyle } from "@/lib/pdf/chrome";
 import { settingsDocStyle, type DocumentStyle } from "@/lib/documents";
+import { placeDate } from "@/lib/pdf/placeDate";
 
 registerArabicFonts();
 
@@ -88,7 +89,6 @@ export function buildInvitationDoc({
     program: inv.programName || "",
     arrival: fmt(inv.arrivalDate),
     departure: fmt(inv.departureDate),
-    today: fmt(inv.docDate),
   });
 
   const itinerary = inv.itinerary.trim();
@@ -134,7 +134,7 @@ export function buildInvitationDoc({
     <Document>
       {/* ---------- الصفحة الأولى: خطاب الدعوة ---------- */}
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`N° ${inv.refNumber}`} date={fmt(inv.docDate)} rtl={rtl} style={style} />
+        <RefBar number={`N° ${inv.refNumber}`} date={placeDate(settings, lang, fmt(inv.docDate))} rtl={rtl} style={style} />
         <DocTitle text={t.title} rtl={rtl} style={style} />
 
         <Para text={t.recipient} bold />
@@ -197,7 +197,7 @@ export function buildInvitationDoc({
 
         {/* التوقيع — كتلة واحدة لا تنقسم بين صفحتين (وإلا ظهرت صفحة شبه فارغة) */}
         <View wrap={false} style={[styles.signBlock, { alignItems: rtl ? "flex-start" : "flex-end" }]}>
-          <Text style={{ fontSize: 9, color: "#475569", textAlign: align }}>{t.doneOn}</Text>
+          {/* المكان والتاريخ صارا في رأس الصفحة — لا تاريخ تحت التوقيع والختم */}
           <View style={styles.signRule}>
             <MixedText text={t.agency} size={11.5} align="center" baseDir={baseDir} style={{ fontWeight: "bold", color: st.accentColor }} />
           </View>
@@ -206,7 +206,7 @@ export function buildInvitationDoc({
 
       {/* ---------- الصفحة الثانية: مخطط الرحلة ---------- */}
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`N° ${inv.refNumber}`} date={fmt(inv.docDate)} rtl={rtl} style={style} />
+        <RefBar number={`N° ${inv.refNumber}`} date={placeDate(settings, lang, fmt(inv.docDate))} rtl={rtl} style={style} />
 
         <SectionTitle text={t.itineraryTitle} rtl={rtl} style={style} />
 

@@ -114,6 +114,17 @@ function groupRows(group: FieldGroup, fields: FieldValues, lang: "ar" | "fr"): [
   );
 }
 
+// «سُلّمت هذه المهمة في المسيلة بتاريخ ...» / «Mission remise à M'Sila le ...»
+function handedOverLine(
+  settings: { cityAr?: string | null; cityFr?: string | null } | null,
+  lang: "ar" | "fr",
+  date: string
+): string {
+  const city = (lang === "ar" ? settings?.cityAr : settings?.cityFr)?.trim();
+  if (lang === "ar") return city ? `سُلّمت هذه المهمة في ${city} بتاريخ ${date}` : `سُلّمت هذه المهمة بتاريخ ${date}`;
+  return city ? `Mission remise à ${city} le ${date}` : `Mission remise le ${date}`;
+}
+
 export function buildTaskOrderDoc({
   order,
   settings,
@@ -172,7 +183,7 @@ export function buildTaskOrderDoc({
   return (
     <Document>
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
-        <RefBar number={`${t.orderNo} ${order.ref}`} date={`${t.handedOver} ${fmt(order.issueDate)}`} rtl={rtl} style={style} />
+        <RefBar number={`${t.orderNo} ${order.ref}`} date={handedOverLine(settings, lang, fmt(order.issueDate))} rtl={rtl} style={style} />
         <DocTitle text={title} rtl={rtl} style={style} />
 
         <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />

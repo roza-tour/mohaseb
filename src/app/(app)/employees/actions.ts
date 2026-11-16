@@ -86,7 +86,6 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
   const signerCustom = str(formData, "signerTitleCustom");
   const signer = resolveSigner(signerKey, signerCustom, lang);
   const savedTitle = SIGNER_ROLES[signerKey] ? signerKey : signerCustom;
-  const city = str(formData, "city");
   const docDate = date(formData, "docDate") ?? new Date();
 
   const settings = await prisma.settings.upsert({
@@ -96,9 +95,8 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
       managerName: signerNameAr,
       managerNameFr: signerNameFr,
       managerTitle: savedTitle,
-      agencyCity: city,
     },
-    update: { managerName: signerNameAr, managerNameFr: signerNameFr, managerTitle: savedTitle, agencyCity: city },
+    update: { managerName: signerNameAr, managerNameFr: signerNameFr, managerTitle: savedTitle },
   });
 
   const agencyName = settings.agencyName || "ROZATOUR";
@@ -110,7 +108,8 @@ export async function issueWorkCertificate(id: string, formData: FormData) {
     signerTitle: signer.title,
     signerRole: signer.role,
     signerGender: signer.gender,
-    city,
+    // مكان التحرير صار من الإعدادات (يُكتب مع التاريخ في رأس الشهادة)
+    city: "",
     date: docDate,
   });
   const body = certificateBody(data, { agencyName, agencyAddress: settings.agencyAddress, date: docDate });

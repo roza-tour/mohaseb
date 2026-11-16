@@ -74,9 +74,6 @@ export default async function EditEmployeePage({
                     placeholder="Ex : BENYAHIA Mohamed"
                   />
                 </Field>
-                <Field label="مدينة التحرير (اختياري)">
-                  <Input name="city" defaultValue={settings?.agencyCity ?? ""} placeholder="مثال: جانت / Djanet" />
-                </Field>
                 <label className="flex items-center gap-2 text-sm text-slate-700 sm:pt-7">
                   <input type="checkbox" name="showStamp" defaultChecked />
                   إظهار الختم

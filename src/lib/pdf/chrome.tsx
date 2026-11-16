@@ -53,7 +53,14 @@ export function RefBar({
         <Text style={s.refText}>{date}</Text>
       ) : (
         // نص مع التاريخ (مثل «سُلّمت هذه المهمة بتاريخ ...») يحتاج معالجة الاتجاه
-        <MixedText text={date} size={9} align={rtl ? "left" : "right"} baseDir={rtl ? "auto" : "ltr"} style={s.refText} />
+        <MixedText
+          text={date}
+          size={9}
+          align={rtl ? "left" : "right"}
+          baseDir={rtl ? "auto" : "ltr"}
+          containerStyle={{ flexWrap: "nowrap" }}
+          style={s.refText}
+        />
       )}
     </View>
   );

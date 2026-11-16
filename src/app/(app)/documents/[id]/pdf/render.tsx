@@ -1,7 +1,8 @@
 import { Document as PdfDocument, View, renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/prisma";
 import { LetterheadPage, registerArabicFonts, loadPublicImage } from "@/lib/pdf/letterhead";
-import { MixedText } from "@/lib/pdf/MixedText";
+import { MixedText, detectBaseDir } from "@/lib/pdf/MixedText";
+import { placeDate } from "@/lib/pdf/placeDate";
 import { parseBodyLines, parseDocStyle, settingsDocStyle, PAGE_BREAK } from "@/lib/documents";
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
@@ -120,13 +121,21 @@ export async function renderDocumentPdf(id: string): Promise<{ buffer: Buffer; d
     </View>
   );
 
+  // لغة المستند من نصه: «المسيلة في ...» للعربي و«M'Sila, le ...» للفرنسي
+  const docLang = detectBaseDir(`${doc.title}\n${doc.body}`) === "rtl" ? "ar" : "fr";
+
   const pdf = (
     <PdfDocument>
       {pageTexts.map((pageText, p) => (
         <LetterheadPage key={p} settings={settings} stamp={stampBuffer} qr={qr}>
           {p === 0 ? (
             <>
-              <RefBar number={`N° ${doc.docNumber}`} date={formatDate(doc.docDate)} rtl style={style} />
+              <RefBar
+                number={`N° ${doc.docNumber}`}
+                date={placeDate(settings, docLang, formatDate(doc.docDate))}
+                rtl
+                style={style}
+              />
               {doc.title.trim() ? <DocTitle text={doc.title} rtl style={style} /> : null}
             </>
           ) : null}
