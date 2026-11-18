@@ -65,6 +65,12 @@ export default async function EmployeesPage({
                     >
                       📜 شهادة عمل
                     </Link>
+                    <Link
+                      href={`/employees/${e.id}#salary`}
+                      className="block text-emerald-600 text-sm hover:underline whitespace-nowrap"
+                    >
+                      💰 بيان راتب
+                    </Link>
                   </Td>
                 </tr>
               ))}

@@ -7,7 +7,8 @@ import { parseBodyLines, parseDocStyle, settingsDocStyle, PAGE_BREAK } from "@/l
 import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
 import { RefBar, DocTitle, PlaceDateLine } from "@/lib/pdf/chrome";
-import { WorkCertificatePdf } from "@/lib/pdf/WorkCertificatePdf";
+import { WorkCertificatePdf, FramedLetterPdf } from "@/lib/pdf/WorkCertificatePdf";
+import { SALARY_STATEMENT, readSalaryData, salaryPayRows, salaryRows, salaryTitle } from "@/lib/salaryStatement";
 import { WORK_CERTIFICATE, readCertData } from "@/lib/workCertificate";
 
 function formatDate(date: Date) {
@@ -39,6 +40,28 @@ export async function renderDocumentPdf(id: string): Promise<{ buffer: Buffer; d
     const buffer = await renderToBuffer(
       <WorkCertificatePdf
         data={cert}
+        body={doc.body}
+        docNumber={doc.docNumber}
+        docDate={doc.docDate}
+        settings={settings}
+        stamp={stampBuffer}
+        qr={qr}
+      />
+    );
+    return { buffer, docNumber: doc.docNumber };
+  }
+
+  // بيان الراتب: نفس تصميم شهادة العمل + جدول المبالغ
+  const salary = doc.kind === SALARY_STATEMENT ? readSalaryData(doc.data) : null;
+  if (salary) {
+    const buffer = await renderToBuffer(
+      <FramedLetterPdf
+        lang={salary.lang}
+        title={salaryTitle(salary.lang)}
+        rows={salaryRows(salary)}
+        payRows={salaryPayRows(salary)}
+        signerTitle={salary.signerTitle || (salary.lang === "ar" ? "المسيّر" : "Le Gérant")}
+        signerName={salary.signerName}
         body={doc.body}
         docNumber={doc.docNumber}
         docDate={doc.docDate}

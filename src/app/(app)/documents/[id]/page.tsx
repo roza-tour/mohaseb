@@ -7,6 +7,7 @@ import { parseDocStyle } from "@/lib/documents";
 import { updateDocument } from "../actions";
 import { DocumentForm } from "../DocumentForm";
 import { WORK_CERTIFICATE } from "@/lib/workCertificate";
+import { SALARY_STATEMENT } from "@/lib/salaryStatement";
 
 export default async function EditDocumentPage({
   params,
@@ -41,6 +42,13 @@ export default async function EditDocumentPage({
       />
 
       <ErrorBanner message={sp.error} />
+
+      {doc.kind === SALARY_STATEMENT && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 max-w-3xl">
+          💰 هذا بيان راتب بتصميم خاص: الفقرة الأولى تظهر قبل الجدولين والفقرة الثانية بعدهما (افصل بينهما بسطر
+          فارغ). لتغيير المبالغ أو الشهر أصدر بياناً جديداً من صفحة الموظف.
+        </div>
+      )}
 
       {doc.kind === WORK_CERTIFICATE && (
         <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 max-w-3xl">

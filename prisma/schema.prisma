@@ -494,6 +494,10 @@ model Employee {
   jobTitle         String?   // الوظيفة
   startDate        DateTime? // تاريخ بداية العمل
   endDate          DateTime? // تاريخ نهاية العمل (فارغ = ما زال يعمل)
+  // نظام الأجر لبيان الراتب: salary = راتب ثابت، commission = نسبة، both = الاثنان
+  payType          String    @default("salary")
+  baseSalary       Float?    // الراتب الشهري الثابت
+  commissionRate   Float?    // نسبة العمولة (%)
   notes            String?   @db.Text
   createdAt        DateTime  @default(now())
 }

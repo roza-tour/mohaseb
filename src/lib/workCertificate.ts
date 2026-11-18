@@ -147,7 +147,7 @@ function durationText(start: Date, end: Date, lang: CertLang): string {
 }
 
 // «de» الفرنسية تُختصر قبل حرف علّة أو h: «en qualité d'Agent»
-function deFr(word: string): string {
+export function deFr(word: string): string {
   return /^[aeiouyhàâäéèêëîïôöùûü]/i.test(word) ? `d'${word}` : `de ${word}`;
 }
 

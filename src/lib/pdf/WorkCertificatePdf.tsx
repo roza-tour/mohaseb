@@ -5,12 +5,7 @@ import type { Settings } from "@prisma/client";
 import { LetterheadPage } from "@/lib/pdf/letterhead";
 import { placeDate } from "@/lib/pdf/placeDate";
 import { MixedText } from "@/lib/pdf/MixedText";
-import {
-  certificateRows,
-  certificateTitle,
-  signerTitleOf,
-  type CertData,
-} from "@/lib/workCertificate";
+import { certificateRows, certificateTitle, signerTitleOf, type CertData } from "@/lib/workCertificate";
 
 function fmt(d: Date): string {
   const day = String(d.getUTCDate()).padStart(2, "0");
@@ -61,10 +56,10 @@ function CertTable({ rows, rtl, color }: { rows: [string, string][]; rtl: boolea
             ...(i > 0 ? { borderTop: "0.6px solid #cbd5e1" } : {}),
           }}
         >
-          <View style={{ width: 175, backgroundColor: "#f1f5f9", paddingVertical: 5, paddingHorizontal: 8 }}>
+          <View style={{ width: 175, backgroundColor: "#f1f5f9", paddingVertical: 4, paddingHorizontal: 8 }}>
             <Text style={{ fontSize: 10, fontWeight: "bold", color: "#334155", textAlign: align }}>{label}</Text>
           </View>
-          <View style={{ flex: 1, paddingVertical: 5, paddingHorizontal: 8 }}>
+          <View style={{ flex: 1, paddingVertical: 4, paddingHorizontal: 8 }}>
             <MixedText
               text={value}
               size={10.5}
@@ -79,8 +74,71 @@ function CertTable({ rows, rtl, color }: { rows: [string, string][]; rtl: boolea
   );
 }
 
-export function WorkCertificatePdf({
-  data,
+// جدول المبالغ (بيان الراتب): البيان | المبلغ، وسطر الإجمالي بارز في آخره
+export type PayRow = { label: string; amount: string; total?: boolean; muted?: boolean };
+
+function PayTable({ rows, rtl, color }: { rows: PayRow[]; rtl: boolean; color: string }) {
+  const align = rtl ? ("right" as const) : ("left" as const);
+  const end = rtl ? ("left" as const) : ("right" as const);
+  return (
+    <View style={{ border: `0.8px solid ${color}` }}>
+      {rows.map((r, i) => (
+        <View
+          key={`${r.label}-${i}`}
+          style={{
+            flexDirection: rtl ? "row-reverse" : "row",
+            ...(i > 0 ? { borderTop: r.total ? `1.2px solid ${color}` : "0.6px solid #cbd5e1" } : {}),
+            ...(r.total ? { backgroundColor: "#f1f5f9" } : {}),
+          }}
+        >
+          <View style={{ flex: 1, paddingVertical: 4, paddingHorizontal: 8 }}>
+            <MixedText
+              text={r.label}
+              size={r.total ? 11 : 10.5}
+              align={align}
+              baseDir={rtl ? "auto" : "ltr"}
+              style={{
+                fontSize: r.total ? 11 : 10.5,
+                fontWeight: r.total ? "bold" : "normal",
+                color: r.total ? color : r.muted ? "#64748b" : "#1e293b",
+              }}
+            />
+          </View>
+          <View
+            style={{
+              width: 150,
+              paddingVertical: 4,
+              paddingHorizontal: 8,
+              borderLeft: rtl ? "none" : "0.6px solid #cbd5e1",
+              borderRight: rtl ? "0.6px solid #cbd5e1" : "none",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: r.total ? 11.5 : 10.5,
+                fontWeight: "bold",
+                color: r.total ? color : "#0f172a",
+                textAlign: end,
+              }}
+            >
+              {r.amount}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// رسالة رسمية بإطار مزخرف (شهادة العمل، بيان الراتب): مقدمة، جدول بيانات، جدول مبالغ
+// اختياري، فقرات ختامية، وكتلة توقيع وختم.
+export function FramedLetterPdf({
+  lang,
+  title: mainTitle,
+  rows,
+  payRows,
+  signerTitle,
+  signerName,
   body,
   docNumber,
   docDate,
@@ -88,7 +146,12 @@ export function WorkCertificatePdf({
   stamp,
   qr,
 }: {
-  data: CertData;
+  lang: "ar" | "fr";
+  title: string;
+  rows: [string, string][];
+  payRows?: PayRow[];
+  signerTitle: string;
+  signerName: string;
   body: string;
   docNumber: string;
   docDate: Date;
@@ -96,14 +159,13 @@ export function WorkCertificatePdf({
   stamp: Buffer | null;
   qr: Buffer | null;
 }) {
-  const ar = data.lang === "ar";
+  const ar = lang === "ar";
   const color = settings?.letterheadColor || "#1f3864";
   const agency = settings?.agencyName?.trim() || "ROZATOUR";
   const dir = ar ? ("row-reverse" as const) : ("row" as const);
   const align = ar ? ("right" as const) : ("left" as const);
   const baseDir = ar ? ("rtl" as const) : ("ltr" as const);
-  const title = certificateTitle(data.lang);
-  const rows = certificateRows(data, docDate);
+  const title = { main: mainTitle };
 
   // النص المحفوظ: فقرة المقدمة، ثم الجدول، ثم بقية الفقرات (قابلة للتعديل من صفحة المستند)
   const paras = body
@@ -136,9 +198,7 @@ export function WorkCertificatePdf({
             <Corner color={color} pos="br" />
 
             {/* علامة مائية باهتة باسم الوكالة */}
-            <View
-              style={{ position: "absolute", top: 440, left: 0, right: 0, alignItems: "center" }}
-            >
+            <View style={{ position: "absolute", top: 440, left: 0, right: 0, alignItems: "center" }}>
               <Text
                 style={{
                   fontSize: 70,
@@ -157,7 +217,7 @@ export function WorkCertificatePdf({
             <View style={{ flexDirection: dir, justifyContent: "space-between", marginBottom: 8 }}>
               <Text style={{ fontSize: 9, color: "#475569" }}>{`N° ${docNumber}`}</Text>
               <MixedText
-                text={placeDate(settings, data.lang, fmt(docDate))}
+                text={placeDate(settings, lang, fmt(docDate))}
                 size={9}
                 align={ar ? "left" : "right"}
                 baseDir={baseDir}
@@ -197,6 +257,12 @@ export function WorkCertificatePdf({
               </View>
             )}
 
+            {payRows && payRows.length > 0 && (
+              <View style={{ marginBottom: 12 }}>
+                <PayTable rows={payRows} rtl={ar} color={color} />
+              </View>
+            )}
+
             {rest.map((p, i) => para(p, i))}
 
             {/* كتلة التوقيع والختم — يمين الورقة في الفرنسية، يسارها في العربية */}
@@ -205,34 +271,57 @@ export function WorkCertificatePdf({
             <View style={{ flexDirection: dir, justifyContent: "flex-end", marginTop: 8 }} wrap={false}>
               <View style={{ width: 210, alignItems: "center" }}>
                 <MixedText
-                  text={signerTitleOf(data)}
+                  text={signerTitle}
                   size={11.5}
                   align="center"
                   style={{ fontSize: 11.5, fontWeight: "bold", color }}
                 />
-                {data.signerName ? (
+                {signerName ? (
                   <MixedText
-                    text={data.signerName}
+                    text={signerName}
                     size={10.5}
                     align="center"
                     containerStyle={{ marginTop: 2 }}
                     style={{ fontSize: 10.5, color: "#1e293b" }}
                   />
                 ) : null}
-                <View style={{ height: 84, width: 150, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                <View style={{ height: 78, width: 150, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
                   {stamp ? (
                     // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image
-                    <Image src={stamp} style={{ width: 84, height: 84, objectFit: "contain" }} />
+                    <Image src={stamp} style={{ width: 78, height: 78, objectFit: "contain" }} />
                   ) : null}
                 </View>
-                <Text style={{ fontSize: 8, color: "#94a3b8" }}>
-                  {ar ? "الإمضاء والختم" : "Signature et cachet"}
-                </Text>
+                <Text style={{ fontSize: 8, color: "#94a3b8" }}>{ar ? "الإمضاء والختم" : "Signature et cachet"}</Text>
               </View>
             </View>
           </View>
         </View>
       </LetterheadPage>
     </PdfDocument>
+  );
+}
+
+// شهادة العمل بالتصميم المشترك
+export function WorkCertificatePdf({
+  data,
+  ...rest
+}: {
+  data: CertData;
+  body: string;
+  docNumber: string;
+  docDate: Date;
+  settings: Settings | null;
+  stamp: Buffer | null;
+  qr: Buffer | null;
+}) {
+  return (
+    <FramedLetterPdf
+      lang={data.lang}
+      title={certificateTitle(data.lang).main}
+      rows={certificateRows(data, rest.docDate)}
+      signerTitle={signerTitleOf(data)}
+      signerName={data.signerName}
+      {...rest}
+    />
   );
 }

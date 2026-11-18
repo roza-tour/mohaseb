@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Field, Input, Select, LinkButton, Button, SuccessBanner } from "@/components/ui";
 import { DeleteButton } from "@/components/DeleteButton";
 import { formatDateForInput } from "@/lib/format";
-import { updateEmployee, deleteEmployee, issueWorkCertificate } from "../actions";
+import { updateEmployee, deleteEmployee, issueWorkCertificate, issueSalaryStatement } from "../actions";
+import { PAY_TYPES } from "@/lib/salaryStatement";
 import { EmployeeFields } from "../EmployeeFields";
-import { SignerPicker } from "../SignerPicker";
+import { SignerFields } from "../SignerFields";
 
 export default async function EditEmployeePage({
   params,
@@ -62,24 +63,81 @@ export default async function EditEmployeePage({
                 <Field label="تاريخ الشهادة">
                   <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
                 </Field>
-                <SignerPicker initial={settings?.managerTitle ?? ""} />
-                <Field label="اسم الموقّع بالعربية (للشهادة العربية)">
-                  <Input name="signerName" defaultValue={settings?.managerName ?? ""} placeholder="مثال: بن يحي محمد" />
-                </Field>
-                <Field label="اسم الموقّع بالفرنسية (للشهادة الفرنسية)">
-                  <Input
-                    name="signerNameFr"
-                    dir="ltr"
-                    defaultValue={settings?.managerNameFr ?? ""}
-                    placeholder="Ex : BENYAHIA Mohamed"
-                  />
-                </Field>
+                <SignerFields
+                  title={settings?.managerTitle ?? ""}
+                  nameAr={settings?.managerName ?? ""}
+                  nameFr={settings?.managerNameFr ?? ""}
+                />
                 <label className="flex items-center gap-2 text-sm text-slate-700 sm:pt-7">
                   <input type="checkbox" name="showStamp" defaultChecked />
                   إظهار الختم
                 </label>
               </div>
               <Button type="submit">إصدار الشهادة (PDF)</Button>
+            </form>
+          </Card>
+        </div>
+
+        <div id="salary">
+          <Card className="p-5">
+            <h2 className="font-semibold text-slate-800 mb-1">💰 إصدار بيان راتب</h2>
+            <p className="text-xs text-slate-500 mb-2">
+              بنفس تصميم شهادة العمل، ويُسجَّل في المستندات الصادرة برقم وختم ورمز QR.
+            </p>
+            <p className="text-sm text-slate-700 mb-4 rounded-lg bg-slate-50 px-3 py-2">
+              نظام الأجر: <b>{PAY_TYPES[emp.payType] ?? PAY_TYPES.salary}</b>
+              {emp.payType !== "commission" && (
+                <>
+                  {" "}
+                  — الراتب الثابت: <b>{emp.baseSalary ? emp.baseSalary.toLocaleString("en-US") : "غير محدَّد"}</b>
+                </>
+              )}
+              {emp.payType !== "salary" && (
+                <>
+                  {" "}
+                  — النسبة: <b>{emp.commissionRate ? `${emp.commissionRate}%` : "غير محدَّدة"}</b>
+                </>
+              )}
+              <span className="block text-xs text-slate-500 mt-1">
+                لتغييرها عدّل «نظام الأجر» في بيانات الموظف واحفظ أولاً.
+              </span>
+            </p>
+            <form action={issueSalaryStatement.bind(null, id)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="لغة البيان">
+                  <Select name="lang" defaultValue="fr">
+                    <option value="fr">الفرنسية (Relevé de salaire)</option>
+                    <option value="ar">العربية (بيان راتب)</option>
+                  </Select>
+                </Field>
+                <Field label="الشهر">
+                  <Input type="month" name="period" defaultValue={new Date().toISOString().slice(0, 7)} />
+                </Field>
+                {emp.payType !== "salary" && (
+                  <Field label="مبلغ الأعمال المحسوبة عليه النسبة">
+                    <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
+                  </Field>
+                )}
+                <Field label="منح وعلاوات (اختياري)">
+                  <Input type="number" name="bonus" min={0} step="0.01" />
+                </Field>
+                <Field label="اقتطاعات (اختياري)">
+                  <Input type="number" name="deductions" min={0} step="0.01" />
+                </Field>
+                <Field label="تاريخ البيان">
+                  <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
+                </Field>
+                <SignerFields
+                  title={settings?.managerTitle ?? ""}
+                  nameAr={settings?.managerName ?? ""}
+                  nameFr={settings?.managerNameFr ?? ""}
+                />
+                <label className="flex items-center gap-2 text-sm text-slate-700 sm:pt-7">
+                  <input type="checkbox" name="showStamp" defaultChecked />
+                  إظهار الختم
+                </label>
+              </div>
+              <Button type="submit">إصدار بيان الراتب (PDF)</Button>
             </form>
           </Card>
         </div>

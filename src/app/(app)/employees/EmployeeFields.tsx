@@ -1,6 +1,7 @@
 import { Field, Input, Select, Textarea } from "@/components/ui";
 import { formatDateForInput } from "@/lib/format";
 import type { Employee } from "@prisma/client";
+import { PAY_TYPES } from "@/lib/salaryStatement";
 
 const d = (v: Date | null | undefined) => (v ? formatDateForInput(v) : "");
 
@@ -41,6 +42,43 @@ export function EmployeeFields({ e }: { e?: Employee | null }) {
           <Input type="date" name="endDate" defaultValue={d(e?.endDate)} />
         </Field>
       </div>
+      <fieldset className="rounded-lg border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-medium text-slate-700">
+          💰 نظام الأجر <span className="text-xs font-normal text-slate-400">(لبيان الراتب — اختياري)</span>
+        </legend>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="نوع الأجر">
+            <Select name="payType" defaultValue={e?.payType ?? "salary"}>
+              {Object.entries(PAY_TYPES).map(([k, label]) => (
+                <option key={k} value={k}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="الراتب الشهري الثابت">
+            <Input
+              type="number"
+              name="baseSalary"
+              min={0}
+              step="0.01"
+              defaultValue={e?.baseSalary ?? ""}
+              placeholder="مثال: 45000"
+            />
+          </Field>
+          <Field label="نسبة العمولة (%)">
+            <Input
+              type="number"
+              name="commissionRate"
+              min={0}
+              max={100}
+              step="0.01"
+              defaultValue={e?.commissionRate ?? ""}
+              placeholder="مثال: 10"
+            />
+          </Field>
+        </div>
+      </fieldset>
       <Field label="ملاحظات">
         <Textarea name="notes" rows={2} defaultValue={e?.notes ?? ""} />
       </Field>
