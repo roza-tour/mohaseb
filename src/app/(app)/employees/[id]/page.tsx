@@ -117,18 +117,19 @@ export default async function EditEmployeePage({
                 {emp.payType !== "salary" && (
                   <Field label="قيمة الأعمال اللي جابها الموظف نفسه خلال الشهر (تُحسب عليها النسبة)">
                     <div className="flex gap-2">
-                      <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
-                      <Select
-                        name="commissionCurrency"
-                        defaultValue={settings?.defaultCurrency || "DZD"}
-                        className="w-28 shrink-0"
-                      >
-                        {CURRENCIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c === "DZD" ? "دينار" : c === "EUR" ? "يورو" : c}
-                          </option>
-                        ))}
-                      </Select>
+                      {/* المبلغ يأخذ المساحة كلها، والعملة عرض ثابت (min-w-0 حتى لا ينضغط المبلغ) */}
+                      <div className="flex-1 min-w-0">
+                        <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
+                      </div>
+                      <div className="w-24 shrink-0">
+                        <Select name="commissionCurrency" defaultValue={settings?.defaultCurrency || "DZD"}>
+                          {CURRENCIES.map((c) => (
+                            <option key={c} value={c}>
+                              {c === "DZD" ? "دينار" : c === "EUR" ? "يورو" : c}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
                     </div>
                   </Field>
                 )}
