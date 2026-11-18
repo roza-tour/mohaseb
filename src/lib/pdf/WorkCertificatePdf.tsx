@@ -113,16 +113,18 @@ function PayTable({ rows, rtl, color }: { rows: PayRow[]; rtl: boolean; color: s
               borderRight: rtl ? "0.6px solid #cbd5e1" : "none",
             }}
           >
-            <Text
+            {/* MixedText: ترتيب صحيح لمبلغين بعملتين بالعربية («50,000.00 دج + 300.00 €») */}
+            <MixedText
+              text={r.amount}
+              size={r.total ? 11.5 : 10.5}
+              align={end}
+              baseDir={rtl ? "rtl" : "ltr"}
               style={{
                 fontSize: r.total ? 11.5 : 10.5,
                 fontWeight: "bold",
                 color: r.total ? color : "#0f172a",
-                textAlign: end,
               }}
-            >
-              {r.amount}
-            </Text>
+            />
           </View>
         </View>
       ))}

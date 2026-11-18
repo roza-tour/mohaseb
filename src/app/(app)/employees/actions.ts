@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { nextDocNumber } from "@/lib/docNumbers";
+import { CURRENCIES, type Currency } from "@/lib/currencies";
 import { SALARY_STATEMENT, salaryBody, salaryTitle, type SalaryData } from "@/lib/salaryStatement";
 import {
   WORK_CERTIFICATE,
@@ -170,6 +171,9 @@ export async function issueSalaryStatement(id: string, formData: FormData) {
     baseSalary: emp.baseSalary ?? 0,
     commissionRate: emp.commissionRate ?? 0,
     commissionBase: amount(formData, "commissionBase"),
+    commissionCurrency: CURRENCIES.includes(str(formData, "commissionCurrency") as Currency)
+      ? str(formData, "commissionCurrency")
+      : settings.defaultCurrency || "DZD",
     bonus: amount(formData, "bonus"),
     deductions: amount(formData, "deductions"),
     currency: settings.defaultCurrency || "DZD",

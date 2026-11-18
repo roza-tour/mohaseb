@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { formatDateForInput } from "@/lib/format";
 import { updateEmployee, deleteEmployee, issueWorkCertificate, issueSalaryStatement } from "../actions";
 import { PAY_TYPES } from "@/lib/salaryStatement";
+import { CURRENCIES } from "@/lib/currencies";
 import { EmployeeFields } from "../EmployeeFields";
 import { SignerFields } from "../SignerFields";
 
@@ -115,7 +116,20 @@ export default async function EditEmployeePage({
                 </Field>
                 {emp.payType !== "salary" && (
                   <Field label="قيمة الأعمال اللي جابها الموظف نفسه خلال الشهر (تُحسب عليها النسبة)">
-                    <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
+                    <div className="flex gap-2">
+                      <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
+                      <Select
+                        name="commissionCurrency"
+                        defaultValue={settings?.defaultCurrency || "DZD"}
+                        className="w-28 shrink-0"
+                      >
+                        {CURRENCIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c === "DZD" ? "دينار" : c === "EUR" ? "يورو" : c}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
                   </Field>
                 )}
                 <Field label="منح وعلاوات (اختياري)">

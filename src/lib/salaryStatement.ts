@@ -31,6 +31,8 @@ export type SalaryData = {
   baseSalary: number;
   commissionRate: number;
   commissionBase: number;
+  // عملة قيمة الأعمال والعمولة (يورو أو دينار...) — الفارغ = عملة الراتب
+  commissionCurrency?: string;
   bonus: number;
   deductions: number;
   currency: string;
@@ -90,18 +92,27 @@ export function money(n: number, currency: string, lang: CertLang): string {
   const sep = lang === "fr" ? " " : ",";
   const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
   const num = lang === "fr" ? `${grouped},${dec}` : `${grouped}.${dec}`;
-  const cur = currency === "DZD" ? (lang === "ar" ? "دج" : "DA") : currency;
+  const cur = currency === "DZD" ? (lang === "ar" ? "دج" : "DA") : currency === "EUR" ? "€" : currency;
   return `${n < 0 ? "- " : ""}${num} ${cur}`;
 }
 
 const hasSalary = (d: SalaryData) => d.payType === "salary" || d.payType === "both";
 const hasCommission = (d: SalaryData) => d.payType === "commission" || d.payType === "both";
 
+export const commissionCurrencyOf = (d: SalaryData) => d.commissionCurrency || d.currency;
+
+// المبالغ: العمولة بعملة الأعمال، والباقي بعملة الراتب. الصافي لكل عملة على حدة
+// (لا يُجمع اليورو مع الدينار): «45 000,00 DA + 500,00 €»
 export function salaryAmounts(d: SalaryData) {
   const base = hasSalary(d) ? d.baseSalary || 0 : 0;
   const commission = hasCommission(d) ? ((d.commissionBase || 0) * (d.commissionRate || 0)) / 100 : 0;
-  const net = base + commission + (d.bonus || 0) - (d.deductions || 0);
-  return { base, commission, net };
+  const cc = commissionCurrencyOf(d);
+  const totals = new Map<string, number>();
+  const add = (cur: string, n: number) => totals.set(cur, (totals.get(cur) ?? 0) + n);
+  if (hasSalary(d) || d.bonus > 0 || d.deductions > 0) add(d.currency, base + (d.bonus || 0) - (d.deductions || 0));
+  if (hasCommission(d)) add(cc, commission);
+  if (totals.size === 0) add(d.currency, 0);
+  return { base, commission, totals: [...totals.entries()] };
 }
 
 export function salaryTitle(lang: CertLang): string {
@@ -128,7 +139,7 @@ export function salaryRows(d: SalaryData): [string, string][] {
       ar
         ? `قيمة الأعمال التي ${f ? "جلبتها" : "جلبها"} خلال الشهر`
         : `Affaires apportées par ${f ? "l'intéressée" : "l'intéressé"}`,
-      money(d.commissionBase || 0, d.currency, d.lang),
+      money(d.commissionBase || 0, commissionCurrencyOf(d), d.lang),
     ]);
   }
   return rows.filter(([, v]) => v.trim() !== "");
@@ -155,8 +166,9 @@ function rate(n: number, lang: CertLang): string {
 // جدول المبالغ: الراتب الأساسي، العمولة، المنح، الاقتطاعات، الصافي
 export function salaryPayRows(d: SalaryData): PayRow[] {
   const ar = d.lang === "ar";
-  const { base, commission, net } = salaryAmounts(d);
+  const { base, commission, totals } = salaryAmounts(d);
   const m = (n: number) => money(n, d.currency, d.lang);
+  const mc = (n: number) => money(n, commissionCurrencyOf(d), d.lang);
   const rows: PayRow[] = [];
   if (hasSalary(d)) rows.push({ label: ar ? "الراتب الأساسي" : "Salaire de base", amount: m(base) });
   if (hasCommission(d)) {
@@ -165,12 +177,16 @@ export function salaryPayRows(d: SalaryData): PayRow[] {
         ? // قيمة الأعمال نفسها في جدول البيانات أعلاه — هنا النسبة وأصلها باختصار
           `عمولة ${rate(d.commissionRate, "ar")} من الأعمال التي ${d.employee.gender === "F" ? "جلبتها" : "جلبها"}`
         : `Commission de ${rate(d.commissionRate, "fr")} sur les affaires apportées`,
-      amount: m(commission),
+      amount: mc(commission),
     });
   }
   if (d.bonus > 0) rows.push({ label: ar ? "منح وعلاوات" : "Primes et indemnités", amount: m(d.bonus) });
   if (d.deductions > 0) rows.push({ label: ar ? "اقتطاعات" : "Retenues", amount: m(-d.deductions) });
-  rows.push({ label: ar ? "الصافي المستحق" : "Net à payer", amount: m(net), total: true });
+  rows.push({
+    label: ar ? "الصافي المستحق" : "Net à payer",
+    amount: totals.map(([cur, n]) => money(n, cur, d.lang)).join(" + "),
+    total: true,
+  });
   return rows;
 }
 
