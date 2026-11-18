@@ -8,7 +8,15 @@ import { makeQrPng } from "@/lib/qr";
 import { genToken, verifyUrl } from "@/lib/share";
 import { RefBar, DocTitle, PlaceDateLine } from "@/lib/pdf/chrome";
 import { WorkCertificatePdf, FramedLetterPdf } from "@/lib/pdf/WorkCertificatePdf";
-import { SALARY_STATEMENT, readSalaryData, salaryPayRows, salaryRows, salaryTitle } from "@/lib/salaryStatement";
+import {
+  SALARY_STATEMENT,
+  monthsOf,
+  readSalaryData,
+  salaryMonthTable,
+  salaryPayRows,
+  salaryRows,
+  salaryTitle,
+} from "@/lib/salaryStatement";
 import { WORK_CERTIFICATE, readCertData } from "@/lib/workCertificate";
 
 function formatDate(date: Date) {
@@ -59,7 +67,9 @@ export async function renderDocumentPdf(id: string): Promise<{ buffer: Buffer; d
         lang={salary.lang}
         title={salaryTitle(salary.lang)}
         rows={salaryRows(salary)}
-        payRows={salaryPayRows(salary)}
+        // شهر واحد: جدول المبالغ؛ عدة أشهر: جدول بسطر لكل شهر
+        payRows={monthsOf(salary).length > 1 ? undefined : salaryPayRows(salary)}
+        monthTable={monthsOf(salary).length > 1 ? salaryMonthTable(salary) : undefined}
         signerTitle={salary.signerTitle || (salary.lang === "ar" ? "المسيّر" : "Le Gérant")}
         signerName={salary.signerName}
         body={doc.body}

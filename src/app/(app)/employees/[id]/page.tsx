@@ -5,9 +5,9 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { formatDateForInput } from "@/lib/format";
 import { updateEmployee, deleteEmployee, issueWorkCertificate, issueSalaryStatement } from "../actions";
 import { PAY_TYPES } from "@/lib/salaryStatement";
-import { CURRENCIES } from "@/lib/currencies";
 import { EmployeeFields } from "../EmployeeFields";
 import { SignerFields } from "../SignerFields";
+import { SalaryMonthsEditor } from "../SalaryMonthsEditor";
 
 export default async function EditEmployeePage({
   params,
@@ -111,34 +111,12 @@ export default async function EditEmployeePage({
                     <option value="ar">العربية (بيان راتب)</option>
                   </Select>
                 </Field>
-                <Field label="الشهر">
-                  <Input type="month" name="period" defaultValue={new Date().toISOString().slice(0, 7)} />
-                </Field>
-                {emp.payType !== "salary" && (
-                  <Field label="قيمة الأعمال اللي جابها الموظف نفسه خلال الشهر (تُحسب عليها النسبة)">
-                    <div className="flex gap-2">
-                      {/* المبلغ يأخذ المساحة كلها، والعملة عرض ثابت (min-w-0 حتى لا ينضغط المبلغ) */}
-                      <div className="flex-1 min-w-0">
-                        <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
-                      </div>
-                      <div className="w-24 shrink-0">
-                        <Select name="commissionCurrency" defaultValue={settings?.defaultCurrency || "DZD"}>
-                          {CURRENCIES.map((c) => (
-                            <option key={c} value={c}>
-                              {c === "DZD" ? "دينار" : c === "EUR" ? "يورو" : c}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-                    </div>
-                  </Field>
-                )}
-                <Field label="منح وعلاوات (اختياري)">
-                  <Input type="number" name="bonus" min={0} step="0.01" />
-                </Field>
-                <Field label="اقتطاعات (اختياري)">
-                  <Input type="number" name="deductions" min={0} step="0.01" />
-                </Field>
+                {/* الأشهر: شهر واحد أو عدة أشهر، وسطر لكل شهر */}
+                <SalaryMonthsEditor
+                  showCommission={emp.payType !== "salary"}
+                  defaultCurrency={settings?.defaultCurrency || "DZD"}
+                  thisMonth={new Date().toISOString().slice(0, 7)}
+                />
                 <Field label="تاريخ البيان">
                   <Input type="date" name="docDate" defaultValue={formatDateForInput(new Date())} />
                 </Field>

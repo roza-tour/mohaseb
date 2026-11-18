@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { nextDocNumber } from "@/lib/docNumbers";
 import { CURRENCIES, type Currency } from "@/lib/currencies";
-import { SALARY_STATEMENT, salaryBody, salaryTitle, type SalaryData } from "@/lib/salaryStatement";
+import { SALARY_STATEMENT, salaryBody, salaryTitle, type SalaryData, type SalaryMonth } from "@/lib/salaryStatement";
 import {
   WORK_CERTIFICATE,
   certDataFrom,
@@ -151,8 +151,27 @@ export async function issueSalaryStatement(id: string, formData: FormData) {
 
   const lang = formData.get("lang") === "ar" ? "ar" : "fr";
   const docDate = date(formData, "docDate") ?? new Date();
-  const p = str(formData, "period");
-  const period = /^\d{4}-\d{2}$/.test(p) ? p : docDate.toISOString().slice(0, 7);
+  // الأشهر: سطر لكل شهر (الأعمال المجلوبة، المنح، الاقتطاعات) — حتى 12 شهراً
+  const num = (v: FormDataEntryValue | undefined) => {
+    const n = Number(
+      String(v ?? "")
+        .replace(/\s/g, "")
+        .replace(",", "."),
+    );
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+  const periods = formData.getAll("months_period").map(String);
+  const bases = formData.getAll("months_base");
+  const bonuses = formData.getAll("months_bonus");
+  const deds = formData.getAll("months_deductions");
+  const months: SalaryMonth[] = periods
+    .map((pr, i) => ({ period: pr, commissionBase: num(bases[i]), bonus: num(bonuses[i]), deductions: num(deds[i]) }))
+    .filter((mo) => /^\d{4}-\d{2}$/.test(mo.period))
+    .slice(0, 12);
+  if (months.length === 0) {
+    months.push({ period: docDate.toISOString().slice(0, 7), commissionBase: 0, bonus: 0, deductions: 0 });
+  }
+  const period = months[0].period;
   const { settings, signerName, signer } = await readSigner(formData, lang);
   const agencyName = settings.agencyName || "ROZATOUR";
 
@@ -170,12 +189,14 @@ export async function issueSalaryStatement(id: string, formData: FormData) {
     payType: emp.payType,
     baseSalary: emp.baseSalary ?? 0,
     commissionRate: emp.commissionRate ?? 0,
-    commissionBase: amount(formData, "commissionBase"),
+    // الحقول العليا = الشهر الأول (للتوافق مع البيانات القديمة)، والأشهر كلها في months
+    commissionBase: months[0].commissionBase,
+    months,
     commissionCurrency: CURRENCIES.includes(str(formData, "commissionCurrency") as Currency)
       ? str(formData, "commissionCurrency")
       : settings.defaultCurrency || "DZD",
-    bonus: amount(formData, "bonus"),
-    deductions: amount(formData, "deductions"),
+    bonus: months[0].bonus,
+    deductions: months[0].deductions,
     currency: settings.defaultCurrency || "DZD",
     signerName,
     signerTitle: signer.title,
@@ -196,7 +217,11 @@ export async function issueSalaryStatement(id: string, formData: FormData) {
       showStamp: formData.get("showStamp") === "on",
     },
   });
-  await logActivity("create", "Document", `بيان راتب ${docNumber} — ${emp.name || "موظف"} — ${period}`);
+  await logActivity(
+    "create",
+    "Document",
+    `بيان راتب ${docNumber} — ${emp.name || "موظف"} — ${period}${months.length > 1 ? ` (${months.length} أشهر)` : ""}`,
+  );
   revalidatePath("/documents");
   redirect(`/documents/${doc.id}/pdf`);
 }

@@ -4,6 +4,7 @@ import { Document as PdfDocument, View, Text, Image } from "@react-pdf/renderer"
 import type { Settings } from "@prisma/client";
 import { LetterheadPage } from "@/lib/pdf/letterhead";
 import { placeDate } from "@/lib/pdf/placeDate";
+import type { MonthTable } from "@/lib/salaryStatement";
 import { MixedText } from "@/lib/pdf/MixedText";
 import { certificateRows, certificateTitle, signerTitleOf, type CertData } from "@/lib/workCertificate";
 
@@ -44,6 +45,54 @@ function Corner({ color, pos }: { color: string; pos: "tl" | "tr" | "bl" | "br" 
 }
 
 // جدول بيانات الموظف: تسمية بلون الوكالة الفاتح وقيمة — أسطر مضغوطة لتبقى الشهادة في صفحة
+// بيانات الموظف مضغوطة: خانتان (اسم + قيمة) في كل سطر
+function CertGrid({ rows, rtl, color }: { rows: [string, string][]; rtl: boolean; color: string }) {
+  const align = rtl ? ("right" as const) : ("left" as const);
+  const lines: [string, string][][] = [];
+  for (let i = 0; i < rows.length; i += 2) lines.push(rows.slice(i, i + 2));
+  return (
+    <View style={{ border: `0.8px solid ${color}` }}>
+      {lines.map((pair, li) => (
+        <View
+          key={li}
+          style={{
+            flexDirection: rtl ? "row-reverse" : "row",
+            ...(li > 0 ? { borderTop: "0.6px solid #cbd5e1" } : {}),
+          }}
+        >
+          {pair.map(([label, value], j) => (
+            <View
+              key={label}
+              style={{
+                flexDirection: rtl ? "row-reverse" : "row",
+                width: pair.length === 1 ? "100%" : "50%",
+                ...(j === 0 && pair.length === 2
+                  ? rtl
+                    ? { borderLeft: "0.6px solid #cbd5e1" }
+                    : { borderRight: "0.6px solid #cbd5e1" }
+                  : {}),
+              }}
+            >
+              <View style={{ width: 92, backgroundColor: "#f1f5f9", paddingVertical: 3.5, paddingHorizontal: 6 }}>
+                <Text style={{ fontSize: 8.5, fontWeight: "bold", color: "#334155", textAlign: align }}>{label}</Text>
+              </View>
+              <View style={{ flex: 1, paddingVertical: 3.5, paddingHorizontal: 6 }}>
+                <MixedText
+                  text={value}
+                  size={9.5}
+                  align={align}
+                  baseDir={rtl ? "auto" : "ltr"}
+                  style={{ fontSize: 9.5, color: "#0f172a", fontWeight: "bold" }}
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function CertTable({ rows, rtl, color }: { rows: [string, string][]; rtl: boolean; color: string }) {
   const align = rtl ? ("right" as const) : ("left" as const);
   return (
@@ -132,6 +181,60 @@ function PayTable({ rows, rtl, color }: { rows: PayRow[]; rtl: boolean; color: s
   );
 }
 
+// جدول الأشهر: عمود الشهر ثم المبالغ، وسطر المجموع بارز. الخط يصغر قليلاً مع كثرة الأعمدة
+function MonthGrid({ table, rtl, color }: { table: MonthTable; rtl: boolean; color: string }) {
+  const cols = table.headers.length;
+  const fs = cols > 5 ? 8 : 8.8;
+  const dir = rtl ? ("row-reverse" as const) : ("row" as const);
+  const align = rtl ? ("right" as const) : ("left" as const);
+  const end = rtl ? ("left" as const) : ("right" as const);
+  const cell = (text: string, i: number, opts: { head?: boolean; total?: boolean }) => (
+    <View
+      key={i}
+      style={{
+        flex: i === 0 ? 1.1 : 1,
+        paddingVertical: opts.head ? 3.5 : 2.6,
+        paddingHorizontal: 4,
+        ...(i > 0 ? (rtl ? { borderRight: "0.6px solid #cbd5e1" } : { borderLeft: "0.6px solid #cbd5e1" }) : {}),
+      }}
+    >
+      <MixedText
+        text={text}
+        size={fs}
+        align={i === 0 ? align : end}
+        baseDir={rtl ? "rtl" : "ltr"}
+        style={{
+          fontSize: fs,
+          fontWeight: opts.head || opts.total || i === 0 ? "bold" : "normal",
+          color: opts.head ? "#ffffff" : opts.total ? color : "#1e293b",
+        }}
+      />
+    </View>
+  );
+  return (
+    <View style={{ border: `0.8px solid ${color}` }}>
+      <View style={{ flexDirection: dir, backgroundColor: color }}>
+        {table.headers.map((h, i) => cell(h, i, { head: true }))}
+      </View>
+      {table.rows.map((r, ri) => (
+        <View
+          key={ri}
+          style={{
+            flexDirection: dir,
+            borderTop: "0.6px solid #cbd5e1",
+            backgroundColor: ri % 2 ? "#f8fafc" : "#ffffff",
+          }}
+        >
+          {r.map((c, i) => cell(c, i, {}))}
+        </View>
+      ))}
+      <View style={{ flexDirection: dir, borderTop: `1.2px solid ${color}`, backgroundColor: "#f1f5f9" }}>
+        {table.total.map((c, i) => cell(c, i, { total: true }))}
+      </View>
+    </View>
+  );
+}
+
 // رسالة رسمية بإطار مزخرف (شهادة العمل، بيان الراتب): مقدمة، جدول بيانات، جدول مبالغ
 // اختياري، فقرات ختامية، وكتلة توقيع وختم.
 export function FramedLetterPdf({
@@ -139,6 +242,7 @@ export function FramedLetterPdf({
   title: mainTitle,
   rows,
   payRows,
+  monthTable,
   signerTitle,
   signerName,
   body,
@@ -152,6 +256,8 @@ export function FramedLetterPdf({
   title: string;
   rows: [string, string][];
   payRows?: PayRow[];
+  // بيان عدة أشهر: جدول بسطر لكل شهر بدل جدول المبالغ
+  monthTable?: MonthTable;
   signerTitle: string;
   signerName: string;
   body: string;
@@ -255,7 +361,18 @@ export function FramedLetterPdf({
 
             {rows.length > 0 && (
               <View style={{ marginTop: 4, marginBottom: 10 }}>
-                <CertTable rows={rows} rtl={ar} color={color} />
+                {/* بيان عدة أشهر: بيانات الموظف مضغوطة (خانتان في السطر) ليبقى البيان في صفحة واحدة */}
+                {monthTable ? (
+                  <CertGrid rows={rows} rtl={ar} color={color} />
+                ) : (
+                  <CertTable rows={rows} rtl={ar} color={color} />
+                )}
+              </View>
+            )}
+
+            {monthTable && monthTable.rows.length > 0 && (
+              <View style={{ marginBottom: 10 }}>
+                <MonthGrid table={monthTable} rtl={ar} color={color} />
               </View>
             )}
 
