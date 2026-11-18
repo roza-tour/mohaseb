@@ -181,8 +181,8 @@ export function FramedLetterPdf({
       size={11.5}
       align={align}
       baseDir={baseDir}
-      containerStyle={{ marginBottom: 8 }}
-      style={{ fontSize: 11.5, lineHeight: 1.6, color: "#1e293b" }}
+      containerStyle={{ marginBottom: 6 }}
+      style={{ fontSize: 11.5, lineHeight: 1.5, color: "#1e293b" }}
     />
   );
 
@@ -191,7 +191,7 @@ export function FramedLetterPdf({
       {/* الختم يوضع في كتلة التوقيع لا أعلى الصفحة */}
       <LetterheadPage settings={settings} stamp={null} qr={qr}>
         <View style={{ flexGrow: 1, border: `1.6px solid ${color}`, padding: 4, marginTop: 4 }}>
-          <View style={{ flexGrow: 1, border: `0.6px solid ${color}`, paddingVertical: 16, paddingHorizontal: 26 }}>
+          <View style={{ flexGrow: 1, border: `0.6px solid ${color}`, paddingVertical: 10, paddingHorizontal: 26 }}>
             <Corner color={color} pos="tl" />
             <Corner color={color} pos="tr" />
             <Corner color={color} pos="bl" />
@@ -214,7 +214,7 @@ export function FramedLetterPdf({
             </View>
 
             {/* الرقم والتاريخ */}
-            <View style={{ flexDirection: dir, justifyContent: "space-between", marginBottom: 8 }}>
+            <View style={{ flexDirection: dir, justifyContent: "space-between", marginBottom: 6 }}>
               <Text style={{ fontSize: 9, color: "#475569" }}>{`N° ${docNumber}`}</Text>
               <MixedText
                 text={placeDate(settings, lang, fmt(docDate))}
@@ -226,7 +226,7 @@ export function FramedLetterPdf({
             </View>
 
             {/* العنوان بلغة الشهادة فقط */}
-            <View style={{ alignItems: "center", marginBottom: 16 }}>
+            <View style={{ alignItems: "center", marginBottom: 12 }}>
               <MixedText
                 text={title.main}
                 size={22}
@@ -252,13 +252,13 @@ export function FramedLetterPdf({
             {intro ? para(intro, "intro") : null}
 
             {rows.length > 0 && (
-              <View style={{ marginTop: 4, marginBottom: 12 }}>
+              <View style={{ marginTop: 4, marginBottom: 10 }}>
                 <CertTable rows={rows} rtl={ar} color={color} />
               </View>
             )}
 
             {payRows && payRows.length > 0 && (
-              <View style={{ marginBottom: 12 }}>
+              <View style={{ marginBottom: 10 }}>
                 <PayTable rows={payRows} rtl={ar} color={color} />
               </View>
             )}
@@ -285,10 +285,10 @@ export function FramedLetterPdf({
                     style={{ fontSize: 10.5, color: "#1e293b" }}
                   />
                 ) : null}
-                <View style={{ height: 78, width: 150, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                <View style={{ height: 70, width: 150, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
                   {stamp ? (
                     // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image
-                    <Image src={stamp} style={{ width: 78, height: 78, objectFit: "contain" }} />
+                    <Image src={stamp} style={{ width: 70, height: 70, objectFit: "contain" }} />
                   ) : null}
                 </View>
                 <Text style={{ fontSize: 8, color: "#94a3b8" }}>{ar ? "الإمضاء والختم" : "Signature et cachet"}</Text>

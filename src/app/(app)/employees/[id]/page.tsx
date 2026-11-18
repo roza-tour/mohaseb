@@ -114,7 +114,7 @@ export default async function EditEmployeePage({
                   <Input type="month" name="period" defaultValue={new Date().toISOString().slice(0, 7)} />
                 </Field>
                 {emp.payType !== "salary" && (
-                  <Field label="مبلغ الأعمال المحسوبة عليه النسبة">
+                  <Field label="قيمة الأعمال اللي جابها الموظف نفسه خلال الشهر (تُحسب عليها النسبة)">
                     <Input type="number" name="commissionBase" min={0} step="0.01" placeholder="مثال: 500000" />
                   </Field>
                 )}

@@ -1,7 +1,8 @@
 // بيان الراتب (Relevé de salaire) بالعربية والفرنسية — بنفس تصميم شهادة العمل.
 //
 // نظام الأجر يُحفظ في ملف الموظف: راتب ثابت، أو نسبة (عمولة)، أو الاثنان.
-// عند الإصدار يُختار الشهر ومبلغ الأعمال المحسوبة عليه النسبة، ومنح واقتطاعات اختيارية.
+// عند الإصدار يُختار الشهر وقيمة الأعمال التي جلبها الموظف نفسه (تُحسب عليها النسبة)،
+// ومنح واقتطاعات اختيارية.
 // يُحفظ «مستنداً صادراً» من نوع salary-statement: البيانات في Document.data،
 // والنص فقرتان في Document.body (المقدمة، الختام) قابلتان للتعديل.
 import { deFr, type CertLang } from "./workCertificate";
@@ -111,22 +112,39 @@ export function salaryTitle(lang: CertLang): string {
 export function salaryRows(d: SalaryData): [string, string][] {
   const ar = d.lang === "ar";
   const e = d.employee;
+  const f = e.gender === "F";
   const rows: [string, string][] = [
     [ar ? "الاسم واللقب" : "Nom et prénom", e.name || "—"],
     [ar ? "الوظيفة" : "Poste occupé", e.jobTitle],
     [ar ? "رقم بطاقة التعريف الوطنية" : "N° de la carte d'identité", e.idNumber],
     [ar ? "رقم الضمان الاجتماعي" : "N° de sécurité sociale", e.socialSecurityNo],
     [ar ? "تاريخ التوظيف" : "Date de recrutement", fmtDate(e.startDate)],
-    [ar ? "نظام الأجر" : "Mode de rémunération", payTypeText(d.payType, d.lang)],
+    [ar ? "نظام الأجر" : "Mode de rémunération", payTypeText(d)],
     [ar ? "الفترة" : "Période", ar ? `شهر ${periodText(d.period, "ar")}` : `Mois de ${periodText(d.period, "fr")}`],
   ];
+  // أساس العمولة: قيمة الأعمال التي جلبها الموظف نفسه خلال الشهر
+  if (hasCommission(d)) {
+    rows.push([
+      ar
+        ? `قيمة الأعمال التي ${f ? "جلبتها" : "جلبها"} خلال الشهر`
+        : `Affaires apportées par ${f ? "l'intéressée" : "l'intéressé"}`,
+      money(d.commissionBase || 0, d.currency, d.lang),
+    ]);
+  }
   return rows.filter(([, v]) => v.trim() !== "");
 }
 
-function payTypeText(t: string, lang: CertLang): string {
-  if (lang === "ar")
-    return t === "commission" ? "نسبة من الأعمال" : t === "both" ? "راتب ثابت + نسبة" : "راتب شهري ثابت";
-  return t === "commission" ? "Commission" : t === "both" ? "Salaire fixe + commission" : "Salaire mensuel fixe";
+// نظام الأجر: العمولة دائماً على الأعمال التي يجلبها الموظف نفسه
+function payTypeText(d: SalaryData): string {
+  const t = d.payType;
+  const f = d.employee.gender === "F";
+  if (d.lang === "ar") {
+    const c = `نسبة من الأعمال التي ${f ? "تجلبها" : "يجلبها"}`;
+    return t === "commission" ? c : t === "both" ? `راتب ثابت + ${c}` : "راتب شهري ثابت";
+  }
+  const c = `commission sur les affaires ${f ? "qu'elle apporte" : "qu'il apporte"}`;
+  if (t === "commission") return c.charAt(0).toUpperCase() + c.slice(1);
+  return t === "both" ? `Salaire fixe + ${c}` : "Salaire mensuel fixe";
 }
 
 function rate(n: number, lang: CertLang): string {
@@ -144,8 +162,9 @@ export function salaryPayRows(d: SalaryData): PayRow[] {
   if (hasCommission(d)) {
     rows.push({
       label: ar
-        ? `العمولة (${rate(d.commissionRate, "ar")} من ${m(d.commissionBase)})`
-        : `Commission (${rate(d.commissionRate, "fr")} de ${m(d.commissionBase)})`,
+        ? // قيمة الأعمال نفسها في جدول البيانات أعلاه — هنا النسبة وأصلها باختصار
+          `عمولة ${rate(d.commissionRate, "ar")} من الأعمال التي ${d.employee.gender === "F" ? "جلبتها" : "جلبها"}`
+        : `Commission de ${rate(d.commissionRate, "fr")} sur les affaires apportées`,
       amount: m(commission),
     });
   }
