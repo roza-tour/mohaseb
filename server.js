@@ -18,7 +18,20 @@ const handle = app.getRequestHandler();
 app
   .prepare()
   .then(() => {
-    createServer((req, res) => handle(req, res)).listen(port, () => {
+    createServer((req, res) => {
+      // صفحات المسارات الديناميكية ([id]) داخل المجموعة (app) لها ملفات جافاسكريبت
+      // بمسارات فيها أقواس. المتصفح يطلبها مشفّرة (%28app%29/visa/%5Bid%5D) والخادم
+      // يرجع 404 لهذه الصيغة، بينما الصيغة غير المشفّرة تعمل. فنفكّ التشفير هنا
+      // لملفات _next/static فقط، فتفتح صفحات التعديل (الفيزا، الفواتير…) من جديد.
+      if (req.url && req.url.startsWith("/_next/static/") && req.url.includes("%")) {
+        try {
+          req.url = decodeURI(req.url);
+        } catch {
+          /* عنوان مشوّه: نتركه كما هو */
+        }
+      }
+      return handle(req, res);
+    }).listen(port, () => {
       console.log(`mohaseb ready on port ${port}`);
     });
   })
