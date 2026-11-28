@@ -56,7 +56,6 @@ const T = {
     taskDate: "تاريخ بداية المهمة",
     travelers: "المسافرون",
     handedOver: "سُلّمت هذه المهمة بتاريخ",
-    travelerCount: "عدد المسافرين",
     detailsTitle: "تفاصيل المهمة",
     GUIDE: "مرشد سياحي",
     DRIVER: "سائق",
@@ -80,7 +79,6 @@ const T = {
     taskDate: "Début de la mission",
     travelers: "Voyageurs",
     handedOver: "Mission remise le",
-    travelerCount: "Nombre de voyageurs",
     detailsTitle: "Détails de la mission",
     GUIDE: "Guide touristique",
     DRIVER: "Chauffeur",
@@ -114,15 +112,9 @@ function groupRows(group: FieldGroup, fields: FieldValues, lang: "ar" | "fr"): [
   );
 }
 
-// «سُلّمت هذه المهمة في المسيلة بتاريخ ...» / «Mission remise à M'Sila le ...»
-function handedOverLine(
-  settings: { cityAr?: string | null; cityFr?: string | null } | null,
-  lang: "ar" | "fr",
-  date: string
-): string {
-  const city = (lang === "ar" ? settings?.cityAr : settings?.cityFr)?.trim();
-  if (lang === "ar") return city ? `سُلّمت هذه المهمة في ${city} بتاريخ ${date}` : `سُلّمت هذه المهمة بتاريخ ${date}`;
-  return city ? `Mission remise à ${city} le ${date}` : `Mission remise le ${date}`;
+// «سُلّمت هذه المهمة بتاريخ ...» / «Mission remise le ...» — بلا مكان التحرير
+function handedOverLine(lang: "ar" | "fr", date: string): string {
+  return lang === "ar" ? `سُلّمت هذه المهمة بتاريخ ${date}` : `Mission remise le ${date}`;
 }
 
 export function buildTaskOrderDoc({
@@ -155,7 +147,7 @@ export function buildTaskOrderDoc({
         [t.tripEnd, fmt(order.trip.end)],
         // الجنسية تُكتب في الأمر نفسه (الرحلة المسجّلة لا تحملها)
         ...groupRows("trip", order.fields, lang).filter(([label]) =>
-          TASK_FIELDS.some((f) => f.withTrip && f[lang] === label)
+          TASK_FIELDS.some((f) => f.withTrip && f[lang] === label),
         ),
       ]
     : groupRows("trip", order.fields, lang); // يدوي: ما كُتب فقط
@@ -176,8 +168,16 @@ export function buildTaskOrderDoc({
   const missionRows = groupRows("mission", order.fields, lang);
   const details = order.details.trim();
   // المسافرون: العدد المكتوب (أو عدد الأسماء) ثم الأسماء مرقّمة
-  const paxCount = travelerCount(order.fields, order.travelers);
-  const nameRows: [string, string][] = order.travelers.map((n, i) => [String(i + 1), n]);
+  // المسافرون: خانات مرقّمة بعددهم (بلا سطر «عدد المسافرين») — المكتوبة بأسمائها،
+  // والباقي فارغ للكتابة باليد
+  const slots = Math.min(
+    Math.max(parseInt(travelerCount(order.fields, order.travelers), 10) || 0, order.travelers.length),
+    60,
+  );
+  const nameRows: [string, string][] = Array.from({ length: slots }, (_, i) => [
+    String(i + 1),
+    order.travelers[i] ?? "",
+  ]);
   const extraRows: [string, string][] = order.extraRows.map((r) => [r.label.trim() || "—", r.value.trim()]);
 
   return (
@@ -185,7 +185,7 @@ export function buildTaskOrderDoc({
       <LetterheadPage settings={settings} stamp={stamp} qr={qr}>
         <RefBar number={`${t.orderNo} ${order.ref}`} date="" rtl={rtl} style={style} />
         <DocTitle text={title} rtl={rtl} style={style} />
-        <PlaceDateLine text={handedOverLine(settings, lang, fmt(order.issueDate))} rtl={rtl} style={style} />
+        <PlaceDateLine text={handedOverLine(lang, fmt(order.issueDate))} rtl={rtl} style={style} />
 
         <SectionTitle text={t.assigneeSection} rtl={rtl} style={style} />
         <GridTable rows={assigneeRows} rtl={rtl} baseDir={baseDir} style={style} />
@@ -205,21 +205,10 @@ export function buildTaskOrderDoc({
           </View>
         )}
 
-        {(paxCount || nameRows.length > 0) && (
+        {nameRows.length > 0 && (
           <View wrap={nameRows.length > 16}>
             <SectionTitle text={t.travelers} rtl={rtl} style={style} />
-            {paxCount ? (
-              <GridTable
-                rows={[[t.travelerCount, paxCount]]}
-                rtl={rtl}
-                baseDir={baseDir}
-                style={style}
-                tight={nameRows.length > 0}
-              />
-            ) : null}
-            {nameRows.length > 0 && (
-              <GridTable rows={nameRows} rtl={rtl} baseDir={baseDir} style={style} labelWidth={28} />
-            )}
+            <GridTable rows={nameRows} rtl={rtl} baseDir={baseDir} style={style} labelWidth={28} />
           </View>
         )}
 
@@ -288,7 +277,6 @@ export async function renderTaskOrderPdf(
     await prisma.taskOrder.update({ where: { id: taskOrder.id }, data: { publicToken: token } });
   }
   const qr = await makeQrPng(verifyUrl("task-order", token));
-
 
   const buffer = await renderToBuffer(
     buildTaskOrderDoc({
